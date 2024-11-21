@@ -33,3 +33,9 @@ Team contract and project proposal.
 | Week 1 | Introductions of Group and Setup Discord | N/A |
 | Week 2 | Completed Team Contract | N/A |
 | Week 3 | Setup Github Repository | N/A |
+| Week 4 | Figuring out next steps| N/A |
+| Week 5 | Meeting with Sponsor | N/A |
+| Week 9 | Site Visit | N/A |
+| Week 10 | User Design | N/A |
+| Week 11 | Poster Assignment | N/A |
+| Week 12 | Status Report Assignment | N/A |

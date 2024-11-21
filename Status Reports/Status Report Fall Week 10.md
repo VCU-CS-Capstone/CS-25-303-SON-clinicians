@@ -1,4 +1,4 @@
-# CS 25-303 11/14/2024
+# CS 25-303 11/7/2024
 **Students' Names:**
 - Tyree Carpenter
 - Shikriti Ghosh
@@ -10,15 +10,12 @@
 **Faculty Advisor:**
 
 ## 1) Accomplishments this week ##
-   - Designed Poster
-   - Database Prototype
-   - Improved User Interface Prototype
+   - User Interface Work
 
 ## 2) Milestones to be completed next week ##
-   - Finished Database Design
-   - Start Web Server Design
 
 ## 3) Issues, problems or concerns ##
+  -  Project Scope still need more clarification
 
 
 
