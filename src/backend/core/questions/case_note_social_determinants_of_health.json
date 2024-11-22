@@ -1,0 +1,118 @@
+{
+    "category": {
+        "string_id": "social_determinants_of_health",
+        "name": "Social Determinants of Health - Education & Coordination/Resources",
+        "form": "CaseNotes"
+    },
+    "questions": [
+        {
+            "question": {
+                "question_type": "MultiCheckBox",
+                "question": "Education related to:",
+                "string_id": "visit_sdh_edu",
+                "string_id_other": "other_sdh"
+            },
+            "options": [
+                {
+                    "name": "Health Insurance",
+                    "red_cap_option_index": 1,
+                    "options": {
+                        "triggers_other": true
+                    }
+                },
+                {
+                    "name": "Transportation",
+                    "red_cap_option_index": 2,
+                    "options": {
+                        "triggers_other": true
+                    }
+                },
+                {
+                    "name": "Housing",
+                    "red_cap_option_index": 3,
+                    "options": {
+                        "triggers_other": true
+                    }
+                },
+                {
+                    "name": "Food/Nutrition",
+                    "red_cap_option_index": 4,
+                    "options": {
+                        "triggers_other": true
+                    }
+                },
+                {
+                    "name": "Telephone Service",
+                    "red_cap_option_index": 5,
+                    "options": {
+                        "triggers_other": true
+                    }
+                },
+                {
+                    "name": "Health Literacy",
+                    "red_cap_option_index": 6,
+                    "options": {
+                        "triggers_other": true
+                    }
+                },
+                {
+                    "name": "Personal Technology",
+                    "red_cap_option_index": 9
+                },
+                {
+                    "name": "Other",
+                    "red_cap_option_index": 7,
+                    "triggers_other": true
+                },
+                {
+                    "name": "N/A - not discussed",
+                    "red_cap_option_index": 8,
+                    "options": {
+                        "unique": true
+                    }
+                }
+            ]
+        },
+        {
+            "question": {
+                "question_type": "MultiCheckBox",
+                "question": "Food/Nutrition coordination:",
+                "string_id": "food_ref"
+            },
+            "options": [
+                {
+                    "name": "Prescription Produce Plan (PPP)",
+                    "red_cap_option_index": 6
+                },
+                {
+                    "name": "Meals on Wheels",
+                    "red_cap_option_index": 1
+                },
+                {
+                    "name": "SNAP",
+                    "red_cap_option_index": 2
+                },
+                {
+                    "name": "Food commodity program",
+                    "red_cap_option_index": 3
+                },
+                {
+                    "name": " Mobile market",
+                    "red_cap_option_index": 4
+                },
+                {
+                    "name": "Senior Farm Market Nutrition Program",
+                    "red_cap_option_index": 7
+                },
+                {
+                    "name": "Lunch Program (like Mercy Chefs)",
+                    "red_cap_option_index": 9
+                },
+                {
+                    "name": "Food Pantry or Food Delivery Services",
+                    "red_cap_option_index": 9
+                }
+            ]
+        }
+    ]
+}

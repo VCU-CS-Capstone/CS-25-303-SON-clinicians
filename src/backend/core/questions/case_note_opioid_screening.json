@@ -1,0 +1,115 @@
+{
+    "after": [
+        "medications.json"
+    ],
+    "category": {
+        "string_id": "opioid_screening",
+        "name": "Opioid Screening",
+        "form": "CaseNotes"
+    },
+    "questions": [
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Prescribed opioid use?",
+                "string_id": "opioid1",
+                "requirements": "questions.get(\"med_rec\") == true || questions.get(\"med_review\") == true"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "MME calculation> 50?",
+                "string_id": "opioid2",
+                "requirements": "questions.get(\"opioid\") == true || questions.get(\"med_review\") == true"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Duration > 6 weeks?",
+                "string_id": "opioid3",
+                "requirements": "questions.get(\"opioid1\") == true || questions.get(\"med_review\") == true"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Radio",
+                "question": "Use of non-prescribed opioids?",
+                "string_id": "opioid4",
+                "requirements": "questions.get(\"opioid1\") == true || questions.get(\"med_review\") == true"
+            },
+            "options": [
+                {
+                    "name": "Yes",
+                    "string_id": "yes",
+                    "red_cap_option_index": 1
+                },
+                {
+                    "name": "No",
+                    "red_cap_option_index": 2
+                },
+                {
+                    "name": "not asked",
+                    "red_cap_option_index": 3
+                }
+            ]
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Concurrent use of benzodiazepine or gabapentin?",
+                "string_id": "opioid5",
+                "requirements": "questions.get(\"opioid1\") == true || questions.get(\"opioid4\") == \"yes\" || questions.get(\"opioid\") == true"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Provide opioid safety education?",
+                "string_id": "opioid6",
+                "requirements": "questions.get(\"opioid1\") == true || questions.get(\"opioid4\") == \"yes\" || questions.get(\"opioid\") == true"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "PProvide tapering opioid use education?",
+                "string_id": "opioid7",
+                "requirements": "questions.get(\"opioid1\") == true || questions.get(\"opioid4\") == \"yes\" || questions.get(\"opioid\") == true"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Provide drug disposal education?",
+                "string_id": "opioid8",
+                "requirements": "questions.get(\"opioid1\") == true || questions.get(\"opioid4\") == \"yes\" || questions.get(\"opioid\") == true"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Provide referral resources?",
+                "string_id": "opioid9",
+                "requirements": "questions.get(\"opioid1\") == true || questions.get(\"opioid4\") == \"yes\" || questions.get(\"opioid\") == true"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Contact primary care?",
+                "string_id": "opioid10",
+                "requirements": "questions.get(\"opioid1\") == true || questions.get(\"opioid4\") == \"yes\" || questions.get(\"opioid\") == true"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Text",
+                "question": "Additional opioid information/detail:",
+                "string_id": "opioid_other",
+                "requirements": "questions.get(\"opioid1\") == true || questions.get(\"opioid4\") == \"yes\" || questions.get(\"opioid\") == true"
+            }
+        }
+    ]
+}

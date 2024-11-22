@@ -1,0 +1,60 @@
+{
+    "category": {
+        "string_id": "falls_screening",
+        "name": "Falls Screening",
+        "form": "CaseNotes"
+    },
+    "questions": [
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Have you fallen since last visit with us",
+                "string_id": "falls1"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Have you fallen/had other falls in past 6 months?",
+                "string_id": "falls2"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Do you feel unsteady when standing or walking?",
+                "string_id": "falls3"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Do you feel dizzy when you stand up from sitting or laying down?",
+                "string_id": "falls4"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Are you worried about falling?",
+                "string_id": "falls5"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Text",
+                "question": "If yes, what were the circumstances of the fall(s)?",
+                "string_id": "screen_falls1a",
+                "requirements": "questions.get('falls1').equals(true) || questions.get('falls2').equals(true)"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Did fall result in an injury?",
+                "string_id": "injury_fall",
+                "requirements": "questions.get('falls1').equals(true) || questions.get('falls2').equals(true)"
+            }
+        }
+    ]
+}

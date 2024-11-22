@@ -1,0 +1,346 @@
+---
+title: Capstone Database Design
+author:
+    - name: Wyatt Herkamp
+      email: herkampwj@vcu.edu
+date: last-modified
+format:
+    html:
+        theme: cosmo
+        toc: true
+        embed-resources: true
+        code-copy: true
+---
+## Document Info
+This database has two separate diagrams. This is because the redcap info might be shared with other groups.
+
+## Notes
+
+Almost all case note related columns are nullable. This is because the data is not exackly perfect in red cap. If all attributes are null. That set of data wont be imported from Red Cap. However, I am not sure what things will be filled and what No
+I am trying to make it work. When pulling from red cap if all entries in a case_note related table are null it will just not create an entry in that case.
+
+## Participants
+```{mermaid}
+erDiagram
+    participants ||--o| participant_health_overview : "has one or none"
+    participants ||--|| locations : "has one"
+    participants ||--|| participants_demographics : "has one"
+    participants ||--o{ participant_medications : "has many"
+
+    participants ||--o{ participant_goals : "has many"
+    participants ||--o{ participant_goal_steps : "has many"
+    participant_goals ||--o{ participant_goal_steps : "has many"
+
+    participants ||--o{ case_notes : "has many"
+    locations }o--o| locations : "Might have Parent"
+    case_notes ||--|| locations : "has one"
+    case_notes ||--o| case_notes_health_measures : "has one"
+    case_notes_health_measures ||--o{ health_measure_blood_pressure : "[0-3] blood pressure readings"
+
+    question_category ||--o{  questions : "Every Question Belongs to a category"
+    questions ||--o{ question_options : "Might have many options (Radio or Multi Checkbox)"
+
+    case_notes ||--o{ case_note_question_answers : "Has Many Answers"
+    questions ||--o{ case_note_question_answers : ""
+    question_options ||--o{  case_note_question_answer_mcb : ""
+
+    case_note_question_answers ||--o{ case_note_question_answer_mcb : "Might be connected to many options (Multi Check Box)"
+    case_note_question_answers }o--o| question_options : "Might be connected to single options (For Radio)"
+
+    participants ||--o{ participants_question_answers : "Has Many Answers"
+
+    questions ||--o{ participants_question_answers : ""
+    question_options ||--o{  participants_question_answer_mcb : ""
+
+    participants_question_answers ||--o{ participants_question_answer_mcb : "Might be connected to many options (Multi Check Box)"
+    participants_question_answers }o--o| question_options : "Might be connected to single options (For Radio)"
+
+    locations {
+        i32 id PK
+        string name
+        string program
+        i32 parent_location "Petersburg has multiple locations. The rest dont"
+        json red_cap_connection_rules "Rules for converting Red Cap Imports/Exports"
+    }
+    question_category{
+        i32 id PK
+        string form "Currently Only CaseNotes"
+        string string_id "UNIQUE"
+        string name
+        string description "Nullable"
+    }
+
+    questions{
+        i32 id PK
+        i32 category_id FK
+        string string_id "UNIQUE"
+        string string_id_other "UNIQUE, Nullable. Used for Radio or Multibox Only. "
+        string question_type "MultiCheck, RadioOption, or Number, Boolean, Float"
+        string question
+        string description "Nullable"
+        bool required "default false. Ignored if Requirements not met"
+        bool removed "default false."
+        string requirements "DSL for testing if question should be shown"
+        json additional_options
+    }
+    question_options{
+        i32 id PK
+        i32 question_id FK
+        string string_id "Nullable"
+        string name
+        string description "Nullable"
+        i32 red_cap_option_index "Nullable"
+        bool removed "Was Option Removed"
+        JSON additional_options
+    }
+    participants{
+        i32 participant_id PK
+        i32 red_cap_id
+        string first_name
+        string last_name
+        string phone_number_one
+        string phone_number_one
+        string other_contact
+        string program
+        i32 location FK
+        string status
+        string behavioral_risks_identified
+        date date_care_coordination_consent_signed
+        date date_home_visit_consent_signed
+        date signed_up_on
+        datetime added_to_db_at
+        datetime last_synced_with_redcap
+    }
+    participant_medications{
+        i32 id PK
+        i32 participant_id FK
+        String name
+        String dosage "Nullable"
+        String frequency "Nullable"
+        date date_presribed "Nullable"
+        date date_entered_into_system
+        bool is_current "Nullable"
+        date date_discontinued "Nullable"
+        string comments "Nullable"
+        int red_cap_index "Nullable"
+        bool hidden_from_red_cap "Not Null Default False"
+        DateTime created_at "Not Null Default NOW"
+    }
+    participant_goals{
+        i32 id PK
+        i32 participant_id FK
+        string goal
+        bool is_active "Nullable"
+        int red_cap_index "Nullable"
+        bool hidden_from_red_cap "Not Null Default False"
+        DateTime created_at "Not Null Default NOW"
+    }
+    participant_goal_steps{
+        i32 id PK
+        i32 goal_id FK "Nullable"
+        i32 participant_id FK
+        string step
+        i16 confidence_level "1-10, Nullable"
+        date date_set "Nullable"
+        date date_to_be_completed "Nullable"
+        bool action_step "Nullable"
+        int red_cap_index "Nullable"
+        bool hidden_from_red_cap "Not Null Default False"
+        DateTime created_at "Not Null Default NOW"
+    }
+    participant_health_overview {
+        i32 id PK
+        i32 participant_id FK
+        f32 height "in inches"
+        string reported_health_conditions "Nullable"
+        string allergies "Nullable"
+        bool has_blood_pressure_cuff "Nullable"
+        bool takes_more_than_5_medications "Nullable"
+        MobilityDevice[] mobility_devices "Nullable"
+    }
+    participants_demographics {
+        i32 id PK
+        i32 participant_id FK
+        i16 age "Nullable"
+        string gender "Nullable"
+        string Race "Nullable"
+        string race_other "Nullable"
+        string race_multiple "Nullable"
+        string ethnicity "Nullable"
+        string language "Nullable"
+        bool is_veteran "Nullable"
+        Array health_insurance "Nullable"
+        string highest_education_level "Nullable"
+    }
+    participants_question_answers{
+        i32 id PK
+        i32 participant_id FK
+        i32 question_id FK
+        enum response_type "Same as Question"
+        i32 value_radio FK "Nullable"
+        string value_text "Nullable"
+        i32 value_number "Nullable"
+        f32 value_float "Nullable"
+        bool value_boolean "Nullable"
+    }
+    participants_question_answer_mcb{
+        i32 id PK
+        i32 question_answers_id FK
+        i32 option_id FK
+    }
+    case_notes {
+        i32 id PK
+        i32 participant_id FK
+        i32 location FK
+        enum visit_type "Nullable"
+        i16 age "Nullable"
+        string reason_for_visit "Nullable"
+        string info_provided_by_caregiver "Nullable"
+        date date_of_visit
+        bool completed "Default False"
+        bool pushed_to_red_cap "Nullable"
+        i32 red_cap_instance "Nullable"
+        DateTime last_synced_with_redcap "Nullable"
+        DateTime created_at "Default Now"
+    }
+    case_notes_health_measures{
+        i32 id PK
+        i32 case_note_id FK
+        bool glucose_tested "Default False"
+        i16 glucose_result "Nullable"
+        bool gluce_taken_fasting "Nullable"
+        String other "Nullable"
+    }
+    health_measure_blood_pressure{
+        i32 id PK
+        i32 health_measure_id FK
+        enum diastolic "Sit, Stand, Personal"
+        i16 systolic
+        i16 diastolic
+    }
+    case_note_question_answers{
+        i32 id PK
+        i32 case_note_id FK
+        i32 question_id FK
+        enum response_type "Same as Question"
+        i32 value_radio FK "Nullable"
+        string value_text "Nullable"
+        i32 value_number "Nullable"
+        f32 value_float "Nullable"
+        bool value_boolean "Nullable"
+    }
+
+    case_note_question_answer_mcb{
+        i32 id PK
+        i32 question_answers_id FK
+        i32 option_id FK
+    }
+```
+# Questions?
+
+So the redcap system is basically something like Google Forms.
+
+We have a ton of conditional questions we have to be able to ask. Making a table for each set of questions is not feasible. As it will not be maintainable.
+
+It will also create a ton of null values in the database.
+
+So the solution?
+
+Lets make a questions table.
+
+Each question might have a category.
+
+Each question may also be have a set of requirements that must be met for the question to be required.
+
+That is what the goal of the system is to do.
+Then case notes will just an answers table. That references the question and or the answer(In Multi Checksboxes or Radios)
+
+The system is still using a relational database allowing for it to be querried.
+
+
+## Non Red Cap Data
+
+```{mermaid}
+erDiagram
+    users ||--o| user_authentication_password : "has one or none"
+    users ||--o| user_authentication_saml : "has one or none"
+    users ||--o{ appointments :"has zero or more"
+    users ||--o{ user_api_tokens :"has zero or more"
+    users ||--o{ user_permissions :"has zero or more"
+    users ||--o{ user_roles : "User has many roles"
+    user_authentication_saml }o--||saml_providers : "Saml Provider can provide many logins"
+    user_roles ||--|| roles : "1:1"
+    roles ||--o{ role_permissions : "1 to many"
+
+    appointments }o--o| participants : "Has One or none."
+
+    users{
+        i32 id PK
+        string first_name
+        string last_name
+        string email
+        DateTime created_at
+    }
+    user_api_tokens{
+        i32 id PK
+        i32 user_id FK
+        string token
+        string created_with "Device Info App Info"
+        bool revoked "Default false"
+        DateTime expires_at "Nullable"
+        DateTime created_at
+    }
+    user_permissions{
+        i32 id PK
+        i32 user_id FK
+        string permission
+        DateTime created_at
+    }
+    roles{
+        i32 id PK
+        string name
+        string description "Nullable"
+    }
+    role_permissions{
+        i32 id PK
+        i32 role_id FK
+        string scope
+        DateTime created_at
+    }
+    user_roles{
+        i32 id PK
+        i32 user FK
+        i32 role FK
+    }
+    user_authentication_password {
+        i32 id PK
+        i32 user_id FK
+        String password "Nullable"
+        DataTime password_last_updated
+        bool requires_password_reset
+        DateTime created_at
+    }
+    user_authentication_saml {
+        i32 id PK
+        i32 user_id FK
+        i32 provider FK
+    }
+    saml_providers {
+        i32 id PK
+        string name
+        bool is_default "If true only one can exist in the table"
+    }
+    appointments{
+        i32 id
+        DateTime scheduled_at
+        i32 preferred_clinician FK "Nullable"
+        i32 participant FK "Nullable. Null if new patient"
+        string first_name "Null if participant is set"
+        string last_name "Null if participant is set"
+        string contact_number
+        bool missed_appointment "Null until scheduled time is past"
+        i32 seen_by FK "Null until appointment happened"
+        DateTime created_at
+    }
+
+```

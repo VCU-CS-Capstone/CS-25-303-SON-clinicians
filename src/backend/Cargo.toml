@@ -1,0 +1,75 @@
+[workspace]
+members = ["backend", "core", "macros", "test-data"]
+resolver = "2"
+[workspace.package]
+version = "0.1.0-beta"
+authors = ["Wyatt Jacob Herkamp <herkampwj@vcu.edu>"]
+edition = "2021"
+repository = "https://github.com/VCU-CS-Capstone/CS-25-303-SON-clinicians"
+[workspace.dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+
+## Logging Utilities
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+
+# API Documentation
+utoipa = { version = "5.0.0", features = ["chrono", "uuid", "url", "debug"] }
+
+# Other Utilities
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+ahash = "0.8"
+base64 = "0.22"
+derive_more = { version = "1", features = ["deref", "as_ref", "from"] }
+strum = { version = "0.26", features = ["derive"] }
+
+
+# Runtime
+tokio = { version = "1", features = ["full"] }
+
+# Web Stuff
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0.1" }
+http = "1.1"
+http-body-util = "0.1"
+http-body = "1"
+bytes = "1"
+pin-project = "1"
+url = "2"
+## Libraries within workspace
+cs25-303-core = { path = "core" }
+cs25-303-macros = { path = "macros" }
+## Error Handling
+thiserror = "2.0"
+anyhow = "1.0"
+# Database
+[workspace.dependencies.sqlx]
+version = "0.8"
+default-features = false
+features = [
+    "runtime-tokio-rustls",
+    "macros",
+    "postgres",
+    "chrono",
+    "json",
+    "derive",
+    "uuid",
+    "migrate",
+]
+
+## The following packages will be compiled in release mode. During development.
+## Why? Because the processing time is kind of slow during development.
+[profile.dev.package."argon2"]
+opt-level = 3
+[profile.dev.package."digest"]
+opt-level = 3
+[profile.dev.package."base64"]
+opt-level = 3
+
+[workspace.lints.rust]
+async_fn_in_trait = "allow"

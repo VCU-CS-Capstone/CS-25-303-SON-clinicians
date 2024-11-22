@@ -1,0 +1,287 @@
+---
+title: Database Report
+author:
+    - name: Wyatt Herkamp
+      email: herkampwj@vcu.edu
+date: last-modified
+format:
+    html:
+        theme: cosmo
+        toc: true
+        embed-resources: true
+        code-copy: true
+execute:
+  echo: false
+  eval: true
+  cache: false
+---
+
+Shows off the CS25-303 Database
+```{python}
+import os
+import sys
+import pandas as pd
+from tabulate import tabulate
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import ArgumentError, NoSuchModuleError, OperationalError, ProgrammingError
+import psycopg2
+def run_sql_and_return_df(sql, cnx):
+    """Given an SQL command and connection string, return a DataFrame."""
+
+    # Check if the connection is None
+    if cnx is None:
+        error_message = "No valid connection. See above."
+        df = pd.DataFrame({'ErrorType': ['ConnectionError'], 'ErrorMessage': [error_message]})
+        return df.to_html(index=False)
+
+    try:
+        df = pd.read_sql(sql, cnx)
+        if df.empty:
+            # Create a single-row DataFrame with all columns as None
+            df = pd.DataFrame([["no records returned"]+ [''] * (len(df.columns) - 1) ], columns=df.columns)
+
+        # Convert the DataFrame to HTML and use custom styling to span columns if needed
+        html_output = df.to_html(index=False, na_rep="", justify="center")
+
+        # Add colspan attribute to span columns if rendering in an environment that supports it
+        html_output = html_output.replace('<td>no records found</td>', f'<td colspan="{len(df.columns)}">no records found</td>')
+        return html_output
+
+    except OperationalError as e:
+        # Catch connection or database errors
+        error_message = f"Operational Error: {str(e)}"
+        df = pd.DataFrame({'ErrorType': ['OperationalError'], 'ErrorMessage': [error_message]})
+    except ProgrammingError as e:
+        # Catch SQL syntax errors or issues with the command
+        error_message = f"Programming Error: {str(e)}"
+        df = pd.DataFrame({'ErrorType': ['ProgrammingError'], 'ErrorMessage': [error_message]})
+    except Exception as e:
+        # Catch all other exceptions
+        error_message = f"Unknown Error: {str(e)}"
+        df = pd.DataFrame({'ErrorType': ['UnknownError'], 'ErrorMessage': [error_message]})
+    
+    return df.to_html(index=False)
+
+def create_database_engine(uri):
+    """Create an SQLAlchemy engine with error handling and test the connection."""
+
+    try:
+        # Attempt to create the engine
+        engine = create_engine(uri)
+
+        # Test the connection with a lightweight query
+
+        run_sql_and_return_df("select 1 from dual",engine)
+
+#        with engine.connect() as connection:
+#            connection.execute(text("SELECT 1"))
+        
+        return engine  # Return the engine if connection test is successful
+
+    except sqlalchemy.exc.ArgumentError as e:
+        error_message = f"URI Error: {e}"
+    except sqlalchemy.exc.NoSuchModuleError as e:
+        error_message = f"Database driver not found: {e}"
+    except sqlalchemy.exc.OperationalError as e:
+        error_message = f"Operational error: {e}"
+    except Exception as e:
+        error_message = f"An unexpected error occurred: {e}"
+    
+    return None  # Return None if any error occurs
+
+def execute_ddl_from_file(filename, cnx):
+    """
+    Executes DDL statements from a file on a given SQLAlchemy connection, 
+    capturing any errors and results.
+    """
+    messages = []
+    errors = []
+
+    with open(filename, 'r', encoding='utf-8') as file:
+        ddl_commands = file.read()
+
+    # Split commands if needed, such as if commands are separated by semicolons
+    ddl_statements = [cmd.strip() for cmd in ddl_commands.split(';') if cmd.strip()]
+
+    with cnx.connect() as connection:
+        for statement in ddl_statements:
+            try:
+                result = connection.execute(text(statement))
+                # Capture the result, if any
+                result_info = result.rowcount if result.rowcount != -1 else "No rows affected"
+                messages.append(f"Executed statement: {statement}<br/>Result: {result_info}<br/>")
+            except Exception as e:
+                # Capture the error message if execution fails
+                errors.append(f"<hr/>Error executing statement: <b>{statement}</b><br/>    Error: {str(e)}<br/>")
+
+    return messages, errors
+
+```
+
+```{python}
+# modify config_map to reflect credentials needed by this program
+# These variables are set in your .env file
+config_map = {
+    'user': 'DATABASE_USER',
+    'password':'DATABASE_PASSWORD',
+    'host':'DATABASE_HOST',
+    'database':'DATABASE_NAME'
+}
+# load and store credentials
+load_dotenv()
+config = {}
+for key in config_map.keys():
+    config[key] = os.getenv(config_map[key])
+
+errors = []
+for param in config.keys():
+    if config[param] is None:
+        flag = True
+        errors.append(f"Missing {config_map[param]} in .env file.")
+
+cnx = None
+error_df=""
+if errors:
+    errors.append("All subsequent SQL commands will fail.")
+    errors.append("Fix the .env file and rerun quarto ...")
+    # Convert errors to a DataFrame
+    error_df = pd.DataFrame({'Errors loading .env file': errors})
+    error_df
+else:
+    # build a sqlalchemy engine string
+    engine_uri = f"postgresql+psycopg2://{config['user']}:{config['password']}@{config['host']}/{config['database']}"
+
+    # create and test the database connection.
+    cnx = create_database_engine( engine_uri )
+
+
+```
+
+## Overview and description
+
+
+## Database Overiew
+
+```{python}
+#| echo: false
+sql = f"""
+WITH tbl AS
+  (SELECT table_schema,
+          TABLE_NAME
+   FROM information_schema.tables
+   WHERE TABLE_NAME not like 'pg_%%' AND TABLE_NAME != '_sqlx_migrations'
+     AND table_schema in ('public'))
+SELECT
+       TABLE_NAME,
+       (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %%I.%%I', table_schema, TABLE_NAME), FALSE, TRUE, '')))[1]::text::int AS ColumnCount
+FROM tbl
+ORDER BY ColumnCount DESC;
+"""
+run_sql_and_return_df( sql,cnx )
+
+```
+
+### Participants table
+
+
+```{python}
+#| echo: true
+sql = f"""
+select * from participants;
+"""
+run_sql_and_return_df( sql,cnx )
+
+```
+### Participant Demographics table
+
+
+
+```{python}
+#| echo: true
+sql = f"""
+SELECT participants.first_name, participants.last_name,participant_demographics.*
+    from participants
+    INNER JOIN participant_demographics ON
+        participants.id = participant_demographics.participant_id
+;
+"""
+run_sql_and_return_df( sql,cnx )
+
+```
+
+### Participant 1 Medications
+
+
+
+```{python}
+#| echo: true
+sql = f"""
+SELECT participant_medications.*
+    from participant_medications
+    WHERE participant_medications.participant_id = 1;
+
+"""
+run_sql_and_return_df( sql,cnx )
+
+```
+
+### Participant 1 Goals
+
+```{python}
+#| echo: true
+sql = f"""
+SELECT participant_goals.*
+    from participant_goals
+    WHERE participant_goals.participant_id = 1;
+
+"""
+run_sql_and_return_df( sql,cnx )
+
+```
+
+### Finding Participants with High Blood Pressure Signs
+
+```{python}
+#| echo: true
+sql = f"""
+SELECT participants.id, participants.first_name, participants.last_name,
+       BP.systolic,
+       BP.diastolic
+FROM health_measure_blood_pressure AS BP
+    INNER JOIN case_note_health_measures ON BP.health_measure_id = case_note_health_measures.id
+    INNER JOIN case_notes  on case_notes.id = case_note_health_measures.case_note_id
+    INNER JOIN participants ON case_notes.participant_id = participants.id
+    WHERE BP.systolic >= 130 AND BP.diastolic >= 80 AND BP.blood_pressure_type = 'Sit';
+"""
+run_sql_and_return_df( sql,cnx )
+
+```
+
+### Listing Extra Questions For Case Note 1
+
+```{python}
+#| echo: true
+sql = f"""
+SELECT
+            questions.question,
+            case_note_question_answers.response_type as response_type,
+            case_note_question_answers.value_text as value_text,
+            case_note_question_answers.value_number as value_number,
+            case_note_question_answers.value_float as value_float,
+
+            case_note_question_answers.value_boolean as value_boolean,
+            (question_options.id, question_options.name) as value_radio,
+            array(
+                SELECT (mcb.option_id, qo.name, qo.string_id) FROM case_note_question_answer_mcb as mcb
+                                JOIN public.question_options qo on qo.id = mcb.option_id
+                                WHERE question_answers_id = case_note_question_answers.id
+            ) as options
+        FROM case_note_question_answers
+            JOIN questions  on case_note_question_answers.question_id = questions.id
+            LEFT JOIN question_options on case_note_question_answers.value_radio = question_options.id
+        WHERE case_note_question_answers.case_note_id = 1;
+"""
+run_sql_and_return_df( sql,cnx )
+
+```

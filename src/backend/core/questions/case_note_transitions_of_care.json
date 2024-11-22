@@ -1,0 +1,78 @@
+{
+    "category": {
+        "string_id": "transitions_of_care",
+        "name": "Transitions of Care",
+        "form": "CaseNotes"
+    },
+    "questions": [
+        {
+            "question": {
+                "question_type": "Radio",
+                "question": "Was 911 called for immediate assistance?",
+                "string_id": "ercall"
+            },
+            "options": [
+                {
+                    "name": "No- not required",
+                    "red_cap_option_index": 0,
+                    "string_id": "no"
+                },
+                {
+                    "name": "Yes, and taken to hospital in ambulance",
+                    "red_cap_option_index": 1,
+                    "string_id": "ambulance"
+                },
+                {
+                    "name": "Yes, but refused ambulance",
+                    "red_cap_option_index": 2,
+                    "string_id": "refused"
+                }
+            ]
+        },
+        {
+            "question": {
+                "question_type": "Text",
+                "question": "Reason for/circumstances around need for immediate assistance",
+                "string_id": "erreason"
+            },
+            "requirements": "questions.get(\"ercall\").contains(\"ambulance\") || questions.get(\"ercall\").contains(\"ambulance\")"
+        },
+        {
+            "question": {
+                "question_type": "Text",
+                "question": "When did you last see your PCP",
+                "string_id": "exit_pcp_visit"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Have you been to the hospital since your last visit with us?",
+                "string_id": "transition_hospital"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Text",
+                "question": "If yes, why:",
+                "string_id": "hospital_transition",
+                "requirements": "questions.get('transition_hospital') == true"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Boolean",
+                "question": "Have you been to the ED since your last visit with us?",
+                "string_id": "transition_ed"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Text",
+                "question": "If yes, why:",
+                "string_id": "ed_transition",
+                "requirements": "questions.get('transition_ed') == true"
+            }
+        }
+    ]
+}

@@ -1,0 +1,322 @@
+[
+    {
+        "goal": {
+            "goal": "I want to lose 10 pounds",
+            "is_active": true
+        },
+        "steps": [
+            {
+                "step": "Take a 15 minute walk every day",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            },
+            {
+                "step": "Eat a salad for lunch every day",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            }
+        ]
+    },
+    {
+        "goal": {
+            "goal": "I want to reduce my blood pressure",
+            "is_active": true
+        },
+        "steps": [
+            {
+                "step": "Reduce salt intake",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            },
+            {
+                "step": "Exercise for 30 minutes 5 times a week",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            }
+        ]
+    },
+    {
+        "goal": {
+            "goal": "I want to quit smoking",
+            "is_active": true
+        },
+        "steps": [
+            {
+                "step": "Reduce cigarette intake by 1 every week",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            },
+            {
+                "step": "Use nicotine patches",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            }
+        ]
+    },
+    {
+        "goal": {
+            "goal": "I want to improve my sleep quality",
+            "is_active": true
+        },
+        "steps": [
+            {
+                "step": "Go to bed at the same time every night",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            },
+            {
+                "step": "Avoid screens 1 hour before bed",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            }
+        ]
+    },
+    {
+        "goal": {
+            "goal": "I want to drink more water",
+            "is_active": true
+        },
+        "steps": [
+            {
+                "step": "Drink a glass of water with every meal",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            },
+            {
+                "step": "Carry a water bottle throughout the day",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            }
+        ]
+    },
+    {
+        "goal": {
+            "goal": "I want to reduce my sugar intake",
+            "is_active": true
+        },
+        "steps": [
+            {
+                "step": "Replace sugary snacks with fruits",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            },
+            {
+                "step": "Avoid sugary drinks",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            }
+        ]
+    },
+    {
+        "goal": {
+            "goal": "I want to build muscle",
+            "is_active": true
+        },
+        "steps": [
+            {
+                "step": "Lift weights 3 times a week",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            },
+            {
+                "step": "Increase protein intake",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            }
+        ]
+    },
+    {
+        "goal": {
+            "goal": "I want to improve my flexibility",
+            "is_active": true
+        },
+        "steps": [
+            {
+                "step": "Stretch for 10 minutes every day",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            },
+            {
+                "step": "Attend a yoga class once a week",
+                "confidence_in_achieving": {
+                    "random": "Number",
+                    "options": {
+                        "min": 1,
+                        "max": 10
+                    }
+                },
+                "date_set": {
+                    "random": "Date"
+                },
+                "date_to_be_achieved": {
+                    "random": "Date"
+                }
+            }
+        ]
+    }
+]

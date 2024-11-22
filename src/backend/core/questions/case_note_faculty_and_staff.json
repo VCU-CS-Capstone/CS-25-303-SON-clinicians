@@ -1,0 +1,95 @@
+{
+    "category": {
+        "string_id": "case_notes_faculty_and_staff",
+        "name": "Faculty and Staff",
+        "form": "CaseNotes"
+    },
+    "questions": [
+        {
+            "question": {
+                "question_type": "MultiCheckBox",
+                "question": "Faculty and Staff",
+                "string_id": "visit_faculty",
+                "string_id_other": "otherfac"
+            },
+            "options": [
+                {
+                    "name": "BSN",
+                    "red_cap_option_index": 1,
+                    "string_id": "bsn"
+                },
+                {
+                    "name": "APRN",
+                    "red_cap_option_index": 2,
+                    "string_id": "aprn"
+                },
+                {
+                    "name": "PharmD",
+                    "red_cap_option_index": 4,
+                    "string_id": "pharmd"
+                },
+                {
+                    "name": "OT",
+                    "red_cap_option_index": 8,
+                    "string_id": "ot"
+                },
+                {
+                    "name": "PT",
+                    "red_cap_option_index": 9,
+                    "string_id": "pt"
+                },
+                {
+                    "name": "CHW",
+                    "red_cap_option_index": 11,
+                    "string_id": "chw"
+                },
+                {
+                    "name": "Case Manager",
+                    "red_cap_option_index": 5,
+                    "string_id": "case_manager"
+                },
+                {
+                    "name": "md",
+                    "red_cap_option_index": 6,
+                    "string_id": "md"
+                },
+                {
+                    "name": "SW",
+                    "red_cap_option_index": 6,
+                    "string_id": "SW"
+                },
+                {
+                    "name": "Psychology",
+                    "red_cap_option_index": 7,
+                    "string_id": "Psychology"
+                },
+                {
+                    "name": "Other",
+                    "red_cap_option_index": 10,
+                    "string_id": "other"
+                }
+            ]
+        },
+        {
+            "question": {
+                "question_type": "Number",
+                "question": "Faculty time with participants (minutes)",
+                "string_id": "visit_faculty_clinic "
+            }
+        },
+        {
+            "question": {
+                "question_type": "Number",
+                "question": "Faculty time with students (minutes)",
+                "string_id": "visit_faculty_edu"
+            }
+        },
+        {
+            "question": {
+                "question_type": "Text",
+                "question": "Faculty Name",
+                "string_id": "facultyname"
+            }
+        }
+    ]
+}

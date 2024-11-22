@@ -1,0 +1,293 @@
+[
+    {
+        "name": "Lisinopril",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Vitamin D",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Amoxicillin",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Levothyroxine ",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "start_date": {
+            "random": "Date"
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Amphetamine Salts ER",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Trazodone",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Atorvastatin",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Metformin",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Omeprazole",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Losartan",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Gabapentin",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Hydrochlorothiazide",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Alprazolam",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Sertraline",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Citalopram",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Tramadol",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Carvedilol",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Fluoxetine",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Duloxetine",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Amlodipine",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Pantoprazole",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Tamsulosin",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Bupropion XL",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Warfarin",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    }
+]

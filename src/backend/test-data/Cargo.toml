@@ -1,0 +1,20 @@
+[package]
+name = "cs25-303-test-data"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+cs25-303-core.workspace = true
+clap = { version = "4", features = ["derive"] }
+tokio.workspace = true
+sqlx.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+rand = { version = "0.8", features = ["std"] }
+chrono = { version = "0.4", features = ["serde"] }

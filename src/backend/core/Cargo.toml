@@ -1,0 +1,39 @@
+[package]
+name = "cs25-303-core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+description = "Core Shared Code between the backend and database"
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+
+strum.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+sqlx-postgres = "0.8.2"
+tracing.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+utoipa.workspace = true
+cs25-303-macros.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+ahash.workspace = true
+clap = { version = "4", features = ["derive"] }
+derive_builder = "0.20"
+# This depend is mostly for testing
+rust-embed = { version = "8.5.0", features = ["interpolate-folder-path"] }
+tabled = "0.16"
+reqwest = { version = "0.12", features = ["json"] }
+either = "1.6"
+rhai = { version = "1.20.0", features = ["metadata"] }
+[dev-dependencies]
+serde-env = "0.2.0"
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+[lints]
+workspace = true

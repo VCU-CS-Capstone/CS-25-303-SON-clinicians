@@ -1,0 +1,67 @@
+[package]
+name = "cs25-303-backend"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+tokio.workspace = true
+# Web
+axum = { version = "0.7", features = ["macros", "tokio"] }
+axum-extra = { version = "0.9", features = [
+    "multipart",
+    "cookie",
+    "typed-header",
+] }
+tower = { version = "0.5", features = ["limit", "timeout"] }
+tower-http = { version = "0.6", features = ["full"] }
+tower-service = "0.3.2"
+hyper.workspace = true
+hyper-util.workspace = true
+http.workspace = true
+http-body-util.workspace = true
+# API Documentation
+utoipa = { workspace = true, features = ["axum_extras"] }
+utoipa-scalar = { version = "0.2.0", features = ["axum"], optional = true }
+# Async utilities
+async-trait = "0.1"
+pin-project = "1"
+# TLS
+tokio-rustls = "0.26"
+rustls = { version = "0.23" }
+rustls-pemfile = { version = "2" }
+
+serde.workspace = true
+serde_json.workspace = true
+serde-env = "0.2.0"
+toml = "0.8"
+# Utilities
+strum.workspace = true
+derive_more.workspace = true
+# CLI
+clap = { version = "4", features = ["derive"] }
+# Logging
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+# OpenTelemetry - Tracing framework
+tracing-opentelemetry = "0.27"
+opentelemetry = { version = "0.26", features = [] }
+opentelemetry_sdk = { version = "0.26", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.26", default-features = true, features = [
+    "grpc-tonic",
+    "http-proto",
+    "http-json",
+] }
+sqlx.workspace = true
+chrono.workspace = true
+anyhow.workspace = true
+argon2 = { version = "0.5", features = ["std"] }
+rand = "0.8"
+thiserror.workspace = true
+cs25-303-core.workspace = true
+redb = "2"
+tuxs-config-types = { git = "https://github.com/wyatt-herkamp/tuxs-config-types.git", features = [
+    "chrono",
+] }
+base64 = "0.22"
