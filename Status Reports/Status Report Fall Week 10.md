@@ -11,11 +11,11 @@
 
 ## 1) Accomplishments this week ##
    - User Interface Work
+   - Decided on expanding the project scope to include input from the clinicians
 
 ## 2) Milestones to be completed next week ##
 
 ## 3) Issues, problems or concerns ##
-  -  Project Scope still need more clarification
 
 
 
