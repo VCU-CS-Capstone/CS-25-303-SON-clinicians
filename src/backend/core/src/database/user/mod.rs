@@ -52,15 +52,15 @@ pub struct User {
     pub first_name: String,
     /// The last name of the user.
     pub last_name: String,
-    pub updated_at: chrono::DateTime<chrono::FixedOffset>,
-    pub created_at: chrono::DateTime<chrono::FixedOffset>,
+    pub updated_at: DateTime<FixedOffset>,
+    pub created_at: DateTime<FixedOffset>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, FromRow, Serialize, Deserialize, ToSchema)]
 pub struct UserPermissions {
     pub id: i32,
     pub user_id: i32,
     pub scope: Scopes,
-    pub created_at: chrono::DateTime<chrono::FixedOffset>,
+    pub created_at: DateTime<FixedOffset>,
 }
 /// Finds a user by their email or username.
 ///

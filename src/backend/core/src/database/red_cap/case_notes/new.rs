@@ -1,15 +1,14 @@
-use chrono::{Local, NaiveDate};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-
-use crate::{
-    database::{tools::TableType, DBResult},
-    red_cap::VisitType,
-};
 
 use super::{
     BloodPressureType, CaseNote, CaseNoteColumn, CaseNoteHealthMeasures,
     CaseNoteHealthMeasuresColumn, HealthMeasureBloodPressure, SimpleInsertQueryBuilder,
+};
+use crate::database::prelude::*;
+use crate::{
+    database::{tools::TableType, DBResult},
+    red_cap::VisitType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,7 +21,7 @@ pub struct NewCaseNote {
     pub date_of_visit: NaiveDate,
     pub pushed_to_redcap: bool,
     pub redcap_instance: Option<i32>,
-    pub last_synced_with_redcap: Option<chrono::DateTime<chrono::FixedOffset>>,
+    pub last_synced_with_redcap: Option<DateTime<FixedOffset>>,
     pub completed: bool,
 }
 impl NewCaseNote {

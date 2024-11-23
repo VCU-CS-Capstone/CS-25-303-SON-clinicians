@@ -67,11 +67,11 @@ impl<'args> SimpleSelectQueryBuilder<'args> {
     ///
     /// # Example
     /// ```rust
-    ///  use cs25_303_core::database::red_cap::participants::health_overview::HealthOverviewColumn;
-    ///  use cs25_303_core::database::prelude::*;
-    ///  let mut result =
-    ///        SimpleSelectQueryBuilder::new("participant_health_overview", &HealthOverviewColumn::all());
-    ///    result.where_equals(HealthOverviewColumn::ParticipantId, 1);
+    /// use cs25_303_core::database::prelude::*;
+    /// use cs25_303_core::database::red_cap::participants::health_overview::HealthOverviewColumn;
+    /// let mut result =
+    ///     SimpleSelectQueryBuilder::new("participant_health_overview", &HealthOverviewColumn::all());
+    /// result.where_equals(HealthOverviewColumn::ParticipantId, 1);
     ///
     /// println!("{}", result.sql());
     /// ```

@@ -4,6 +4,7 @@ version.workspace = true
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
+description = "Generates Test Data for the CS25-303 Project"
 
 [dependencies]
 serde.workspace = true
@@ -18,3 +19,5 @@ tracing-subscriber.workspace = true
 tracing-appender.workspace = true
 rand = { version = "0.8", features = ["std"] }
 chrono = { version = "0.4", features = ["serde"] }
+human-panic.workspace = true
+ahash.workspace = true

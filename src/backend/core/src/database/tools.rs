@@ -23,9 +23,8 @@ pub trait QueryTool<'args> {
     fn query(&mut self) -> Query<'_, Postgres, <Postgres as Database>::Arguments<'args>> {
         let args = self.take_arguments_or_error();
         let sql = self.sql();
-        if tracing::enabled!(tracing::Level::TRACE) {
-            trace!(?sql, "Generated SQL");
-        }
+        trace!(?sql, "Generated SQL");
+
         sqlx::query_with(sql, args)
     }
     fn query_as<T>(&mut self) -> QueryAs<'_, Postgres, T, <Postgres as Database>::Arguments<'args>>
@@ -35,9 +34,7 @@ pub trait QueryTool<'args> {
         let args = self.take_arguments_or_error();
 
         let sql = self.sql();
-        if tracing::enabled!(tracing::Level::TRACE) {
-            trace!(?sql, "Generated SQL");
-        }
+        trace!(?sql, "Generated SQL");
         sqlx::query_as_with(sql, args)
     }
     fn query_scalar<O>(
@@ -49,9 +46,7 @@ pub trait QueryTool<'args> {
         let args = self.take_arguments_or_error();
 
         let sql = self.sql();
-        if tracing::enabled!(tracing::Level::TRACE) {
-            trace!(?sql, "Generated SQL");
-        }
+        trace!(?sql, "Generated SQL");
         sqlx::query_scalar_with(sql, args)
     }
 }

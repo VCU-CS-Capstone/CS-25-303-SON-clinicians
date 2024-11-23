@@ -9,7 +9,7 @@ use std::str::FromStr;
 ///
 /// # Example
 /// ```
-/// use vcu_red_cap::api::utils::FieldNameAndIndex;
+/// use cs25_303_core::red_cap::api::utils::FieldNameAndIndex;
 /// use std::str::FromStr;
 /// let value = FieldNameAndIndex::from_str("health_ed___1").unwrap();
 /// assert_eq!(value.field_name, "health_ed");
@@ -86,7 +86,26 @@ impl FromStr for CheckboxValue {
         }
     }
 }
-
+impl TryFrom<serde_json::Value> for CheckboxValue {
+    type Error = RedCapParseError;
+    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+        match value {
+            serde_json::Value::String(value) => value.parse(),
+            serde_json::Value::Number(value) => {
+                let value = value.as_u64().unwrap();
+                if value == 1 {
+                    Ok(Self::Checked)
+                } else {
+                    Ok(Self::Unchecked)
+                }
+            }
+            _ => Err(RedCapParseError::InvalidMultiCheckboxField {
+                input: value.to_string(),
+                reason: super::GenericError::Other("Invalid value".to_owned()),
+            }),
+        }
+    }
+}
 pub fn is_check_box_item(value: &str) -> bool {
     value.contains("___")
 }

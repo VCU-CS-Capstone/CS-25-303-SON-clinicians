@@ -7,6 +7,16 @@ Within the backend directory you will find the src for the web api for the proje
 ### Core
 Within the core directory you find core code for the project. Database Design, Red Cap Integration, etc.
 
+### test-data
+Within the test-data directory you will find the src for the test data generator for the project
+
+### Macros
+Within the macros directory you will find the src for the macros for the project
+
+### databaseReport
+
+Within the databaseReport directory you will find documentation and explanation of the database design for the project
+
 ## Setting Up The Development Environment
 
 ### Setup Rust

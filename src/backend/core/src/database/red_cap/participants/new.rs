@@ -1,6 +1,5 @@
-use chrono::{DateTime, FixedOffset};
+use crate::database::prelude::*;
 use serde::{Deserialize, Serialize};
-use sqlx::Executor;
 
 use crate::{
     database::DBResult,
@@ -28,9 +27,9 @@ pub struct NewParticipant {
     pub location: Option<i32>,
     pub status: Option<Status>,
     pub behavioral_risks_identified: Option<String>,
-    pub date_care_coordination_consent_signed: Option<chrono::NaiveDate>,
-    pub date_home_visit_consent_signed: Option<chrono::NaiveDate>,
-    pub signed_up_on: chrono::NaiveDate,
+    pub date_care_coordination_consent_signed: Option<NaiveDate>,
+    pub date_home_visit_consent_signed: Option<NaiveDate>,
+    pub signed_up_on: NaiveDate,
     pub last_synced_with_redcap: Option<DateTime<FixedOffset>>,
 }
 
@@ -167,7 +166,7 @@ pub struct NewHealthOverview {
     pub has_blood_pressure_cuff: Option<bool>,
     /// Red Cap: num_meds
     pub takes_more_than_5_medications: Option<bool>,
-
+    /// Red Cap: mobility_devices
     pub mobility_devices: Option<Vec<MobilityDevice>>,
 }
 impl NewHealthOverview {

@@ -10,7 +10,7 @@ use tracing::info;
 pub mod prelude {
     pub use super::tools::*;
     pub use super::{DBError, DBResult};
-    pub use chrono::{DateTime, FixedOffset, NaiveDate};
+    pub use chrono::{DateTime, FixedOffset, Local, NaiveDate};
     pub use cs25_303_macros::Columns;
 
     pub use sqlx::{postgres::PgRow, prelude::*, FromRow, PgPool, Postgres, QueryBuilder};
@@ -26,6 +26,8 @@ pub enum DBError {
     Questions(#[from] red_cap::questions::QuestionError),
     #[error("{0}")]
     Other(&'static str),
+    #[error("Invalid host must be in the format host:port got `{0}`")]
+    InvalidHost(String),
 }
 /// The type for a DateTime in the database.
 ///
@@ -35,10 +37,10 @@ pub type DBTime = chrono::DateTime<chrono::FixedOffset>;
 pub type DBResult<T> = Result<T, DBError>;
 pub async fn connect(config: PgConnectOptions, run_migrations: bool) -> Result<PgPool, DBError> {
     let database = PgPool::connect_with(config).await?;
-    // TODO: Add Migration code here
     if run_migrations {
         info!("Running migrations");
         MIGRATOR.run(&database).await?;
+        info!("Checking for default questions");
         red_cap::questions::default::add_default_questions(&database).await?;
     }
     Ok(database)
@@ -48,33 +50,15 @@ pub async fn connect(config: PgConnectOptions, run_migrations: bool) -> Result<P
 pub mod tests {
     use sqlx::PgPool;
 
-    use crate::database::{DatabaseConfig, MIGRATOR};
+    use crate::database::DatabaseConfig;
 
-    #[tokio::test]
-    #[ignore = "This test needs a database to run"]
-    pub async fn run_migrations() -> anyhow::Result<()> {
+    pub async fn connect_to_db() -> anyhow::Result<PgPool> {
         let test_env = crate::env_utils::read_env_file_in_core("test.env")?;
 
-        let config: DatabaseConfig =
-            serde_env::from_iter_with_prefix(test_env.iter(), "MIGRATIONS")?;
-        let database = PgPool::connect_with(config.try_into()?).await?;
-
-        MIGRATOR.run(&database).await?;
-
-        Ok(())
+        connect_to_db_with(&test_env).await
     }
-    pub async fn setup_query_test() -> anyhow::Result<PgPool> {
-        crate::test_utils::init_logger();
-
-        let test_env = crate::env_utils::read_env_file_in_core("test.env")?;
-
-        let config: DatabaseConfig = serde_env::from_iter_with_prefix(test_env.iter(), "QUERY")?;
-        let database = PgPool::connect_with(config.try_into()?).await?;
-        Ok(database)
-    }
-
-    pub async fn setup_red_cap_db_test(env: &crate::env_utils::EnvMap) -> anyhow::Result<PgPool> {
-        let config: DatabaseConfig = serde_env::from_iter_with_prefix(env.iter(), "RED_CAP")?;
+    pub async fn connect_to_db_with(env: &crate::env_utils::EnvMap) -> anyhow::Result<PgPool> {
+        let config: DatabaseConfig = serde_env::from_iter_with_prefix(env.iter(), "DB")?;
         let database = super::connect(config.try_into()?, true).await?;
 
         Ok(database)

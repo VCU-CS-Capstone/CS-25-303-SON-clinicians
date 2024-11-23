@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use ahash::HashMap;
 use cs25_303_core::{
     database::red_cap::{
         case_notes::{new::NewBloodPressure, BloodPressureType},

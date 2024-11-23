@@ -1,5 +1,6 @@
-use std::{collections::HashMap, fs::read_to_string, path::PathBuf};
+use std::{fs::read_to_string, path::PathBuf};
 
+use ahash::{HashMap, HashMapExt};
 use cs25_303_core::database::DatabaseConfig;
 use cs25_303_core::user::auth::AuthenticationProvidersConfig;
 use serde::{Deserialize, Serialize};
@@ -101,8 +102,6 @@ pub struct TracingConfig {
     pub tracing_enabled: bool,
     pub tracing_type: TracingType,
     /// Endpoint for the tracing collector.
-    ///
-    ///
     pub endpoint: String,
     /// Tracing Config Resource Values.
     ///

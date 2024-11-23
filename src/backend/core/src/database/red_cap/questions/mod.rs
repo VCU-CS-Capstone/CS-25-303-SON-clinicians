@@ -2,8 +2,6 @@
 //! Questions that do not need to be answered at all times or have conditional requirements are stored using a question system.
 //!
 //! This prevents a ton of tables and columns with null values.
-//!
-//!
 pub mod requirements;
 use crate::database::prelude::*;
 use cs25_303_macros::Columns;

@@ -4,7 +4,7 @@ use tracing::info;
 
 use crate::{
     database::red_cap::{
-        locations::{RedCapLocationConnectionRules, RedCapLocationRules},
+        locations::RedCapLocationRules,
         participants::{
             health_overview::HealthOverview, NewDemographics, NewHealthOverview, NewParticipant,
             ParticipantDemograhics, Participants,

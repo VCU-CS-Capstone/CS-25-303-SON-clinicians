@@ -219,6 +219,8 @@ pub async fn push_case_notes_to_redcap(
 #[cfg(test)]
 mod tests {
 
+    use anyhow::Context;
+
     use crate::red_cap::{api::RedcapClient, converter::RedCapConverter};
 
     #[tokio::test]
@@ -227,10 +229,10 @@ mod tests {
         let env = crate::env_utils::read_env_file_in_core("test.env").unwrap();
         crate::test_utils::init_logger();
 
-        let database = crate::database::tests::setup_red_cap_db_test(&env).await?;
+        let database = crate::database::tests::connect_to_db_with(&env).await?;
         let mut converter: RedCapConverter = RedCapConverter::new(database.clone()).await?;
-        let client = RedcapClient::new(env.get("RED_CAP_TOKEN").unwrap().to_owned());
-
+        let client =
+            RedcapClient::new(env.get("RED_CAP_TOKEN").context("No RED_CAP_TOKEN")?).await?;
         super::push_participant_to_red_cap(1, &database, &mut converter, &client).await?;
         Ok(())
     }
@@ -241,10 +243,10 @@ mod tests {
         let env = crate::env_utils::read_env_file_in_core("test.env").unwrap();
         crate::test_utils::init_logger();
 
-        let database = crate::database::tests::setup_red_cap_db_test(&env).await?;
+        let database = crate::database::tests::connect_to_db_with(&env).await?;
         //let mut converter = RedCapConverter::new(database.clone()).await?;
-        let client = RedcapClient::new(env.get("RED_CAP_TOKEN").unwrap().to_owned());
-
+        let client =
+            RedcapClient::new(env.get("RED_CAP_TOKEN").context("No RED_CAP_TOKEN")?).await?;
         super::push_participant_medications_to_red_cap(1, &database, &client).await?;
         Ok(())
     }
@@ -255,12 +257,12 @@ mod tests {
         let env = crate::env_utils::read_env_file_in_core("test.env").unwrap();
         crate::test_utils::init_logger();
 
-        let database = crate::database::tests::setup_red_cap_db_test(&env).await?;
+        let database = crate::database::tests::connect_to_db_with(&env).await?;
         let mut converter: RedCapConverter = RedCapConverter::new(database.clone()).await?;
 
         //let mut converter = RedCapConverter::new(database.clone()).await?;
-        let client = RedcapClient::new(env.get("RED_CAP_TOKEN").unwrap().to_owned());
-
+        let client =
+            RedcapClient::new(env.get("RED_CAP_TOKEN").context("No RED_CAP_TOKEN")?).await?;
         super::push_participant_goals_to_red_cap(1, &database, &mut converter, &client).await?;
         Ok(())
     }
@@ -271,12 +273,12 @@ mod tests {
         let env = crate::env_utils::read_env_file_in_core("test.env").unwrap();
         crate::test_utils::init_logger();
 
-        let database = crate::database::tests::setup_red_cap_db_test(&env).await?;
+        let database = crate::database::tests::connect_to_db_with(&env).await?;
         let mut converter: RedCapConverter = RedCapConverter::new(database.clone()).await?;
 
         //let mut converter = RedCapConverter::new(database.clone()).await?;
-        let client = RedcapClient::new(env.get("RED_CAP_TOKEN").unwrap().to_owned());
-
+        let client =
+            RedcapClient::new(env.get("RED_CAP_TOKEN").context("No RED_CAP_TOKEN")?).await?;
         super::push_case_notes_to_redcap(1, &database, &mut converter, &client).await?;
         Ok(())
     }

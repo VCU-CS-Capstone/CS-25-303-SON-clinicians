@@ -8,26 +8,9 @@ use crate::{
     red_cap::{RedCapDataSet, RedCapType},
 };
 
-/// Red Cap ID: pilot_gaps_coordination
-/// # Values for RHWP
-/// - Church Hill House
-/// - Dominion Place
-/// - Highland Park
-/// - 4th Ave
-/// - Health Hub
-/// - The Rosa
-/// # Values for MHWP
-/// - Lawrenceville
-/// - Petersburg
-/// - Tappahannock
-/// - Southwood
+/// Table Name: locations
 ///
-/// TODO: Petersburg has sub locations.
-/// # Values for Petersburg
-///- VCRC
-///- Police substation
-///- Gilhaven
-///- VSU Van
+/// This is the table of locations that are used in the system.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns)]
 pub struct Locations {
     pub id: i32,
@@ -98,6 +81,9 @@ impl Locations {
 /// Each field corresponds to the field name in Red Cap.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct RedCapLocationConnectionRules {
+    /// RWHP Red Cap ID: `rhwp_location_visit`
+    /// MHWP Red Cap ID: `mhwp_location_visit`
+    /// Petersburg Sub Red Cap ID: `mhwp_location_visit_petersburg`
     pub visit: HashMap<String, i32>,
     pub participant: HashMap<String, i32>,
 }

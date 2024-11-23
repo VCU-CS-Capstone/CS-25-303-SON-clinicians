@@ -42,9 +42,13 @@ pub enum SeenAtVCUHS {
     #[red_cap(enum_index = 3)]
     DidNotAsk,
 }
-
+/// Handles reading the data from the redcap gender and gender_self fields from the redcap data
 #[derive(Debug, Clone, Serialize)]
 pub struct RedCapGender {
+    /// Gender Enum Value
+    ///
+    /// ## Notes
+    /// - Radio
     pub gender: Option<Gender>,
     pub gender_self: Option<String>,
 }

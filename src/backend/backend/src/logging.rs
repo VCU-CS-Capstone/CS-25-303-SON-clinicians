@@ -1,11 +1,10 @@
-use std::collections::HashMap;
-
 use crate::config::{LoggingConfig, Mode, TracingConfig};
-use opentelemetry::trace::TracerProvider;
+use ahash::{HashMap, HashMapExt};
+use opentelemetry::trace::TracerProvider as _;
 use opentelemetry::StringValue;
 use opentelemetry::{global, KeyValue};
-use opentelemetry_otlp::{new_exporter, WithExportConfig};
-use opentelemetry_sdk::trace::{Config as SDKTraceConfig, Tracer};
+use opentelemetry_otlp::{SpanExporter, WithExportConfig};
+use opentelemetry_sdk::trace::{Config as SDKTraceConfig, Tracer, TracerProvider};
 use opentelemetry_sdk::{propagation::TraceContextPropagator, Resource};
 use serde::{Deserialize, Serialize};
 use tracing::info;
@@ -28,13 +27,13 @@ fn tracer(mut config: TracingConfig) -> anyhow::Result<Tracer> {
         .map(|(k, v)| KeyValue::new(k, Into::<StringValue>::into(v)))
         .collect();
     let trace_config = SDKTraceConfig::default().with_resource(Resource::new(resources));
-
-    let exporter = new_exporter().tonic().with_endpoint(&config.endpoint);
-    let provider = opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(exporter)
-        .with_trace_config(trace_config)
-        .install_batch(opentelemetry_sdk::runtime::Tokio)?;
+    let exporter = SpanExporter::builder()
+        .with_tonic()
+        .with_endpoint(&config.endpoint);
+    let provider = TracerProvider::builder()
+        .with_config(trace_config)
+        .with_batch_exporter(exporter.build()?, opentelemetry_sdk::runtime::Tokio)
+        .build();
     Ok(provider.tracer("tracing-otel-subscriber"))
 }
 
@@ -107,7 +106,7 @@ impl Default for LoggingLevels {
     fn default() -> Self {
         Self {
             default: LevelSerde::Info,
-            others: HashMap::new(),
+            others: HashMap::default(),
         }
     }
 }

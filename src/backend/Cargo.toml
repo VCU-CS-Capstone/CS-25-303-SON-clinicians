@@ -47,6 +47,8 @@ cs25-303-macros = { path = "macros" }
 ## Error Handling
 thiserror = "2.0"
 anyhow = "1.0"
+
+human-panic = "2"
 # Database
 [workspace.dependencies.sqlx]
 version = "0.8"

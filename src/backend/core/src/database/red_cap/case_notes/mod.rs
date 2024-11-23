@@ -23,11 +23,6 @@ pub struct CaseNote {
     /// Relates to #[crate::database::red_cap::participants::Participants]
     pub participant_id: i32,
     /// Relates to #[crate::database::red_cap::Locations]
-    ///
-    /// RWHP Red Cap ID: `rhwp_location_visit`
-    /// MHWP Red Cap ID: `mhwp_location_visit`
-    ///
-    /// Petersburg Sub Red Cap ID: `mhwp_location_visit_petersburg`
     pub location: Option<i32>,
     /// Red Cap ID: `visit_type`
     pub visit_type: Option<VisitType>,

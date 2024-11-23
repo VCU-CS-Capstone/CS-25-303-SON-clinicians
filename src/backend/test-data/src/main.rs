@@ -1,11 +1,11 @@
 use anyhow::Context;
 use clap::Parser;
 use cs25_303_core::database::DatabaseConfig;
-use sqlx::PgPool;
+use human_panic::setup_panic;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer};
 pub mod random;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 #[derive(Debug, Clone, Parser)]
 pub struct CLI {
     #[clap(flatten)]
@@ -20,6 +20,8 @@ pub enum Commands {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    setup_panic!();
+
     let cli = CLI::parse();
     load_logging()?;
     let database = cs25_303_core::database::connect(cli.database.try_into()?, true).await?;

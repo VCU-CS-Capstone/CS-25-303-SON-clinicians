@@ -75,8 +75,6 @@ impl<'table, 'args, C: ColumnType> SimpleInsertQueryBuilder<'table, 'args, C> {
         arguments.add(value).expect("Failed to add argument");
     }
     /// Insert a value into the query
-    ///
-    ///
     pub fn insert<T>(&mut self, column: C, value: T) -> &mut Self
     where
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,

@@ -1,11 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgConnectOptions;
-use thiserror::Error;
-#[derive(Debug, Error)]
-pub enum DBConfigError {
-    #[error("Invalid host must be in the format host:port got `{0}`")]
-    InvalidHost(String),
-}
+
+use super::DBError;
+
 /// The configuration for the database.
 ///
 /// Currently only supports PostgreSQL.
@@ -37,7 +34,7 @@ impl Default for DatabaseConfig {
     }
 }
 impl TryFrom<DatabaseConfig> for PgConnectOptions {
-    type Error = DBConfigError;
+    type Error = DBError;
     fn try_from(settings: DatabaseConfig) -> Result<PgConnectOptions, Self::Error> {
         // The port can be specified in the host field. If it is, we need to extract it.
         let host = settings.host.split(':').collect::<Vec<&str>>();
@@ -49,7 +46,7 @@ impl TryFrom<DatabaseConfig> for PgConnectOptions {
             2 => (host[0], host[1].parse::<u16>().unwrap_or(5432)),
             _ => {
                 // Not in the format host:port. Possibly IPv6 but we don't support that. As not really supported in the wild.
-                return Err(DBConfigError::InvalidHost(settings.host));
+                return Err(DBError::InvalidHost(settings.host));
             }
         };
         let options = PgConnectOptions::new()

@@ -3,6 +3,7 @@ pub mod tasks;
 use ahash::{HashMap, HashMapExt};
 use api::utils::{is_check_box_item, CheckboxValue, FieldNameAndIndex};
 use chrono::NaiveDate;
+use serde_json::Value;
 use tracing::{error, warn};
 pub mod converter;
 
@@ -76,6 +77,21 @@ pub trait RedCapType {
     /// Writes a Red Cap
     fn write<D: RedCapDataSet>(&self, data: &mut D);
 }
+macro_rules! get {
+    (
+        $(
+            $(#[$get_docs:meta])*
+            $fn_name:ident -> $to:ident -> $type:ty
+        ),*
+    ) => {
+        $(
+            $(#[$get_docs])*
+            fn $fn_name(&self, key: &str) -> Option<$type> {
+                self.get(key).and_then(|value| value.$to())
+            }
+        )*
+    };
+}
 pub trait RedCapDataSet {
     fn insert(&mut self, key: impl Into<String>, value: RedCapExportDataType);
     fn insert_multi_select<T: MultiSelectType>(&mut self, key: impl Into<String>, value: &[T]) {
@@ -84,20 +100,31 @@ pub trait RedCapDataSet {
         self.insert(key, multi_select.into());
     }
     fn get(&self, key: &str) -> Option<&RedCapExportDataType>;
+    get!(
+        /// Get a number from the data set.
+        ///
+        /// If the value is not a number, it will return None
+        get_number -> to_number -> usize,
+        /// Get a float from the data set.
+        ///
+        /// If the value is not a float, it will return None
+        get_float -> to_float -> f32,
+        /// Get a date from the data set.
+        ///
+        /// If the value is not a date, it will return None
+        get_date -> to_date -> NaiveDate,
 
-    fn get_number(&self, key: &str) -> Option<usize> {
-        self.get(key).and_then(|value| value.to_number())
-    }
-    fn get_float(&self, key: &str) -> Option<f32> {
-        self.get(key).and_then(|value| value.to_float())
-    }
+        /// Get a bad boolean from the data set.
+        ///
+        /// If the value is not a bad boolean, it will return None
+        get_bad_boolean -> to_bad_boolean -> bool,
 
-    fn get_date(&self, key: &str) -> Option<NaiveDate> {
-        self.get(key).and_then(|value| value.to_date())
-    }
-    fn get_bad_boolean(&self, key: &str) -> Option<bool> {
-        self.get(key).and_then(|value| value.to_bad_boolean())
-    }
+        /// Get a string from the data set.
+        /// If it is any other type it will call to_string. Except for MultiSelect and Enums
+        get_string -> to_string -> String,
+        /// Get a boolean from the data set.
+        get_bool -> to_bool -> bool
+    );
     fn get_enum<T>(&self, key: &str) -> Option<T>
     where
         T: RedCapEnum,
@@ -109,13 +136,6 @@ pub trait RedCapDataSet {
         T: MultiSelectType,
     {
         self.get(key).and_then(|value| value.process_multiselect())
-    }
-
-    fn get_string(&self, key: &str) -> Option<String> {
-        self.get(key).and_then(|value| value.to_string())
-    }
-    fn get_bool(&self, key: &str) -> Option<bool> {
-        self.get(key).and_then(|value| value.to_bool())
     }
 
     fn iter(&self) -> impl Iterator<Item = (&String, &RedCapExportDataType)>;
@@ -138,7 +158,9 @@ pub struct MultiSelect {
     pub set_values: HashMap<i32, CheckboxValue>,
 }
 
-pub fn find_and_extract_multi_selects(items: &mut HashMap<String, String>) -> Vec<MultiSelect> {
+pub fn find_and_extract_multi_selects(
+    items: &mut HashMap<String, Value>,
+) -> HashMap<String, MultiSelect> {
     let mut multi_selects = HashMap::new();
     let keys = items
         .keys()
@@ -157,7 +179,7 @@ pub fn find_and_extract_multi_selects(items: &mut HashMap<String, String>) -> Ve
             });
         let index = index.unwrap();
 
-        let checkbox_value = match CheckboxValue::from_str(value.as_str()) {
+        let checkbox_value = match CheckboxValue::try_from(value) {
             Ok(ok) => ok,
             Err(err) => {
                 error!(?err, "Error parsing checkbox value");
@@ -167,7 +189,7 @@ pub fn find_and_extract_multi_selects(items: &mut HashMap<String, String>) -> Ve
 
         multi_select.set_values.insert(index, checkbox_value);
     }
-    multi_selects.into_values().collect()
+    multi_selects
 }
 #[derive(Debug, Clone)]
 pub enum RedCapExportDataType {
@@ -177,11 +199,6 @@ pub enum RedCapExportDataType {
     Float(f32),
     Number(isize),
     Date(NaiveDate),
-}
-impl From<f32> for RedCapExportDataType {
-    fn from(value: f32) -> Self {
-        Self::Float(value)
-    }
 }
 
 impl<T> From<Option<T>> for RedCapExportDataType
@@ -195,19 +212,32 @@ where
         }
     }
 }
-impl From<String> for RedCapExportDataType {
-    fn from(value: String) -> Self {
-        Self::Text(value)
-    }
+macro_rules! from_for_export {
+    (
+        $(
+            $type:ty => $variant:ident
+        ),*
+    ) => {
+        $(
+            impl From<$type> for RedCapExportDataType {
+                fn from(value: $type) -> Self {
+                    Self::$variant(value)
+                }
+            }
+        )*
+    };
 }
+from_for_export!(
+    String => Text,
+    NaiveDate => Date,
+    f32 => Float,
+    isize => Number,
+    MultiSelect => MultiSelect
+);
+
 impl From<bool> for RedCapExportDataType {
     fn from(value: bool) -> Self {
         Self::Number(value as isize)
-    }
-}
-impl From<NaiveDate> for RedCapExportDataType {
-    fn from(value: NaiveDate) -> Self {
-        Self::Date(value)
     }
 }
 macro_rules! from_num {
@@ -227,17 +257,7 @@ macro_rules! from_num {
 }
 
 from_num!(i16, i32, u8, u16, u32, u64, usize);
-impl From<isize> for RedCapExportDataType {
-    fn from(value: isize) -> Self {
-        Self::Number(value)
-    }
-}
 
-impl From<MultiSelect> for RedCapExportDataType {
-    fn from(value: MultiSelect) -> Self {
-        Self::MultiSelect(value)
-    }
-}
 impl<T> From<T> for RedCapExportDataType
 where
     T: RedCapEnum,
@@ -247,6 +267,22 @@ where
     }
 }
 impl RedCapExportDataType {
+    pub fn process_value(value: Value) -> Self {
+        match value {
+            Value::String(value) => Self::process_string(value),
+            Value::Number(number) => {
+                if number.is_i64() {
+                    Self::Number(number.as_i64().unwrap() as isize)
+                } else if number.is_f64() {
+                    Self::Float(number.as_f64().unwrap() as f32)
+                } else {
+                    panic!("Unknown Number Type");
+                }
+            }
+            Value::Bool(value) => Self::Number(value as isize),
+            _ => Self::Null,
+        }
+    }
     pub fn process_string(value: String) -> Self {
         if value.is_empty() {
             Self::Null
@@ -339,19 +375,16 @@ impl RedCapExportDataType {
 }
 
 pub fn process_flat_json(
-    mut input: HashMap<String, String>,
+    mut input: HashMap<String, Value>,
 ) -> HashMap<String, RedCapExportDataType> {
     let multi_selects = find_and_extract_multi_selects(&mut input);
 
-    let mut output = HashMap::new();
-    for multi_select in multi_selects {
-        output.insert(
-            multi_select.field_base.clone(),
-            RedCapExportDataType::MultiSelect(multi_select),
-        );
+    let mut output = HashMap::with_capacity(input.len() + multi_selects.len());
+    for (key, value) in multi_selects {
+        output.insert(key, RedCapExportDataType::MultiSelect(value));
     }
     for (key, value) in input {
-        let value = RedCapExportDataType::process_string(value);
+        let value = RedCapExportDataType::process_value(value);
         output.insert(key, value);
     }
     output
@@ -401,12 +434,9 @@ mod tests {
         let env = crate::env_utils::read_env_file_in_core("test.env")
             .context("Unable to load test.env")?;
 
-        let database = crate::database::tests::setup_red_cap_db_test(&env).await?;
-        let client = RedcapClient::new(
-            env.get("RED_CAP_TOKEN")
-                .context("Missing Red Cap Token")?
-                .to_owned(),
-        );
+        let database = crate::database::tests::connect_to_db_with(&env).await?;
+        let client =
+            RedcapClient::new(env.get("RED_CAP_TOKEN").context("No RED_CAP_TOKEN")?).await?;
 
         Ok((client, database))
     }

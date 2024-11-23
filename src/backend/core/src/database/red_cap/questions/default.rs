@@ -4,7 +4,7 @@ use chrono::{DateTime, FixedOffset};
 use rust_embed::Embed;
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, PgPool};
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 use super::{
     new::{NewQuestion, NewQuestionCategory, NewQuestionOptions},
@@ -122,6 +122,14 @@ pub async fn get_question_files(
 }
 pub async fn add_default_questions(conn: &PgPool) -> DBResult<()> {
     let question_files = get_question_files(Some(conn)).await?;
+
+    info!(
+        "The following files will be added: {:?}",
+        question_files
+            .iter()
+            .map(|(file, _)| file)
+            .collect::<Vec<_>>()
+    );
     for (question_file, questions) in question_files {
         let DefaultQuestions {
             category,
@@ -171,7 +179,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     pub async fn refresh_default_questions() -> anyhow::Result<()> {
-        let conn = crate::database::tests::setup_query_test().await?;
+        let conn = crate::database::tests::connect_to_db().await?;
         DefaultQuestionsTable::clear(&conn).await?;
         QuestionCategory::delete_all(&conn).await?;
         super::add_default_questions(&conn).await?;

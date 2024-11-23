@@ -108,7 +108,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_participant_lookup_query() -> anyhow::Result<()> {
-        let database = crate::database::tests::setup_query_test().await?;
+        let database = crate::database::tests::connect_to_db().await?;
         let query: Vec<ParticipantLookupQuery> = vec![
             ParticipantLookupQuery {
                 first_name: "Wyatt".to_string(),

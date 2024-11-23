@@ -16,6 +16,12 @@ pub enum Forms {
     #[strum(serialize = "case_note")]
     CaseNotes,
 }
+#[derive(Debug, EnumString, Display)]
+pub enum Fields {
+    #[strum(serialize = "record_id")]
+    RecordID,
+    Other(&'static str),
+}
 #[derive(Debug, EnumString, Display, Serialize, AsRefStr)]
 #[strum(serialize_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
@@ -63,7 +69,7 @@ where
 pub struct ExportOptions {
     pub forms: Option<ConcatVec<Forms>>,
     pub records: Option<ConcatVec<usize>>,
-    pub fields: Option<ConcatVec<String>>,
+    pub fields: Option<ConcatVec<Fields>>,
 }
 
 impl ExportOptions {

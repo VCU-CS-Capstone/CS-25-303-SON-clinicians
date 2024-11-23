@@ -196,7 +196,7 @@ mod tests {
     #[tokio::test]
 
     pub async fn test() -> anyhow::Result<()> {
-        let database = crate::database::tests::setup_query_test().await?;
+        let database = crate::database::tests::connect_to_db().await?;
 
         let questions = DBQuestionResponse::get_case_note_all(&database).await?;
         let clean_questions = questions

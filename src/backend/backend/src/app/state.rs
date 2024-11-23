@@ -119,7 +119,6 @@ impl SiteState {
     /// ## Current Closes
     /// - Database Connection
     /// - Session Cleaner Task
-    ///
     pub(super) async fn close(self) {
         // Close the website
         let SiteState { database, inner } = self;

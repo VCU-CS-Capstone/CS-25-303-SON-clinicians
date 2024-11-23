@@ -15,7 +15,7 @@ use crate::{
         },
     },
     red_cap::{
-        api::{ExportOptions, Forms, RedcapClient},
+        api::{ExportOptions, Fields, Forms, RedcapClient},
         converter::{
             case_notes::{
                 OtherCaseNoteData, RedCapBloodPressureReadings, RedCapCaseNoteBase,
@@ -197,7 +197,7 @@ pub async fn pull_case_notes(
         .get_flat_json_forms(ExportOptions {
             forms: Some(vec![Forms::CaseNotes].into()),
             records: Some(vec![record_id as usize].into()),
-            fields: Some(vec!["record_id".to_owned()].into()),
+            fields: Some(vec![Fields::RecordID].into()),
         })
         .await?;
 
