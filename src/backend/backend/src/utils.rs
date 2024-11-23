@@ -1,5 +1,9 @@
 mod header;
+mod response;
+pub use response::*;
+
 pub use header::HeaderValueExt;
+
 pub mod base64_utils {
     use base64::{engine::general_purpose::STANDARD, DecodeError, Engine};
     use tracing::instrument;

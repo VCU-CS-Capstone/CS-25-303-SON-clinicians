@@ -28,7 +28,8 @@ use crate::{
             },
             RedCapConverter,
         },
-        process_flat_json, RedCapExportDataType,
+        processing::process_flat_json,
+        RedCapExportDataType,
     },
 };
 

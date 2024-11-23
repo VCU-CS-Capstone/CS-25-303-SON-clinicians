@@ -2,13 +2,14 @@ use crate::database::prelude::*;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use tabled::Tabled;
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, trace};
+use utoipa::ToSchema;
 
 use crate::red_cap::Programs;
 
 use super::{ParticipantType, ParticipantsColumn};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Tabled)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Tabled, ToSchema)]
 pub struct ParticipantLookup {
     pub id: i32,
     pub first_name: String,
@@ -39,7 +40,7 @@ impl ParticipantType for ParticipantLookup {
         ]
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, Builder)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, Builder, ToSchema)]
 pub struct ParticipantLookupQuery {
     pub first_name: String,
     pub last_name: String,
@@ -47,8 +48,6 @@ pub struct ParticipantLookupQuery {
     pub location: Option<i32>,
     #[builder(setter(into, strip_option), default)]
     pub program: Option<Programs>,
-    #[builder(setter(into, strip_option), default)]
-    pub limit: Option<i64>,
 }
 impl ParticipantLookupQuery {
     #[instrument(name = "ParticipantLookupQuery::find", skip(database))]
@@ -78,14 +77,6 @@ impl ParticipantLookupQuery {
                 }
             },
         );
-
-        if let Some(limit) = self.limit {
-            query.limit(limit);
-        }
-        if tracing::enabled!(tracing::Level::DEBUG) {
-            let query = query.sql();
-            debug!(?query, "Executing Query");
-        }
         let result = query.query_as().fetch_all(database).await?;
 
         Ok(result)
@@ -126,7 +117,6 @@ mod tests {
                 last_name: "H".to_string(),
                 program: Some(Programs::MHWP),
                 location: Some(9),
-                limit: Some(5),
             },
         ];
 

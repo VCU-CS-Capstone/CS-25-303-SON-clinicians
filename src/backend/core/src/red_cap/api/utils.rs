@@ -17,18 +17,17 @@ use std::str::FromStr;
 /// ```
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FieldNameAndIndex {
-    pub field_name: String,
-    pub index: Option<i32>,
+pub struct FieldNameAndIndex<'a> {
+    pub field_name: &'a str,
+    pub index: i32,
 }
-impl FromStr for FieldNameAndIndex {
-    type Err = RedCapParseError;
-    fn from_str(field_name: &str) -> Result<Self, Self::Err> {
+impl<'a> TryFrom<&'a str> for FieldNameAndIndex<'a> {
+    type Error = RedCapParseError;
+    fn try_from(field_name: &'a str) -> Result<Self, Self::Error> {
         if !field_name.contains("___") {
-            return Ok(Self {
-                field_name: field_name.to_owned(),
-                index: None,
-            });
+            return Err(RedCapParseError::NotAValidCheckBoxKey(
+                field_name.to_owned(),
+            ));
         }
         let mut parts = field_name.splitn(2, "___");
         let actual_field_name = parts.next().unwrap();
@@ -41,18 +40,18 @@ impl FromStr for FieldNameAndIndex {
                 }
             })?;
             Ok(Self {
-                field_name: actual_field_name.to_owned(),
-                index: Some(index),
+                field_name: actual_field_name,
+                index,
             })
         } else {
-            Ok(Self {
-                field_name: field_name.to_owned(),
-                index: None,
-            })
+            Err(RedCapParseError::NotAValidCheckBoxKey(
+                field_name.to_owned(),
+            ))
         }
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, EnumIs)]
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIs)]
 pub enum CheckboxValue {
     Checked,
     Unchecked,

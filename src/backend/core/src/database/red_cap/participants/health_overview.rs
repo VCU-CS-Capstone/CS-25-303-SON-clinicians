@@ -3,6 +3,7 @@ use cs25_303_macros::Columns;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
 use tracing::debug;
+use utoipa::ToSchema;
 
 use crate::red_cap::MobilityDevice;
 pub trait HealthOverviewType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
@@ -42,7 +43,7 @@ pub trait HealthOverviewType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
 pub struct HealthOverview {
     pub id: i32,
     /// 1:1 with [super::Participants]

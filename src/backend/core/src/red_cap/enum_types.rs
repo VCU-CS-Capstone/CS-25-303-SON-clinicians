@@ -2,11 +2,12 @@ use crate::utils::InvalidVariant;
 use cs25_303_macros::RedCapEnum;
 use serde::Serialize;
 use tracing::debug;
+use utoipa::ToSchema;
 
 use crate::red_cap::{utils::is_all_none, MultiSelectType, RedCapDataSet, RedCapEnum, RedCapType};
 /// Returns none if all the fields are none
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, RedCapEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, RedCapEnum, ToSchema)]
 pub enum Programs {
     /// Richmond Health And Wellness Program
     #[default]
@@ -17,7 +18,7 @@ pub enum Programs {
     MHWP,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum Status {
     #[red_cap(enum_index = 1)]
     Active,
@@ -98,7 +99,7 @@ impl From<RedCapGender> for Option<Gender> {
         gender
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum Gender {
     #[red_cap(name = "female", enum_index = 2)]
     Female,
@@ -154,7 +155,7 @@ impl RedCapType for RedCapRace {
         );
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum Race {
     #[red_cap(enum_index = 3)]
     NativeAmerican,
@@ -180,7 +181,7 @@ pub enum Race {
     Declined,
 }
 impl MultiSelectType for Race {}
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum Ethnicity {
     #[red_cap(enum_index = 1)]
     HispanicOrLatino,
@@ -188,7 +189,7 @@ pub enum Ethnicity {
     NotHispanicOrLatino,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum PreferredLanguage {
     #[red_cap(enum_index = 1)]
     EnUs,
@@ -249,7 +250,7 @@ impl RedCapType for RedCapLanguage {
         data.insert("language_other", self.language_other.clone().into());
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum HealthInsurance {
     #[red_cap(enum_index = 1)]
     Medicaid,
@@ -263,7 +264,7 @@ pub enum HealthInsurance {
     None,
 }
 impl MultiSelectType for HealthInsurance {}
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum DegreeLevel {
     #[red_cap(enum_index = 1)]
     None,
@@ -285,7 +286,7 @@ pub enum DegreeLevel {
     Graduates,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum MobilityDevice {
     #[red_cap(enum_index = 1)]
     None,

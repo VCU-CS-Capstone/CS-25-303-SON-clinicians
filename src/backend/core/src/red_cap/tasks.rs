@@ -4,7 +4,7 @@ pub use from::*;
 
 use crate::database::DBError;
 
-use super::{api::RedCapAPIError, converter::RedCapConverterError, flatten_data_to_red_cap_format};
+use super::{api::RedCapAPIError, converter::RedCapConverterError};
 #[derive(Debug, thiserror::Error)]
 pub enum RedCapTaskError {
     #[error(transparent)]

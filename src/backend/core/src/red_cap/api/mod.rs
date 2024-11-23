@@ -17,6 +17,8 @@ pub enum RedCapParseError {
     InvalidMultiCheckboxField { input: String, reason: GenericError },
     #[error("Missing field: {field:?}")]
     MissingField { field: String },
+    #[error("Not a valid checkbox key: {0}")]
+    NotAValidCheckBoxKey(String),
 }
 #[derive(Debug, Error)]
 pub enum GenericError {
@@ -190,7 +192,7 @@ mod tests {
             },
             RedCapConverter,
         },
-        process_flat_json,
+        processing::process_flat_json,
     };
 
     #[tokio::test]

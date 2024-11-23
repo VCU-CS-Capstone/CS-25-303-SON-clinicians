@@ -1,12 +1,13 @@
-use std::{any::type_name, str::FromStr};
+pub mod processing;
 pub mod tasks;
 use ahash::{HashMap, HashMapExt};
-use api::utils::{is_check_box_item, CheckboxValue, FieldNameAndIndex};
+use api::utils::CheckboxValue;
 use chrono::NaiveDate;
 use serde_json::Value;
-use tracing::{error, warn};
+use tracing::error;
 pub mod converter;
-
+mod types;
+pub use types::*;
 mod enum_types;
 pub use enum_types::*;
 pub mod utils;
@@ -14,69 +15,7 @@ pub mod utils;
 pub mod api;
 // TODO: Use a faster hash map. It doesn't have to be DDOS resistant
 pub type RedCapDataMap = HashMap<String, RedCapExportDataType>;
-pub trait RedCapEnum {
-    /// To Prevent Obscure Bugs. It will return None
-    fn from_usize(value: usize) -> Option<Self>
-    where
-        Self: Sized;
 
-    fn to_usize(&self) -> usize;
-}
-pub trait MultiSelectType: RedCapEnum {
-    fn from_multi_select(multi_select: &MultiSelect) -> Option<Vec<Self>>
-    where
-        Self: Sized,
-    {
-        let mut result = Vec::new();
-
-        for (id, value) in multi_select.set_values.iter() {
-            if value == &CheckboxValue::Checked {
-                if let Some(value) = Self::from_usize(*id as usize) {
-                    result.push(value);
-                } else {
-                    warn!(?id, "Unknown {}", type_name::<Self>());
-                }
-            }
-        }
-        Some(result)
-    }
-
-    fn create_multiselect(field_base: impl Into<String>, values: &[Self]) -> MultiSelect
-    where
-        Self: Sized,
-    {
-        let mut set_values = HashMap::new();
-        for value in values {
-            set_values.insert(value.to_usize() as i32, CheckboxValue::Checked);
-        }
-        MultiSelect {
-            field_base: field_base.into(),
-            set_values,
-        }
-    }
-}
-pub trait RedCapType {
-    /// Reads a Red Cap taking an index to generate the key
-    fn read_with_index<D: RedCapDataSet>(data: &D, _index: usize) -> Option<Self>
-    where
-        Self: Sized,
-    {
-        Self::read(data)
-    }
-    /// Reads a Red Cap
-    fn read<D: RedCapDataSet>(data: &D) -> Option<Self>
-    where
-        Self: Sized;
-    /// Writes a Red Cap taking an index to generate the key
-    fn write_with_index<D: RedCapDataSet>(&self, data: &mut D, _index: usize)
-    where
-        Self: Sized,
-    {
-        self.write(data)
-    }
-    /// Writes a Red Cap
-    fn write<D: RedCapDataSet>(&self, data: &mut D);
-}
 macro_rules! get {
     (
         $(
@@ -157,40 +96,21 @@ pub struct MultiSelect {
     pub field_base: String,
     pub set_values: HashMap<i32, CheckboxValue>,
 }
-
-pub fn find_and_extract_multi_selects(
-    items: &mut HashMap<String, Value>,
-) -> HashMap<String, MultiSelect> {
-    let mut multi_selects = HashMap::new();
-    let keys = items
-        .keys()
-        .filter(|key| is_check_box_item(key.as_str()))
-        .cloned()
-        .collect::<Vec<String>>();
-    for key in keys {
-        let value = items.remove(&key).unwrap();
-        let FieldNameAndIndex { field_name, index } =
-            FieldNameAndIndex::from_str(key.as_str()).unwrap();
-        let multi_select = multi_selects
-            .entry(field_name.clone())
-            .or_insert_with(|| MultiSelect {
-                field_base: field_name,
-                set_values: HashMap::new(),
-            });
-        let index = index.unwrap();
-
-        let checkbox_value = match CheckboxValue::try_from(value) {
-            Ok(ok) => ok,
-            Err(err) => {
-                error!(?err, "Error parsing checkbox value");
-                CheckboxValue::Unchecked
-            }
-        };
-
-        multi_select.set_values.insert(index, checkbox_value);
+impl MultiSelect {
+    /// Creates a new MultiSelect
+    ///
+    /// Uses a default capacity of 10 Because most multi selects are less than 10
+    pub fn new(field_base: impl Into<String>) -> Self {
+        Self {
+            field_base: field_base.into(),
+            set_values: HashMap::with_capacity(10),
+        }
     }
-    multi_selects
+    pub fn insert(&mut self, index: i32, value: CheckboxValue) {
+        self.set_values.insert(index, value);
+    }
 }
+
 #[derive(Debug, Clone)]
 pub enum RedCapExportDataType {
     MultiSelect(MultiSelect),
@@ -372,54 +292,6 @@ impl RedCapExportDataType {
             _ => None,
         }
     }
-}
-
-pub fn process_flat_json(
-    mut input: HashMap<String, Value>,
-) -> HashMap<String, RedCapExportDataType> {
-    let multi_selects = find_and_extract_multi_selects(&mut input);
-
-    let mut output = HashMap::with_capacity(input.len() + multi_selects.len());
-    for (key, value) in multi_selects {
-        output.insert(key, RedCapExportDataType::MultiSelect(value));
-    }
-    for (key, value) in input {
-        let value = RedCapExportDataType::process_value(value);
-        output.insert(key, value);
-    }
-    output
-}
-pub fn flatten_data_to_red_cap_format(
-    input: HashMap<String, RedCapExportDataType>,
-) -> HashMap<String, String> {
-    let mut output = HashMap::new();
-    for (key, value) in input {
-        match value {
-            RedCapExportDataType::MultiSelect(multi_select) => {
-                for (index, value) in multi_select.set_values {
-                    let value: usize = value.into();
-                    let key = format!("{}___{}", multi_select.field_base, index);
-                    output.insert(key, value.to_string());
-                }
-            }
-            RedCapExportDataType::Text(text) => {
-                output.insert(key, text);
-            }
-            RedCapExportDataType::Null => {
-                output.insert(key, String::new());
-            }
-            RedCapExportDataType::Number(number) => {
-                output.insert(key, number.to_string());
-            }
-            RedCapExportDataType::Float(float) => {
-                output.insert(key, float.to_string());
-            }
-            RedCapExportDataType::Date(naive_date) => {
-                output.insert(key, naive_date.format("%Y-%m-%d").to_string());
-            }
-        }
-    }
-    output
 }
 
 #[cfg(test)]

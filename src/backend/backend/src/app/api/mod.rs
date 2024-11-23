@@ -1,7 +1,9 @@
 use axum::{extract::State, Json};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use utoipa::ToSchema;
+pub mod location;
+pub mod participant;
 pub mod user;
 use super::{SiteState, WrappedSiteState};
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -19,6 +21,8 @@ pub fn api_routes() -> axum::Router<SiteState> {
     axum::Router::new()
         .route("/info", axum::routing::get(info))
         .merge(user::user_routes())
+        .nest("/participant", participant::participant_routes())
+        .nest("/location", location::location_routes())
 }
 #[utoipa::path(
     get,
@@ -28,6 +32,17 @@ pub fn api_routes() -> axum::Router<SiteState> {
     )
 )]
 #[instrument]
-pub async fn info(State(site): WrappedSiteState) -> Json<Instance> {
+pub async fn info(State(site): State<SiteState>) -> Json<Instance> {
     Json(Instance::new(site))
+}
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct PaginatedResponse<T> {
+    /// The current page number
+    pub page: i32,
+    /// The number of items per page
+    pub page_size: i32,
+    /// The total number of items
+    pub total: i32,
+    /// The data for the current page
+    pub data: Vec<T>,
 }

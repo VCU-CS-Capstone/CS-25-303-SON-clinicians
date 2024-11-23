@@ -20,6 +20,7 @@ pub use medications::*;
 pub use new::*;
 use sqlx::{postgres::PgRow, prelude::FromRow};
 use tracing::error;
+use utoipa::ToSchema;
 pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
     fn get_id(&self) -> i32;
 
@@ -52,7 +53,7 @@ pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
     }
 }
 /// Database Table: `participants`
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
 pub struct Participants {
     pub id: i32,
     /// The ID within Red Cap. This is separate so if we added creating a new participant
@@ -143,7 +144,7 @@ pub trait ParticipantDemograhicsType:
         Ok(result)
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
 pub struct ParticipantDemograhics {
     pub id: i32,
     /// 1:1 with [Participants]

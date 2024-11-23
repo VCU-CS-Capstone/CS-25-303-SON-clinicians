@@ -1,4 +1,4 @@
-use super::api::{self, user::UserAPI};
+use super::api::{self, location::LocationsAPI, participant::ParticipantAPI, user::UserAPI};
 use axum::{
     response::{IntoResponse, Response},
     Json, Router,
@@ -10,6 +10,8 @@ use utoipa::OpenApi;
     modifiers(),
     nest(
         (path = "/api/user", api = UserAPI, tags=["user"]),
+        (path = "/api/participant", api = ParticipantAPI, tags=["participant"]),
+        (path = "/api/location", api = LocationsAPI, tags=["location"])
     ),
     paths(api::info),
     components(schemas(api::Instance)),
@@ -22,6 +24,7 @@ pub fn build_router<S>() -> axum::Router<S>
 where
     S: Clone + Send + Sync + 'static,
 {
+    use axum::routing::get;
     use utoipa_scalar::{Scalar, Servable};
 
     Router::new()

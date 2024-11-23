@@ -1,6 +1,7 @@
 use ahash::{HashMap, HashMapExt};
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, types::Json};
+use utoipa::ToSchema;
 
 use crate::{
     database::prelude::*,
@@ -11,12 +12,13 @@ use crate::{
 /// Table Name: locations
 ///
 /// This is the table of locations that are used in the system.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
 pub struct Locations {
     pub id: i32,
     pub name: String,
     pub program: Programs,
     pub parent_location: Option<i32>,
+    #[schema(value_type = RedCapLocationConnectionRules)]
     pub red_cap_connection_rules: Json<RedCapLocationConnectionRules>,
 }
 impl TableType for Locations {
@@ -79,7 +81,7 @@ impl Locations {
 /// This will also leave the door open for more locations to be added in the future.
 ///
 /// Each field corresponds to the field name in Red Cap.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, ToSchema)]
 pub struct RedCapLocationConnectionRules {
     /// RWHP Red Cap ID: `rhwp_location_visit`
     /// MHWP Red Cap ID: `mhwp_location_visit`

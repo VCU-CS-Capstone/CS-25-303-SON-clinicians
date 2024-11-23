@@ -24,7 +24,7 @@ use crate::{
             },
             RedCapConverter,
         },
-        flatten_data_to_red_cap_format,
+        processing::flatten_data_to_red_cap_format,
     },
 };
 
@@ -107,7 +107,7 @@ pub async fn push_participant_medications_to_red_cap(
     }
     data.insert("record_id".into(), record_id.into());
 
-    let flattened_data = super::flatten_data_to_red_cap_format(data);
+    let flattened_data = flatten_data_to_red_cap_format(data);
     let records = vec![flattened_data];
 
     client.import_records(records).await?;
@@ -156,7 +156,7 @@ pub async fn push_participant_goals_to_red_cap(
     }
     data.insert("record_id".into(), record_id.into());
 
-    let flattened_data = super::flatten_data_to_red_cap_format(data);
+    let flattened_data = flatten_data_to_red_cap_format(data);
     let records = vec![flattened_data];
 
     client.import_records(records).await?;
@@ -204,7 +204,7 @@ pub async fn push_case_notes_to_redcap(
         }
         data.insert("record_id".into(), record_id.into());
         println!("{:?}", data);
-        let flattened_data = super::flatten_data_to_red_cap_format(data);
+        let flattened_data = flatten_data_to_red_cap_format(data);
         let records = vec![flattened_data];
         client.import_records(records).await?;
 

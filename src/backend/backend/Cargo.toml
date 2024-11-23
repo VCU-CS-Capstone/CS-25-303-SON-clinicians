@@ -66,3 +66,5 @@ tuxs-config-types = { git = "https://github.com/wyatt-herkamp/tuxs-config-types.
 ] }
 base64 = "0.22"
 ahash.workspace = true
+[features]
+default = ["utoipa-scalar"]
