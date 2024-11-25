@@ -3,7 +3,7 @@ use std::fmt::Display;
 use sqlx::{Arguments, Database, Encode, Postgres, Type};
 
 use super::{
-    concat_columns, AndOr, ColumnType, FunctionCallColumn, HasArguments, QueryTool, SQLComparison,
+    concat_columns, AndOr, ColumnType, HasArguments, QueryTool, SQLComparison,
     WhereColumn,
 };
 

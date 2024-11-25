@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 
 use crate::red_cap::VisitType;
 
-use super::{BloodPressureType, CaseNoteType, DBResult};
+use super::{BloodPressureType, CaseNoteType, DBResult, PageParams, PaginatedResponse};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema, FromRow)]
 pub struct CaseNoteIDAndDate {
     /// Case Note ID
@@ -58,20 +58,42 @@ pub struct WeightHistory {
     pub weight: f32,
 }
 impl WeightHistory {
+    /// If page_size is 0 or less all records are returned
     pub async fn find_all_for_participant(
         participant_id: i32,
+        page_and_size: impl Into<PageParams>,
         database: &sqlx::PgPool,
-    ) -> DBResult<Vec<Self>> {
-        let result = sqlx::query_as(
+    ) -> DBResult<PaginatedResponse<WeightHistory>> {
+        let page_and_size: PageParams = page_and_size.into();
+        let offset_and_limit = if page_and_size.page_size > 0 {
+            format!(
+                "LIMIT {} OFFSET {}",
+                page_and_size.page_size,
+                page_and_size.offset()
+            )
+        } else {
+            "".to_string()
+        };
+
+        let data = sqlx::query_as(
+         &format!(
             "
-                SELECT case_notes.id as case_note_id, case_notes.date_of_visit, cnhm.weight FROM case_notes
-                    FULL JOIN case_note_health_measures cnhm on case_notes.id = cnhm.case_note_id
-                    WHERE case_notes.participant_id = $1 AND cnhm.weight IS NOT NULL
-                    ORDER BY case_notes.date_of_visit DESC",
+            SELECT case_notes.id as case_note_id, case_notes.date_of_visit, cnhm.weight FROM case_notes
+                FULL JOIN case_note_health_measures cnhm on case_notes.id = cnhm.case_note_id
+                WHERE case_notes.participant_id = $1 AND cnhm.weight IS NOT NULL
+                ORDER BY case_notes.date_of_visit DESC
+                {offset_and_limit};
+                "
+         ),
         )
         .bind(participant_id)
         .fetch_all(database)
         .await?;
+
+        let result = PaginatedResponse {
+            data,
+            ..Default::default()
+        };
         Ok(result)
     }
 }
@@ -129,11 +151,25 @@ pub struct BloodPressureReading {
     pub diastolic: i16,
 }
 impl BloodPressureHistory {
+    /// If page_size is 0 or less all records are returned
     pub async fn find_all_for_participant(
         participant_id: i32,
+        page_and_size: impl Into<PageParams>,
         database: &sqlx::PgPool,
-    ) -> DBResult<Vec<Self>> {
-        let query = sqlx::query_as("
+    ) -> DBResult<PaginatedResponse<Self>> {
+        let page_and_size: PageParams = page_and_size.into();
+        let offset_and_limit = if page_and_size.page_size > 0 {
+            format!(
+                "LIMIT {} OFFSET {}",
+                page_and_size.page_size,
+                page_and_size.offset()
+            )
+        } else {
+            "".to_string()
+        };
+
+        let data = sqlx::query_as(&format!(
+        "
         SELECT case_notes.id as case_note_id, case_notes.date_of_visit as date_of_visit,
             ARRAY(
                 SELECT (BP.blood_pressure_type,BP.systolic, BP.diastolic) FROM health_measure_blood_pressure AS BP
@@ -141,9 +177,16 @@ impl BloodPressureHistory {
             ) as blood_pressure
             from case_note_health_measures as HM
             FULL JOIN case_notes ON case_notes.id = HM.case_note_id
-            WHERE case_notes.participant_id = $1;")
+            WHERE case_notes.participant_id = $1 {offset_and_limit};
+            "
+        ))
             .bind(participant_id).fetch_all(database).await?;
-        Ok(query)
+
+        let result = PaginatedResponse {
+            data,
+            ..Default::default()
+        };
+        Ok(result)
     }
 }
 
@@ -153,7 +196,15 @@ mod tests {
     #[tokio::test]
     pub async fn bp_test() -> anyhow::Result<()> {
         let pool = crate::database::tests::connect_to_db().await?;
-        let bps = super::BloodPressureHistory::find_all_for_participant(1, &pool).await?;
+        let bps = super::BloodPressureHistory::find_all_for_participant(1, (0, 0), &pool).await?;
+        println!("{:?}", bps);
+        Ok(())
+    }
+
+    #[tokio::test]
+    pub async fn weight_test() -> anyhow::Result<()> {
+        let pool = crate::database::tests::connect_to_db().await?;
+        let bps = super::WeightHistory::find_all_for_participant(1, (0, 0), &pool).await?;
         println!("{:?}", bps);
         Ok(())
     }

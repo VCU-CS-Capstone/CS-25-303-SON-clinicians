@@ -5,6 +5,7 @@ mod select;
 mod select_v2;
 mod update;
 mod where_sql;
+use derive_more::derive::{From, Into};
 pub use insert::*;
 pub use select::*;
 pub use select_v2::*;
@@ -18,7 +19,7 @@ use sqlx::{
 use strum::{AsRefStr, Display};
 use tracing::trace;
 pub use update::*;
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 pub use where_sql::*;
 pub struct FunctionCallColumn<C> {
     pub function_name: &'static str,
@@ -157,15 +158,44 @@ pub enum AndOr {
     #[strum(serialize = "OR")]
     Or,
 }
+#[derive(Debug, Clone, Copy, From, Into, Deserialize, ToSchema, IntoParams)]
+#[serde(default)]
+#[into_params(parameter_in = Query)]
+pub struct PageParams {
+    /// The number of items per page
+    #[param(default = 10)]
+    pub page_size: i32,
+    /// The page number
+    #[param(default = 1)]
+    pub page_number: i32,
+}
+impl PageParams {
+    pub fn page_index(&self) -> i32 {
+        (self.page_number - 1).max(0)
+    }
+    pub fn offset(&self) -> i32 {
+        self.page_size * self.page_index()
+    }
+
+    pub fn number_of_pages(&self, total: i64) -> i32 {
+        (total as f64 / self.page_size as f64).ceil() as i32
+    }
+}
+impl Default for PageParams {
+    fn default() -> Self {
+        Self {
+            page_size: 10,
+            page_number: 1,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct PaginatedResponse<T> {
-    /// The current page number
-    pub page: i32,
     /// The number of items per page
-    pub page_size: i32,
+    pub total_pages: i32,
     /// The total number of items
-    pub total: i32,
+    pub total: i64,
     /// The data for the current page
     pub data: Vec<T>,
 }
@@ -180,8 +210,7 @@ impl<T> Deref for PaginatedResponse<T> {
 impl<T> Default for PaginatedResponse<T> {
     fn default() -> Self {
         Self {
-            page: 0,
-            page_size: 0,
+            total_pages: 0,
             total: 0,
             data: Vec::new(),
         }

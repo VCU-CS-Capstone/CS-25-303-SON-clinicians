@@ -272,7 +272,7 @@ impl RandomSets {
         let has_diabetes = self.rand_bool(0.1);
         let weight_class = match self.rand.gen_range(0..10) {
             0..2 => WeightCategory::Underweight,
-            0..8 => WeightCategory::Overweight,
+            2..8 => WeightCategory::Overweight,
             _ => WeightCategory::Normal,
         };
 

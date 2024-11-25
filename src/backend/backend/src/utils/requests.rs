@@ -1,21 +1,3 @@
-use derive_more::derive::{From, Into};
-use serde::Deserialize;
-use utoipa::ToSchema;
-
-#[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(default)]
-pub struct LookupPage {
-    pub page_size: i32,
-    pub page_number: i32,
-}
-impl Default for LookupPage {
-    fn default() -> Self {
-        Self {
-            page_size: 10,
-            page_number: 1,
-        }
-    }
-}
 pub fn sanitize_string(s: String) -> Option<String> {
     if s.is_empty() {
         None

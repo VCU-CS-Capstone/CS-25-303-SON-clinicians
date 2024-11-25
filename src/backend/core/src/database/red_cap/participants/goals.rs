@@ -83,9 +83,9 @@ impl ParticipantGoals {
         participant_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Vec<ParticipantGoals>> {
-        SimpleSelectQueryBuilder::new(
+        SimpleSelectQueryBuilderV2::new(
             ParticipantGoals::table_name(),
-            &ParticipantGoalsColumn::all(),
+            ParticipantGoalsColumn::all(),
         )
         .where_equals(ParticipantGoalsColumn::ParticipantId, participant_id)
         .query_as()
@@ -221,10 +221,39 @@ impl ParticipantGoalsSteps {
         participant_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Vec<ParticipantGoalsSteps>> {
-        SimpleSelectQueryBuilder::new(
+        SimpleSelectQueryBuilderV2::new(
             ParticipantGoalsSteps::table_name(),
-            &ParticipantGoalsStepsColumn::all(),
+            ParticipantGoalsStepsColumn::all(),
         )
+        .where_equals(ParticipantGoalsStepsColumn::ParticipantId, participant_id)
+        .query_as()
+        .fetch_all(database)
+        .await
+        .map_err(DBError::from)
+    }
+    pub async fn get_all_steps_for_goal(
+        goal_id: i32,
+        database: impl Executor<'_, Database = sqlx::Postgres>,
+    ) -> DBResult<Vec<ParticipantGoalsSteps>> {
+        SimpleSelectQueryBuilderV2::new(
+            ParticipantGoalsSteps::table_name(),
+            ParticipantGoalsStepsColumn::all(),
+        )
+        .where_equals(ParticipantGoalsStepsColumn::GoalId, goal_id)
+        .query_as()
+        .fetch_all(database)
+        .await
+        .map_err(DBError::from)
+    }
+    pub async fn get_goaless_steps_for_participant(
+        participant_id: i32,
+        database: impl Executor<'_, Database = sqlx::Postgres>,
+    ) -> DBResult<Vec<ParticipantGoalsSteps>> {
+        SimpleSelectQueryBuilderV2::new(
+            ParticipantGoalsSteps::table_name(),
+            ParticipantGoalsStepsColumn::all(),
+        )
+        .where_is_null(ParticipantGoalsStepsColumn::GoalId)
         .where_equals(ParticipantGoalsStepsColumn::ParticipantId, participant_id)
         .query_as()
         .fetch_all(database)

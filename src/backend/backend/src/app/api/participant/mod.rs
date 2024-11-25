@@ -1,8 +1,10 @@
 use crate::{
     app::authentication::Authentication,
-    utils::{not_found_response, ok_json_response, LookupPage},
+    utils::{not_found_response, ok_json_response},
 };
 pub mod case_note;
+pub mod goals;
+pub mod medications;
 pub mod stats;
 use axum::{
     extract::{Path, Query, State},
@@ -16,21 +18,22 @@ use cs25_303_core::database::{
         ParticipantDemograhics, ParticipantLookup, ParticipantLookupQuery, ParticipantType,
         Participants,
     },
-    tools::PaginatedResponse,
+    tools::{PageParams, PaginatedResponse},
 };
-use serde::Deserialize;
 use tracing::instrument;
-use utoipa::{OpenApi, ToSchema};
+use utoipa::OpenApi;
 
 use crate::app::{error::InternalError, SiteState};
 
 #[derive(OpenApi)]
 #[openapi(
     paths(look_up_participant, get_participants,get_health_overview, get_demographics),
-    components(schemas(LookupPage, ParticipantLookup, ParticipantLookupQuery, PaginatedResponse<ParticipantLookup>, Participants, HealthOverview, ParticipantDemograhics)),
+    components(schemas(PageParams, ParticipantLookup, ParticipantLookupQuery, PaginatedResponse<ParticipantLookup>, Participants, HealthOverview, ParticipantDemograhics)),
     nest(
         (path = "/case_notes", api = case_note::CaseNoteAPI, tags=["case_note"]),
-        (path = "/stats", api = stats::ParticipantStatAPI, tags=["participant", "stats"]),
+        (path = "/stats", api = stats::ParticipantStatAPI, tags=["stats"]),
+        (path = "/goals", api = goals::ParticipantGoalsAPI, tags=[ "goals"]),
+        (path = "/medications", api = medications::ParticipantMedicationsAPI, tags=["medications"])
     )
 )]
 pub struct ParticipantAPI;
@@ -43,14 +46,15 @@ pub fn participant_routes() -> axum::Router<SiteState> {
         .route("/get/:id/demographics", get(get_demographics))
         .nest("/case_notes", case_note::case_note_routes())
         .nest("/stats", stats::stat_routes())
+        .nest("/goals", goals::participant_goals())
+        .nest("/medications", medications::participant_medications())
 }
-
+/// Look up participants
 #[utoipa::path(
     post,
     path = "/lookup",
     params(
-        ("page_size" = i32, Query, description = "Number of items per page"),
-        ("page_number" = i32, Query, description = "Page number"),
+        PageParams,
     ),
     request_body(content = ParticipantLookupQuery, content_type = "application/json"),
     responses(
@@ -64,21 +68,15 @@ pub fn participant_routes() -> axum::Router<SiteState> {
 #[instrument]
 pub async fn look_up_participant(
     State(site): State<SiteState>,
-    Query(page): Query<LookupPage>,
+    Query(page): Query<PageParams>,
     auth: Authentication,
     Json(participant): Json<ParticipantLookupQuery>,
 ) -> Result<Response, InternalError> {
-    let LookupPage {
-        page_size,
-        page_number,
-    } = page;
-    let participants = participant
-        .find(&site.database, page_number - 1, page_size)
-        .await?;
-    // TODO: Implement pagination
+    let participants = participant.find(page, &site.database).await?;
 
     ok_json_response(participants)
 }
+/// Gets a participant by ID
 #[utoipa::path(
     get,
     path = "/get/{id}",
@@ -107,7 +105,7 @@ pub async fn get_participants(
         None => not_found_response(),
     }
 }
-
+/// Gets a participant's health overview
 #[utoipa::path(
     get,
     path = "/get/{id}/health_overview",
@@ -136,7 +134,7 @@ pub async fn get_health_overview(
         None => not_found_response(),
     }
 }
-
+/// Gets a participant's demographics
 #[utoipa::path(
     get,
     path = "/get/{id}/demographics",

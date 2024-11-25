@@ -229,6 +229,7 @@ pub fn format_where(comparison: &[WhereComparison]) -> String {
 
 #[cfg(test)]
 mod tests {
+    #![allow(dead_code)]
     use crate::database::{
         prelude::*,
         tools::where_sql::{format_where, WhereBuilder},

@@ -1,13 +1,15 @@
+use std::fmt::Debug;
+
 use crate::database::prelude::*;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use tabled::Tabled;
-use tracing::{debug, instrument};
+use tracing::instrument;
 use utoipa::ToSchema;
 
 use crate::red_cap::Programs;
 
-use super::{ParticipantType, ParticipantsColumn};
+use super::{ParticipantType, Participants, ParticipantsColumn};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Tabled, ToSchema)]
 pub struct ParticipantLookup {
@@ -50,13 +52,10 @@ pub struct ParticipantLookupQuery {
     pub program: Option<Programs>,
 }
 impl ParticipantLookupQuery {
-    #[instrument(name = "ParticipantLookupQuery::find", skip(database))]
-    pub async fn find(
-        self,
-        database: &PgPool,
-        page: i32,
-        page_size: i32,
-    ) -> DBResult<PaginatedResponse<ParticipantLookup>> {
+    pub fn apply_arguments<'args, Q>(&self, query: &mut Q)
+    where
+        Q: WhereableTool<'args>,
+    {
         let Self {
             first_name,
             last_name,
@@ -64,8 +63,6 @@ impl ParticipantLookupQuery {
             program,
             ..
         } = self;
-        let mut query =
-            SimpleSelectQueryBuilderV2::new("participants", ParticipantLookup::columns());
         query.where_column(ParticipantsColumn::FirstName.lower(), |builder| {
             builder
                 .like(format!("%{}%", first_name.to_lowercase()))
@@ -80,29 +77,49 @@ impl ParticipantLookupQuery {
         }
         if let Some(location) = location {
             query.where_column(ParticipantsColumn::Location, |builder| {
-                builder.equals(location).build()
+                builder.equals(*location).build()
             });
         }
         if let Some(program) = program {
             query.where_column(ParticipantsColumn::Program, |builder| {
-                builder.equals(program).build()
+                builder.equals(*program).build()
             });
         }
+    }
+    #[instrument(name = "ParticipantLookupQuery::find", skip(database))]
+    pub async fn find(
+        self,
+        page_and_size: impl Into<PageParams> + Debug,
+        database: &PgPool,
+    ) -> DBResult<PaginatedResponse<ParticipantLookup>> {
+        let PageParams {
+            page_size,
+            page_number: page,
+        }: PageParams = page_and_size.into();
+        let mut query = SimpleSelectQueryBuilderV2::new(
+            Participants::table_name(),
+            ParticipantLookup::columns(),
+        );
+        self.apply_arguments(&mut query);
         #[cfg(test)]
         {
             let sql = query.sql();
-            debug!("SQL: {}", sql);
+            tracing::debug!("SQL: {}", sql);
         }
-        if page >0{
+        if page > 0 {
             query.offset(page * page_size);
         }
         query.limit(page_size);
 
+        let total: i64 = {
+            let mut count = SelectCount::new(Participants::table_name());
+            self.apply_arguments(&mut count);
+            count.query_scalar().fetch_one(database).await?
+        };
         let result: Vec<ParticipantLookup> = query.query_as().fetch_all(database).await?;
         let result = PaginatedResponse {
-            page: 0,
-            page_size: 0,
-            total: 0,
+            total_pages: (total / page_size as i64) as i32,
+            total,
             data: result,
         };
         Ok(result)
@@ -148,7 +165,7 @@ mod tests {
         ];
 
         for query in query {
-            let result = query.clone().find(&database, 0, 100).await.unwrap();
+            let result = query.clone().find((0, 100), &database).await.unwrap();
             if result.is_empty() {
                 eprintln!("No participant found. But it might be expected");
                 continue;

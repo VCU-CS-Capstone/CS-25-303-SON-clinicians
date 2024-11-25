@@ -38,4 +38,6 @@ pub enum Scopes {
     ManageSchedule,
     /// A user who can view appointments
     ViewSchedule,
+    /// Update Their Own User Information
+    UpdateSelf,
 }

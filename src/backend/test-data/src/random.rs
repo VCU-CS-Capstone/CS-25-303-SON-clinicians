@@ -8,7 +8,6 @@ use cs25_303_core::{
         case_notes::new::{NewCaseNote, NewCaseNoteHealthMeasures},
         locations::Locations,
         participants::{
-            self,
             goals::{ParticipantGoals, ParticipantGoalsSteps},
             NewParticipant, ParticipantMedications, Participants,
         },

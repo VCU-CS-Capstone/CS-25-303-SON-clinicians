@@ -6,7 +6,10 @@ use axum::{
 };
 use chrono::Local;
 use cs25_303_core::database::{
-    tools::{PaginatedResponse, QueryTool, SimpleUpdateQueryBuilder, TableType, WhereableTool},
+    tools::{
+        PageParams, PaginatedResponse, QueryTool, SimpleUpdateQueryBuilder, TableType,
+        WhereableTool,
+    },
     user::{does_email_exist, does_username_exist, new::NewUser, User, UserColumn, UserType},
 };
 use serde::{Deserialize, Serialize};
@@ -15,7 +18,7 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     app::{authentication::Authentication, error::InternalError, SiteState},
-    utils::{not_found_response, ok_json_response, ConflictResponse, LookupPage},
+    utils::{not_found_response, ok_json_response, ConflictResponse},
 };
 
 #[derive(OpenApi)]
@@ -31,13 +34,12 @@ pub fn admin_user_routes() -> axum::Router<SiteState> {
         .route("/new", post(new_user))
         .route("/:id/update", post(update_user))
 }
-
+/// Returns a list of all users
 #[utoipa::path(
     get,
     path = "/all",
     params(
-        ("page_size" = i32, Query, description = "Number of items per page"),
-        ("page_number" = i32, Query, description = "Page number"),
+        PageParams
     ),
     responses(
         (status = 200, description = "Participants Found", body = PaginatedResponse<User>),
@@ -51,10 +53,10 @@ pub fn admin_user_routes() -> axum::Router<SiteState> {
 #[instrument]
 pub async fn all_users(
     State(site): State<SiteState>,
-    Query(page): Query<LookupPage>,
+    Query(page): Query<PageParams>,
     auth: Authentication,
 ) -> Result<Response, InternalError> {
-    let LookupPage {
+    let PageParams {
         page_size,
         page_number,
     } = page;
@@ -62,7 +64,7 @@ pub async fn all_users(
 
     ok_json_response(users)
 }
-
+/// Creates a new user
 #[utoipa::path(
     post,
     path = "/new",
