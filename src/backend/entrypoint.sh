@@ -1,0 +1,1 @@
+exec /app/cs25-303-backend start --config /opt/cs_25_303/cs25-303.toml

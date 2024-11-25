@@ -1,0 +1,5 @@
+build-release:
+    cargo build --release --all-features
+release-docker:
+    docker build -t git.kingtux.dev/wherkamp/cs-25-303-son-clinicians/cs-25-303-son-clinicians:latest .
+    docker push git.kingtux.dev/wherkamp/cs-25-303-son-clinicians/cs-25-303-son-clinicians:latest
