@@ -28,23 +28,21 @@ pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
     fn columns() -> Vec<ParticipantsColumn> {
         ParticipantsColumn::all()
     }
-
-    async fn find_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>>
-    where
-        Self: TableType,
-    {
-        let result = SimpleSelectQueryBuilder::new(Self::table_name(), &Self::columns())
+    #[tracing::instrument]
+    async fn find_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
+        let result = SimpleSelectQueryBuilder::new(Participants::table_name(), &Self::columns())
             .where_equals(ParticipantsColumn::Id, id)
             .query_as()
             .fetch_optional(database)
             .await?;
         Ok(result)
     }
-    async fn find_by_red_cap_id(red_cap_id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>>
-    where
-        Self: TableType,
-    {
-        let result = SimpleSelectQueryBuilder::new(Self::table_name(), &Self::columns())
+    #[tracing::instrument]
+    async fn find_by_red_cap_id(
+        red_cap_id: i32,
+        database: &sqlx::PgPool,
+    ) -> DBResult<Option<Self>> {
+        let result = SimpleSelectQueryBuilder::new(Participants::table_name(), &Self::columns())
             .where_equals(ParticipantsColumn::RedCapId, red_cap_id)
             .query_as()
             .fetch_optional(database)
@@ -89,6 +87,14 @@ pub struct Participants {
     pub last_synced_with_redcap: Option<DateTime<FixedOffset>>,
 }
 impl Participants {
+    pub async fn does_participant_id_exist(id: i32, db: &sqlx::PgPool) -> DBResult<bool> {
+        let result: bool =
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM participants WHERE id = $1)")
+                .bind(id)
+                .fetch_one(db)
+                .await?;
+        Ok(result)
+    }
     pub async fn set_red_cap_id(
         &mut self,
         red_cap_id: Option<i32>,

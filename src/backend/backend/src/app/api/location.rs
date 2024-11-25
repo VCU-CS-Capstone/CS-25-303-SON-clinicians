@@ -4,7 +4,7 @@ use tracing::instrument;
 use utoipa::OpenApi;
 
 use crate::{
-    app::{error::InternalError, SiteState},
+    app::{authentication::Authentication, error::InternalError, SiteState},
     utils::ok_json_response,
 };
 
@@ -23,15 +23,17 @@ pub fn location_routes() -> axum::Router<SiteState> {
     path = "/all",
     responses(
         (status = 200, description = "All locations in the system", body = Vec<Locations>)
+    ),
+    security(
+        ("session" = []),
+        ("api_token" = []),
     )
 )]
 #[instrument]
 pub async fn all_locations(
     State(site): State<SiteState>,
-    
-    // TODO auth: Authentication,
+    auth: Authentication,
 ) -> Result<Response, InternalError> {
     let locations = Locations::get_all(&site.database).await?;
-    // TODO: Implement pagination
     ok_json_response(locations)
 }

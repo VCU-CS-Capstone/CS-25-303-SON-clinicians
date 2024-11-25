@@ -2,27 +2,11 @@ use std::fmt::Display;
 
 use sqlx::{Arguments, Database, Encode, Postgres, Type};
 
-use super::{concat_columns, AndOr, ColumnType, FunctionCallColumn, QueryTool, WhereComparison};
-pub trait SelectColumn {
-    fn format_where(&self) -> String;
-}
+use super::{
+    concat_columns, AndOr, ColumnType, FunctionCallColumn, HasArguments, QueryTool, SQLComparison,
+    WhereColumn,
+};
 
-impl<C> SelectColumn for C
-where
-    C: ColumnType + Copy,
-{
-    fn format_where(&self) -> String {
-        self.column_name().to_string()
-    }
-}
-impl<C> SelectColumn for FunctionCallColumn<C>
-where
-    C: ColumnType + Copy + Clone,
-{
-    fn format_where(&self) -> String {
-        format!("{}({})", self.function_name, self.column.column_name())
-    }
-}
 pub struct SimpleSelectQueryBuilder<'args> {
     query: String,
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
@@ -77,29 +61,29 @@ impl<'args> SimpleSelectQueryBuilder<'args> {
     /// ```
     pub fn where_equals<C, T>(&mut self, column: C, value: T) -> &mut Self
     where
-        C: SelectColumn,
+        C: WhereColumn,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
-        self.where_inner::<C, T>(column, WhereComparison::Equals, value);
+        self.where_inner::<C, T>(column, SQLComparison::Equals, value);
         self
     }
     pub fn where_equals_then<C, T, F>(&mut self, column: C, value: T, then: F) -> &mut Self
     where
-        C: SelectColumn,
+        C: WhereColumn,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
         F: FnOnce(&mut SimpleSelectWhereQueryBuilder<'_, 'args>),
     {
-        let mut this = self.where_inner::<C, T>(column, WhereComparison::Equals, value);
+        let mut this = self.where_inner::<C, T>(column, SQLComparison::Equals, value);
         then(&mut this);
         self
     }
     pub fn where_like_then<C, T, F>(&mut self, column: C, value: T, then: F) -> &mut Self
     where
-        C: SelectColumn,
+        C: WhereColumn,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
         F: FnOnce(&mut SimpleSelectWhereQueryBuilder<'_, 'args>),
     {
-        let mut this = self.where_inner::<C, T>(column, WhereComparison::Like, value);
+        let mut this = self.where_inner::<C, T>(column, SQLComparison::Like, value);
         then(&mut this);
         self
     }
@@ -112,11 +96,11 @@ impl<'args> SimpleSelectQueryBuilder<'args> {
     fn where_inner<C, T>(
         &mut self,
         column: C,
-        comparison: WhereComparison,
+        comparison: SQLComparison,
         value: T,
     ) -> SimpleSelectWhereQueryBuilder<'_, 'args>
     where
-        C: SelectColumn,
+        C: WhereColumn,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
         assert!(!self.created_where, "WHERE clause already created");
@@ -125,13 +109,19 @@ impl<'args> SimpleSelectQueryBuilder<'args> {
         SimpleSelectWhereQueryBuilder { query: self }
     }
 }
+impl<'args> HasArguments<'args> for SimpleSelectQueryBuilder<'args> {
+    fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
+        self.arguments.take().expect("Arguments already taken")
+    }
+
+    fn borrow_arguments_or_error(&mut self) -> &mut <Postgres as Database>::Arguments<'args> {
+        self.arguments.as_mut().expect("Arguments already taken")
+    }
+}
+
 impl<'args> QueryTool<'args> for SimpleSelectQueryBuilder<'args> {
     fn sql(&mut self) -> &str {
         &self.query
-    }
-
-    fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
-        self.arguments.take().expect("BUG: Arguments taken already")
     }
 }
 pub struct SimpleSelectWhereQueryBuilder<'query, 'args> {
@@ -141,35 +131,35 @@ pub struct SimpleSelectWhereQueryBuilder<'query, 'args> {
 impl<'query, 'args> SimpleSelectWhereQueryBuilder<'query, 'args> {
     pub fn and_equals<C, T>(&mut self, column: C, value: T) -> &mut Self
     where
-        C: SelectColumn,
+        C: WhereColumn,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
-        self.and_or_inner::<C, T>(AndOr::And, column, WhereComparison::Equals, value)
+        self.and_or_inner::<C, T>(AndOr::And, column, SQLComparison::Equals, value)
     }
     pub fn and_like<C, T>(&mut self, column: C, value: T) -> &mut Self
     where
-        C: SelectColumn,
+        C: WhereColumn,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
-        self.and_or_inner::<C, T>(AndOr::And, column, WhereComparison::Like, value)
+        self.and_or_inner::<C, T>(AndOr::And, column, SQLComparison::Like, value)
     }
     pub fn or_equals<C, T>(&mut self, column: C, value: T) -> &mut Self
     where
-        C: SelectColumn,
+        C: WhereColumn,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
-        self.and_or_inner::<C, T>(AndOr::Or, column, WhereComparison::Equals, value)
+        self.and_or_inner::<C, T>(AndOr::Or, column, SQLComparison::Equals, value)
     }
 
     fn and_or_inner<C, T>(
         &mut self,
         and_or: AndOr,
         column: C,
-        comparison: WhereComparison,
+        comparison: SQLComparison,
         value: T,
     ) -> &mut Self
     where
-        C: SelectColumn,
+        C: WhereColumn,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
         self.query.push(format!(

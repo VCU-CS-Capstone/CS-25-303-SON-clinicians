@@ -37,6 +37,19 @@ pub struct SimpleInsertQueryBuilder<'table, 'args, C: ColumnType> {
     table: &'table str,
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
 }
+impl<'table, 'args, C> HasArguments<'args> for SimpleInsertQueryBuilder<'table, 'args, C>
+where
+    C: ColumnType,
+{
+    fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
+        self.arguments.take().expect("Arguments already taken")
+    }
+
+    fn borrow_arguments_or_error(&mut self) -> &mut <Postgres as Database>::Arguments<'args> {
+        self.arguments.as_mut().expect("Arguments already taken")
+    }
+}
+
 impl<C> Debug for SimpleInsertQueryBuilder<'_, '_, C>
 where
     C: ColumnType + Debug,
@@ -155,10 +168,6 @@ where
             self.gen_sql();
         }
         self.sql.as_ref().expect("BUG: SQL not generated")
-    }
-
-    fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
-        self.arguments.take().expect("BUG: Arguments taken already")
     }
 }
 pub fn generate_placeholder_string(len: usize) -> String {

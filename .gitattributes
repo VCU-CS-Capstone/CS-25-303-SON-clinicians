@@ -1,0 +1,2 @@
+## Hide Quarto Rendered Files from language attributes in Github
+src/backend/databaseReport/*.html linguist-vendored

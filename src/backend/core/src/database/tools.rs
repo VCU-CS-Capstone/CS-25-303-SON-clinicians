@@ -1,24 +1,46 @@
 use std::fmt::Display;
+use std::ops::Deref;
 mod insert;
 mod select;
+mod select_v2;
 mod update;
+mod where_sql;
 pub use insert::*;
 pub use select::*;
+pub use select_v2::*;
+use serde::{Deserialize, Serialize};
+use sqlx::Arguments;
 use sqlx::{
     postgres::PgRow,
     query::{Query, QueryAs, QueryScalar},
     Database, FromRow, Postgres,
 };
+use strum::{AsRefStr, Display};
 use tracing::trace;
+pub use update::*;
+use utoipa::ToSchema;
+pub use where_sql::*;
 pub struct FunctionCallColumn<C> {
     pub function_name: &'static str,
     pub column: C,
 }
-
-pub trait QueryTool<'args> {
-    fn sql(&mut self) -> &str;
-
+pub trait HasArguments<'args> {
     fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args>;
+
+    fn borrow_arguments_or_error(&mut self) -> &mut <Postgres as Database>::Arguments<'args>;
+
+    fn push_argument<T>(&mut self, value: T) -> usize
+    where
+        T: 'args + sqlx::Encode<'args, Postgres> + sqlx::Type<Postgres>,
+    {
+        let arguments = self.borrow_arguments_or_error();
+        arguments.add(value).expect("Failed to add argument");
+        arguments.len()
+    }
+}
+
+pub trait QueryTool<'args>: HasArguments<'args> {
+    fn sql(&mut self) -> &str;
 
     fn query(&mut self) -> Query<'_, Postgres, <Postgres as Database>::Arguments<'args>> {
         let args = self.take_arguments_or_error();
@@ -105,28 +127,63 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum AndOr {
-    And,
-    Or,
-}
-impl Display for AndOr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::And => write!(f, "AND"),
-            Self::Or => write!(f, "OR"),
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum WhereComparison {
+pub enum SQLComparison {
     Equals,
     Like,
+    NotEquals,
 }
-impl Display for WhereComparison {
+impl Display for SQLComparison {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Equals => write!(f, "="),
+            Self::NotEquals => write!(f, "!="),
             Self::Like => write!(f, "LIKE"),
+        }
+    }
+}
+/// SQL Ordering
+#[derive(Debug, Clone, Copy, PartialEq, Display, AsRefStr)]
+pub enum SQLOrder {
+    #[strum(serialize = "ASC")]
+    Ascending,
+    #[strum(serialize = "DESC")]
+    Descending,
+}
+/// SQL And Or
+#[derive(Debug, Clone, Copy, PartialEq, Display, AsRefStr)]
+pub enum AndOr {
+    #[strum(serialize = "AND")]
+    And,
+    #[strum(serialize = "OR")]
+    Or,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct PaginatedResponse<T> {
+    /// The current page number
+    pub page: i32,
+    /// The number of items per page
+    pub page_size: i32,
+    /// The total number of items
+    pub total: i32,
+    /// The data for the current page
+    pub data: Vec<T>,
+}
+impl<T> Deref for PaginatedResponse<T> {
+    type Target = Vec<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+impl<T> Default for PaginatedResponse<T> {
+    fn default() -> Self {
+        Self {
+            page: 0,
+            page_size: 0,
+            total: 0,
+            data: Vec::new(),
         }
     }
 }

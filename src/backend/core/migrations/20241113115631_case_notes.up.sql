@@ -53,8 +53,8 @@ CREATE TABLE IF NOT EXISTS health_measure_blood_pressure(
     blood_pressure_type VARCHAR(255) NOT NULL,
     -- Ensure that the combination of health_measure_id and blood_pressure_type is unique
     UNIQUE (health_measure_id, blood_pressure_type),
-    systolic INTEGER NOT NULL,
-    diastolic INTEGER NOT NULL
+    systolic smallint NOT NULL,
+    diastolic smallint NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS case_note_question_answers(

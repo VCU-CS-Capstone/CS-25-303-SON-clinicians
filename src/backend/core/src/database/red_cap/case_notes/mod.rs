@@ -1,4 +1,5 @@
 pub mod new;
+pub mod queries;
 use std::fmt::Debug;
 
 use crate::database::prelude::*;
@@ -17,7 +18,40 @@ use strum::EnumIter;
 use tracing::error;
 use utoipa::ToSchema;
 pub mod questions;
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns)]
+
+pub trait CaseNoteType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
+    fn get_id(&self) -> i32;
+
+    /// Leaving this to the default implementation is not recommended. As it will return all columns
+    fn columns() -> Vec<CaseNoteColumn> {
+        CaseNoteColumn::all()
+    }
+    /// Find a case note by its ID
+    async fn find_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
+        let result = SimpleSelectQueryBuilder::new(CaseNote::table_name(), &Self::columns())
+            .where_equals(CaseNoteColumn::Id, id)
+            .query_as()
+            .fetch_optional(database)
+            .await?;
+        Ok(result)
+    }
+    /// Get all case notes for a participant
+    async fn get_all_by_participant_id(
+        participant_id: i32,
+        database: &sqlx::PgPool,
+    ) -> DBResult<Vec<Self>> {
+        let result = SimpleSelectQueryBuilderV2::new(CaseNote::table_name(), Self::columns())
+            .where_column(CaseNoteColumn::ParticipantId, |c| {
+                c.equals(participant_id).build()
+            })
+            .order_by(CaseNoteColumn::DateOfVisit, SQLOrder::Descending)
+            .query_as()
+            .fetch_all(database)
+            .await?;
+        Ok(result)
+    }
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
 pub struct CaseNote {
     pub id: i32,
     /// Relates to #[crate::database::red_cap::participants::Participants]
@@ -197,7 +231,7 @@ impl CaseNoteHealthMeasures {
             .map_err(DBError::from)
     }
 }
-#[derive(Clone, PartialEq, Serialize, Deserialize, Type, ToSchema, EnumIter)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Type, ToSchema, EnumIter)]
 #[sqlx(type_name = "VARCHAR")]
 pub enum BloodPressureType {
     Sit,

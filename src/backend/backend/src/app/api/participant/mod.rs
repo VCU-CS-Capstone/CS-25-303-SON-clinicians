@@ -1,17 +1,22 @@
 use crate::{
-    app::{api::PaginatedResponse, authentication::Authentication},
-    utils::{not_found_response, ok_json_response},
+    app::authentication::Authentication,
+    utils::{not_found_response, ok_json_response, LookupPage},
 };
+pub mod case_note;
+pub mod stats;
 use axum::{
     extract::{Path, Query, State},
     response::Response,
     routing::{get, post},
     Json,
 };
-use cs25_303_core::database::red_cap::participants::{
-    health_overview::{HealthOverview, HealthOverviewType},
-    ParticipantDemograhics, ParticipantLookup, ParticipantLookupQuery, ParticipantType,
-    Participants,
+use cs25_303_core::database::{
+    red_cap::participants::{
+        health_overview::{HealthOverview, HealthOverviewType},
+        ParticipantDemograhics, ParticipantLookup, ParticipantLookupQuery, ParticipantType,
+        Participants,
+    },
+    tools::PaginatedResponse,
 };
 use serde::Deserialize;
 use tracing::instrument;
@@ -22,7 +27,11 @@ use crate::app::{error::InternalError, SiteState};
 #[derive(OpenApi)]
 #[openapi(
     paths(look_up_participant, get_participants,get_health_overview, get_demographics),
-    components(schemas(LookupPage, ParticipantLookup, ParticipantLookupQuery, PaginatedResponse<ParticipantLookup>, Participants, HealthOverview, ParticipantDemograhics))
+    components(schemas(LookupPage, ParticipantLookup, ParticipantLookupQuery, PaginatedResponse<ParticipantLookup>, Participants, HealthOverview, ParticipantDemograhics)),
+    nest(
+        (path = "/case_notes", api = case_note::CaseNoteAPI, tags=["case_note"]),
+        (path = "/stats", api = stats::ParticipantStatAPI, tags=["participant", "stats"]),
+    )
 )]
 pub struct ParticipantAPI;
 
@@ -32,21 +41,10 @@ pub fn participant_routes() -> axum::Router<SiteState> {
         .route("/get/:id", get(get_participants))
         .route("/get/:id/health_overview", get(get_health_overview))
         .route("/get/:id/demographics", get(get_demographics))
+        .nest("/case_notes", case_note::case_note_routes())
+        .nest("/stats", stats::stat_routes())
 }
-#[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(default)]
-pub struct LookupPage {
-    pub page_size: i32,
-    pub page_number: i32,
-}
-impl Default for LookupPage {
-    fn default() -> Self {
-        Self {
-            page_size: 10,
-            page_number: 1,
-        }
-    }
-}
+
 #[utoipa::path(
     post,
     path = "/lookup",
@@ -54,23 +52,32 @@ impl Default for LookupPage {
         ("page_size" = i32, Query, description = "Number of items per page"),
         ("page_number" = i32, Query, description = "Page number"),
     ),
+    request_body(content = ParticipantLookupQuery, content_type = "application/json"),
     responses(
         (status = 200, description = "Participants Found", body = PaginatedResponse<ParticipantLookup>)
+    ),
+    security(
+        ("session" = []),
+        ("api_token" = []),
     )
 )]
 #[instrument]
 pub async fn look_up_participant(
     State(site): State<SiteState>,
     Query(page): Query<LookupPage>,
+    auth: Authentication,
     Json(participant): Json<ParticipantLookupQuery>,
-    // TODO auth: Authentication,
 ) -> Result<Response, InternalError> {
-    let participants = participant.find(&site.database).await?;
+    let LookupPage {
+        page_size,
+        page_number,
+    } = page;
+    let participants = participant
+        .find(&site.database, page_number - 1, page_size)
+        .await?;
     // TODO: Implement pagination
 
-    Ok(Response::builder()
-        .status(200)
-        .body(serde_json::to_string(&participants)?.into())?)
+    ok_json_response(participants)
 }
 #[utoipa::path(
     get,
@@ -81,13 +88,17 @@ pub async fn look_up_participant(
     responses(
         (status = 200, description = "Participants Found", body = Participants),
         (status = 404, description = "Participant Not Found")
+    ),
+    security(
+        ("session" = []),
+        ("api_token" = []),
     )
 )]
 #[instrument]
 pub async fn get_participants(
     State(site): State<SiteState>,
     Path(id): Path<i32>,
-    // TODO auth: Authentication,
+    auth: Authentication,
 ) -> Result<Response, InternalError> {
     let participant = Participants::find_by_id(id, &site.database).await?;
 
@@ -106,13 +117,17 @@ pub async fn get_participants(
     responses(
         (status = 200, description = "Participants Found", body = HealthOverview),
         (status = 404, description = "Participant Not Found")
+    ),
+    security(
+        ("session" = []),
+        ("api_token" = []),
     )
 )]
 #[instrument]
 pub async fn get_health_overview(
     State(site): State<SiteState>,
     Path(id): Path<i32>,
-    // TODO auth: Authentication,
+    auth: Authentication,
 ) -> Result<Response, InternalError> {
     let health_overview = HealthOverview::find_by_participant_id(id, &site.database).await?;
 
@@ -131,13 +146,17 @@ pub async fn get_health_overview(
     responses(
         (status = 200, description = "Participants Found", body = ParticipantDemograhics),
         (status = 404, description = "Participant Not Found")
+    ),
+    security(
+        ("session" = []),
+        ("api_token" = []),
     )
 )]
 #[instrument]
 pub async fn get_demographics(
     State(site): State<SiteState>,
     Path(id): Path<i32>,
-    // TODO auth: Authentication,
+    auth: Authentication,
 ) -> Result<Response, InternalError> {
     let health_overview = HealthOverview::find_by_participant_id(id, &site.database).await?;
 

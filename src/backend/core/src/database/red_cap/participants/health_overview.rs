@@ -26,7 +26,7 @@ pub trait HealthOverviewType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
         .await?;
         Ok(result)
     }
-
+    #[tracing::instrument]
     async fn find_by_participant_id(
         participant_id: i32,
         database: impl Executor<'_, Database = Postgres>,

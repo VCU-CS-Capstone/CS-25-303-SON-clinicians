@@ -5,9 +5,11 @@ use utoipa::ToSchema;
 
 use crate::{database::DBResult, user::Scopes};
 pub mod auth;
+pub mod new;
 pub mod roles;
-
-pub trait UserType {
+mod tools;
+pub use tools::*;
+pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
     fn get_id(&self) -> i32;
     fn columns() -> Vec<UserColumn> {
         UserColumn::all()
@@ -19,6 +21,17 @@ pub trait UserType {
     ) -> Result<bool, sqlx::Error> {
         self.does_user_have_any_scope(&[Scopes::Admin, scope], database)
             .await
+    }
+    async fn get_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>>
+    where
+        Self: Sized,
+    {
+        let result = SimpleSelectQueryBuilderV2::new(User::table_name(), Self::columns())
+            .where_equals(UserColumn::Id, id)
+            .query_as()
+            .fetch_optional(database)
+            .await?;
+        Ok(result)
     }
 
     async fn does_user_have_any_scope(
@@ -54,6 +67,41 @@ pub struct User {
     pub last_name: String,
     pub updated_at: DateTime<FixedOffset>,
     pub created_at: DateTime<FixedOffset>,
+}
+impl UserType for User {
+    fn get_id(&self) -> i32 {
+        self.id
+    }
+}
+impl TableType for User {
+    type Columns = UserColumn;
+    fn table_name() -> &'static str {
+        "users"
+    }
+}
+impl User {
+    pub async fn get_all_paginated(
+        database: &sqlx::PgPool,
+        page_size: i32,
+        page: i32,
+    ) -> DBResult<PaginatedResponse<User>> {
+        let page = page - 1;
+        let mut query = SimpleSelectQueryBuilderV2::new(User::table_name(), User::columns());
+        if page_size > 0 {
+            query.limit(page_size);
+        }
+        if page > 0 {
+            query.offset(page * page_size);
+        }
+        let result = query.query_as().fetch_all(database).await?;
+
+        let result = PaginatedResponse {
+            data: result,
+            ..Default::default()
+        };
+
+        Ok(result)
+    }
 }
 #[derive(Debug, Clone, PartialEq, Eq, FromRow, Serialize, Deserialize, ToSchema)]
 pub struct UserPermissions {

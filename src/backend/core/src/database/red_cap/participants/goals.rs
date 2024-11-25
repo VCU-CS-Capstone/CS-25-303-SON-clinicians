@@ -8,6 +8,7 @@ use crate::database::prelude::*;
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, Executor};
+use utoipa::ToSchema;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct NewParticipantGoal {
     pub goal: String,
@@ -37,7 +38,7 @@ impl NewParticipantGoal {
             .map_err(DBError::from)
     }
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
 pub struct ParticipantGoals {
     pub id: i32,
     pub participant_id: i32,
@@ -180,7 +181,7 @@ impl NewParticipantGoalsSteps {
         Ok(())
     }
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
 pub struct ParticipantGoalsSteps {
     pub id: i32,
     pub goal_id: Option<i32>,

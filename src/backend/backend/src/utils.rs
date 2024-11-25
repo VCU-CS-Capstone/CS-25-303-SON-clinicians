@@ -1,8 +1,10 @@
 mod header;
+mod requests;
 mod response;
 pub use response::*;
 
 pub use header::HeaderValueExt;
+pub use requests::*;
 
 pub mod base64_utils {
     use base64::{engine::general_purpose::STANDARD, DecodeError, Engine};

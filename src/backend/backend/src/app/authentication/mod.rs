@@ -25,15 +25,27 @@ use axum::{
 use axum_extra::extract::cookie::Cookie;
 use cs25_303_core::database::{user::User, DBError};
 use cs25_303_core::user::Scopes;
+use derive_more::derive::From;
 use header::AuthorizationHeader;
 use http::request::Parts;
+use serde::Serialize;
 use session::{Session, SessionManager};
 use strum::EnumIs;
 use thiserror::Error;
 use tracing::{error, instrument};
+use utoipa::ToSchema;
 pub mod api_middleware;
 pub mod header;
 pub mod session;
+/// The user information with the session information
+#[derive(Debug, Serialize, Clone, From, ToSchema)]
+pub struct MeWithSession {
+    /// The session information
+    pub session: Session,
+    /// Your user information
+    pub user: User,
+}
+
 /// Possible Errors that can occur during authentication
 #[derive(Error, Debug)]
 pub enum AuthenticationError {

@@ -5,19 +5,19 @@ use tracing::debug;
 use utoipa::ToSchema;
 
 use crate::red_cap::{utils::is_all_none, MultiSelectType, RedCapDataSet, RedCapEnum, RedCapType};
-/// Returns none if all the fields are none
 
+/// The two Program Types that are available
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, RedCapEnum, ToSchema)]
 pub enum Programs {
-    /// Richmond Health And Wellness Program
     #[default]
     #[red_cap(enum_index = 1)]
+    /// Richmond Health And Wellness Program
     RHWP,
     /// Mobile Health And Wellness Program
     #[red_cap(enum_index = 2)]
     MHWP,
 }
-
+/// Participant Status
 #[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum Status {
     #[red_cap(enum_index = 1)]
@@ -32,7 +32,8 @@ pub enum Status {
     Withdrew,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum)]
+/// Have they been seen at VCUHS
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum SeenAtVCUHS {
     #[red_cap(enum_index = 1)]
     Yes,
@@ -99,6 +100,7 @@ impl From<RedCapGender> for Option<Gender> {
         gender
     }
 }
+/// Gender Enum
 #[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum Gender {
     #[red_cap(name = "female", enum_index = 2)]
@@ -305,7 +307,7 @@ pub enum MobilityDevice {
 }
 impl MultiSelectType for MobilityDevice {}
 
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum MedicationFrequency {
     #[red_cap(name = "Daily", enum_index = 1)]
     Daily,
@@ -405,7 +407,7 @@ impl From<bool> for MedStatus {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum VisitType {
     #[red_cap(enum_index = 1)]
     Onsite,

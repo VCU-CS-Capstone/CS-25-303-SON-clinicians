@@ -8,6 +8,7 @@ use cs25_303_core::{
         case_notes::new::{NewCaseNote, NewCaseNoteHealthMeasures},
         locations::Locations,
         participants::{
+            self,
             goals::{ParticipantGoals, ParticipantGoalsSteps},
             NewParticipant, ParticipantMedications, Participants,
         },
@@ -92,7 +93,8 @@ pub async fn generate_participants(count: usize, database: PgPool) -> anyhow::Re
             last_synced_with_redcap: None,
         };
         let part = new_participant.insert_return_participant(&database).await?;
-        let extra_info = random_sets.create_extended_profile_for_partiicpant(part.id);
+        let extra_info =
+            random_sets.create_extended_profile_for_partiicpant(part.id, gender.clone());
         info!("Created Participant {:?} and extra {:?}", part, extra_info);
         let health_overview = random_sets.random_health_overview();
         health_overview
@@ -156,7 +158,10 @@ async fn generate_random_case_note_on(
         .insert_return_case_note(participant.id, database)
         .await?;
     let bps = random.random_blood_pressure(participant.id);
-    let new_health_measures = NewCaseNoteHealthMeasures::default();
+    let new_health_measures = NewCaseNoteHealthMeasures {
+        weight: random.weight_for_participant(participant.id),
+        ..Default::default()
+    };
     let health_measure = new_health_measures
         .insert_return_measure(case_note.id, database)
         .await?;

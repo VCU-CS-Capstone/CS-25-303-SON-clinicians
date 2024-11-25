@@ -1,9 +1,6 @@
-use axum::response::Response;
 use http::{header::ToStrError, HeaderValue};
-use serde::Serialize;
 use tracing::error;
 
-use crate::app::error::InternalError;
 /// Extension trait for [http::HeaderValue]
 
 pub trait HeaderValueExt {

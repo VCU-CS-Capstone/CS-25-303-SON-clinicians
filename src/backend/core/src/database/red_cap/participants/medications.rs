@@ -2,12 +2,13 @@ use crate::database::prelude::*;
 use chrono::{Local, NaiveDate};
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
+use utoipa::ToSchema;
 
 use crate::red_cap::MedicationFrequency;
 
 use super::TableType;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
 pub struct ParticipantMedications {
     pub id: i32,
     pub participant_id: i32,

@@ -15,7 +15,13 @@ use serde::{Deserialize, Serialize};
 use tracing::info;
 
 use super::{RandomCompleteGoal, RandomMedication, RandomParticipant};
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 
+pub enum WeightCategory {
+    Underweight,
+    Overweight,
+    Normal,
+}
 /// Notes we will use for data generation
 ///
 /// This allows for the data to be consistent.
@@ -26,6 +32,8 @@ use super::{RandomCompleteGoal, RandomMedication, RandomParticipant};
 pub struct ParticipantExtendedInfo {
     pub has_high_blood_pressure: bool,
     pub has_diabetes: bool,
+    pub gender: Gender,
+    pub weight_category: WeightCategory,
 }
 #[derive(Debug, Clone)]
 pub struct RandomSets {
@@ -228,19 +236,51 @@ impl RandomSets {
             result
         }
     }
+    pub fn weight_for_participant(&mut self, participant: i32) -> Option<f32> {
+        let gender = self.extended_patient_info[&participant].gender.clone();
+        let weight_class = self.extended_patient_info[&participant].weight_category;
+        match gender {
+            Gender::Male => Some(self.weight_for_male_in_class(weight_class)),
+            Gender::Female => Some(self.weight_for_female_in_class(weight_class)),
+            _ => None,
+        }
+    }
+    fn weight_for_female_in_class(&mut self, class: WeightCategory) -> f32 {
+        match class {
+            WeightCategory::Underweight => self.rand.gen_range(90..120) as f32,
+            WeightCategory::Overweight => self.rand.gen_range(160..200) as f32,
+            WeightCategory::Normal => self.rand.gen_range(120..160) as f32,
+        }
+    }
+    fn weight_for_male_in_class(&mut self, class: WeightCategory) -> f32 {
+        match class {
+            WeightCategory::Underweight => self.rand.gen_range(100..140) as f32,
+            WeightCategory::Overweight => self.rand.gen_range(180..220) as f32,
+            WeightCategory::Normal => self.rand.gen_range(140..180) as f32,
+        }
+    }
     fn rand_bool(&mut self, chance: f64) -> bool {
         self.rand.gen_bool(chance)
     }
     pub fn create_extended_profile_for_partiicpant(
         &mut self,
         participant: i32,
+        gender: Gender,
     ) -> ParticipantExtendedInfo {
         // About 47% chance of having high blood pressure
         let has_high_blood_pressure = self.rand_bool(0.47);
         let has_diabetes = self.rand_bool(0.1);
+        let weight_class = match self.rand.gen_range(0..10) {
+            0..2 => WeightCategory::Underweight,
+            0..8 => WeightCategory::Overweight,
+            _ => WeightCategory::Normal,
+        };
+
         let extended = ParticipantExtendedInfo {
             has_high_blood_pressure,
             has_diabetes,
+            gender,
+            weight_category: weight_class,
         };
         self.extended_patient_info
             .insert(participant, extended.clone());

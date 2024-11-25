@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS roles(
     id serial PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS role_permissions(
     id serial PRIMARY KEY,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS role_permissions(
             REFERENCES roles(id)
             ON DELETE CASCADE,
     permission VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP
 );
 INSERT INTO roles(name, description)
     VALUES ('Admin', 'Admin role');
@@ -31,10 +31,11 @@ CREATE TABLE IF NOT EXISTS users(
     email TEXT NOT NULL,
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP
 );
-
+INSERT INTO users(username, email, first_name, last_name)
+    VALUES ('admin','admin@example.com', 'Admin', 'User');
 CREATE TABLE IF NOT EXISTS user_permissions(
     id serial PRIMARY KEY,
     user_id integer NOT NULL,
@@ -44,7 +45,7 @@ CREATE TABLE IF NOT EXISTS user_permissions(
             REFERENCES users(id)
             ON DELETE CASCADE,
     permission VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS user_roles(
@@ -61,8 +62,12 @@ CREATE TABLE IF NOT EXISTS user_roles(
             FOREIGN KEY (role_id)
             REFERENCES roles(id)
             ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP
 );
+
+INSERT INTO user_roles(user_id, role_id)
+    VALUES
+    ((SELECT id FROM users WHERE username = 'admin'), (SELECT id FROM roles WHERE name = 'Admin'));
 
 CREATE TABLE IF NOT EXISTS user_authentication_password(
     id serial PRIMARY KEY,
@@ -74,6 +79,10 @@ CREATE TABLE IF NOT EXISTS user_authentication_password(
             ON DELETE CASCADE,
     password TEXT,
     requires_reset BOOLEAN DEFAULT FALSE,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP
 );
+
+INSERT INTO user_authentication_password(user_id, password)
+    VALUES
+    ((SELECT id FROM users WHERE username = 'admin'), '$argon2i$v=19$m=16,t=2,p=1$VjJ1RHZic2l4VXFxbUNaMA$ewDhK5UqOdofv+BhAs+FUg');

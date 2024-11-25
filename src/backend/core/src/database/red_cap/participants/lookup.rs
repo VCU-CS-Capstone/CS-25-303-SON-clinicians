@@ -2,7 +2,7 @@ use crate::database::prelude::*;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use tabled::Tabled;
-use tracing::{debug, instrument, trace};
+use tracing::{debug, instrument};
 use utoipa::ToSchema;
 
 use crate::red_cap::Programs;
@@ -51,7 +51,12 @@ pub struct ParticipantLookupQuery {
 }
 impl ParticipantLookupQuery {
     #[instrument(name = "ParticipantLookupQuery::find", skip(database))]
-    pub async fn find(self, database: &PgPool) -> DBResult<Vec<ParticipantLookup>> {
+    pub async fn find(
+        self,
+        database: &PgPool,
+        page: i32,
+        page_size: i32,
+    ) -> DBResult<PaginatedResponse<ParticipantLookup>> {
         let Self {
             first_name,
             last_name,
@@ -60,25 +65,46 @@ impl ParticipantLookupQuery {
             ..
         } = self;
         let mut query =
-            SimpleSelectQueryBuilder::new("participants", &ParticipantLookup::columns());
-        query.where_like_then(
-            ParticipantsColumn::FirstName.lower(),
-            format!("%{}%", first_name.to_lowercase()),
-            |query_where| {
-                query_where.and_like(
-                    ParticipantsColumn::LastName.lower(),
-                    format!("%{}%", last_name.to_lowercase()),
-                );
-                if let Some(location) = location {
-                    query_where.and_equals(ParticipantsColumn::Location, location);
-                }
-                if let Some(program) = program {
-                    query_where.and_equals(ParticipantsColumn::Program, program);
-                }
-            },
-        );
-        let result = query.query_as().fetch_all(database).await?;
+            SimpleSelectQueryBuilderV2::new("participants", ParticipantLookup::columns());
+        query.where_column(ParticipantsColumn::FirstName.lower(), |builder| {
+            builder
+                .like(format!("%{}%", first_name.to_lowercase()))
+                .build()
+        });
+        if !last_name.is_empty() {
+            query.where_column(ParticipantsColumn::LastName.lower(), |builder| {
+                builder
+                    .like(format!("%{}%", last_name.to_lowercase()))
+                    .build()
+            });
+        }
+        if let Some(location) = location {
+            query.where_column(ParticipantsColumn::Location, |builder| {
+                builder.equals(location).build()
+            });
+        }
+        if let Some(program) = program {
+            query.where_column(ParticipantsColumn::Program, |builder| {
+                builder.equals(program).build()
+            });
+        }
+        #[cfg(test)]
+        {
+            let sql = query.sql();
+            debug!("SQL: {}", sql);
+        }
+        if page >0{
+            query.offset(page * page_size);
+        }
+        query.limit(page_size);
 
+        let result: Vec<ParticipantLookup> = query.query_as().fetch_all(database).await?;
+        let result = PaginatedResponse {
+            page: 0,
+            page_size: 0,
+            total: 0,
+            data: result,
+        };
         Ok(result)
     }
 }
@@ -99,10 +125,11 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_participant_lookup_query() -> anyhow::Result<()> {
+        crate::test_utils::init_logger();
         let database = crate::database::tests::connect_to_db().await?;
         let query: Vec<ParticipantLookupQuery> = vec![
             ParticipantLookupQuery {
-                first_name: "Wyatt".to_string(),
+                first_name: "John".to_string(),
                 last_name: String::new(),
                 ..Default::default()
             },
@@ -121,13 +148,13 @@ mod tests {
         ];
 
         for query in query {
-            let result = query.clone().find(&database).await.unwrap();
+            let result = query.clone().find(&database, 0, 100).await.unwrap();
             if result.is_empty() {
                 eprintln!("No participant found. But it might be expected");
-                return Ok(());
+                continue;
             }
             println!("Found {} participants from {:?}", result.len(), query);
-            let table = Table::new(&result).to_string();
+            let table = Table::new(result.iter()).to_string();
             println!("{}", table);
             let participant = result.first().unwrap();
             let health_overiew =
