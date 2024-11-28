@@ -4,7 +4,7 @@ use opentelemetry::trace::TracerProvider as _;
 use opentelemetry::StringValue;
 use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::{SpanExporter, WithExportConfig};
-use opentelemetry_sdk::trace::{Config as SDKTraceConfig, Tracer, TracerProvider};
+use opentelemetry_sdk::trace::{Tracer, TracerProvider};
 use opentelemetry_sdk::{propagation::TraceContextPropagator, Resource};
 use serde::{Deserialize, Serialize};
 use tracing::info;
@@ -26,12 +26,11 @@ fn tracer(mut config: TracingConfig) -> anyhow::Result<Tracer> {
         .into_iter()
         .map(|(k, v)| KeyValue::new(k, Into::<StringValue>::into(v)))
         .collect();
-    let trace_config = SDKTraceConfig::default().with_resource(Resource::new(resources));
     let exporter = SpanExporter::builder()
         .with_tonic()
         .with_endpoint(&config.endpoint);
     let provider = TracerProvider::builder()
-        .with_config(trace_config)
+        .with_resource(Resource::new(resources))
         .with_batch_exporter(exporter.build()?, opentelemetry_sdk::runtime::Tokio)
         .build();
     Ok(provider.tracer("tracing-otel-subscriber"))
