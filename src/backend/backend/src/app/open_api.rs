@@ -10,6 +10,11 @@ use cs25_303_core::{
     database::red_cap::{
         case_notes::{queries::CaseNoteIDAndDate, BloodPressureType, CaseNote},
         participants::{health_overview::HealthOverview, ParticipantDemograhics, Participants},
+        questions::{
+            queries::QuestionOverview, AdditionalOptionSettings, AdditionalQuestionSettings,
+            BooleanQuestionSettings, FloatSettings, NumberSettings, QuestionOptions, QuestionType,
+            TextBoxSize, TextQuestionSettings,
+        },
         Locations,
     },
     red_cap::{
@@ -31,9 +36,21 @@ use utoipa::{
         (path = "/api/admin", api = AdminAPI, tags=["admin"])
     ),
     paths(api::info),
-    components(schemas(api::Instance, BloodPressureType, Locations, Gender, Race, SeenAtVCUHS, Programs,Ethnicity,HealthInsurance,DegreeLevel,MobilityDevice,
+    components(schemas(
+        api::Instance,
+        BloodPressureType, Locations, Gender, Race, SeenAtVCUHS, Programs, Ethnicity,HealthInsurance,DegreeLevel,MobilityDevice,
         MedicationFrequency,PreferredLanguage, CaseNote, CaseNoteIDAndDate, ParticipantDemograhics,HealthOverview,
         Participants,VisitType,
+        QuestionOverview,
+        QuestionType,
+        QuestionOptions,
+        AdditionalQuestionSettings,
+        AdditionalOptionSettings,
+        TextBoxSize,
+        TextQuestionSettings,
+        BooleanQuestionSettings,
+        NumberSettings,
+        FloatSettings
     )),
     tags()
 )]

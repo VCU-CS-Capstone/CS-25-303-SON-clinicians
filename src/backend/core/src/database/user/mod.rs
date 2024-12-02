@@ -3,7 +3,7 @@ use auth::UserAndPasswordAuth;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{database::DBResult, user::Scopes};
+use crate::{database::DBResult, user::Permissions};
 pub mod auth;
 pub mod new;
 pub mod roles;
@@ -16,10 +16,10 @@ pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
     }
     async fn does_user_have_scope_or_admin(
         &self,
-        scope: Scopes,
+        scope: Permissions,
         database: &sqlx::PgPool,
     ) -> Result<bool, sqlx::Error> {
-        self.does_user_have_any_scope(&[Scopes::Admin, scope], database)
+        self.does_user_have_any_scope(&[Permissions::Admin, scope], database)
             .await
     }
     async fn get_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>>
@@ -36,7 +36,7 @@ pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
 
     async fn does_user_have_any_scope(
         &self,
-        scope: &[Scopes],
+        scope: &[Permissions],
         database: &sqlx::PgPool,
     ) -> Result<bool, sqlx::Error> {
         let result: i64 = sqlx::query_scalar("
@@ -107,7 +107,7 @@ impl User {
 pub struct UserPermissions {
     pub id: i32,
     pub user_id: i32,
-    pub scope: Scopes,
+    pub scope: Permissions,
     pub created_at: DateTime<FixedOffset>,
 }
 /// Finds a user by their email or username.

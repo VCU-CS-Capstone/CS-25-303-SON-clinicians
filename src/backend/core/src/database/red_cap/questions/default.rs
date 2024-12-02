@@ -174,14 +174,16 @@ pub async fn add_default_questions(conn: &PgPool) -> DBResult<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::database::red_cap::questions::{default::DefaultQuestionsTable, QuestionCategory};
+    use crate::database::red_cap::questions::{
+        clear_questions_tables, default::DefaultQuestionsTable,
+    };
 
     #[tokio::test]
     #[ignore]
     pub async fn refresh_default_questions() -> anyhow::Result<()> {
         let conn = crate::database::tests::connect_to_db().await?;
         DefaultQuestionsTable::clear(&conn).await?;
-        QuestionCategory::delete_all(&conn).await?;
+        clear_questions_tables(&conn).await?;
         super::add_default_questions(&conn).await?;
         Ok(())
     }

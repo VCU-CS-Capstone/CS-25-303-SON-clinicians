@@ -37,7 +37,7 @@ pub struct SimpleInsertQueryBuilder<'table, 'args, C: ColumnType> {
     table: &'table str,
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
 }
-impl<'table, 'args, C> HasArguments<'args> for SimpleInsertQueryBuilder<'table, 'args, C>
+impl<'args, C> HasArguments<'args> for SimpleInsertQueryBuilder<'_, 'args, C>
 where
     C: ColumnType,
 {

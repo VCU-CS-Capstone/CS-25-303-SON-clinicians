@@ -11,13 +11,13 @@ pub struct SelectExists<'table, 'args> {
     sql: Option<String>,
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
 }
-impl<'table, 'args> WhereableTool<'args> for SelectExists<'table, 'args> {
+impl<'args> WhereableTool<'args> for SelectExists<'_, 'args> {
     #[inline]
     fn push_where_comparison(&mut self, comparison: WhereComparison) {
         self.where_comparisons.push(comparison);
     }
 }
-impl<'table, 'args> SelectExists<'table, 'args> {
+impl<'table> SelectExists<'table, '_> {
     pub fn new(table: &'table str) -> Self {
         Self {
             table,
@@ -59,13 +59,13 @@ pub struct SelectCount<'table, 'args> {
     sql: Option<String>,
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
 }
-impl<'table, 'args> WhereableTool<'args> for SelectCount<'table, 'args> {
+impl<'args> WhereableTool<'args> for SelectCount<'_, 'args> {
     #[inline]
     fn push_where_comparison(&mut self, comparison: WhereComparison) {
         self.where_comparisons.push(comparison);
     }
 }
-impl<'table, 'args> SelectCount<'table, 'args> {
+impl<'table> SelectCount<'table, '_> {
     pub fn new(table: &'table str) -> Self {
         Self {
             table,
@@ -152,7 +152,7 @@ where
     }
 }
 
-impl<'table, 'args, C> QueryTool<'args> for SimpleSelectQueryBuilderV2<'table, 'args, C>
+impl<'args, C> QueryTool<'args> for SimpleSelectQueryBuilderV2<'_, 'args, C>
 where
     C: ColumnType,
 {
@@ -191,7 +191,7 @@ where
         self.sql.as_ref().expect("SQL not set")
     }
 }
-impl<'table, 'args, C> HasArguments<'args> for SimpleSelectQueryBuilderV2<'table, 'args, C>
+impl<'args, C> HasArguments<'args> for SimpleSelectQueryBuilderV2<'_, 'args, C>
 where
     C: ColumnType,
 {

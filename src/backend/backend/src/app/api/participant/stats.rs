@@ -23,7 +23,6 @@ use crate::{
     paths(participant_weight_history, bp_history),
     components(schemas(WeightHistory, BloodPressureHistory))
 )]
-
 pub struct ParticipantStatAPI;
 
 pub fn stat_routes() -> axum::Router<SiteState> {

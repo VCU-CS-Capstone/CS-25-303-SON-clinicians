@@ -129,8 +129,17 @@ where
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SQLComparison {
+    /// Equals
+    ///
+    /// `=`
     Equals,
+    /// [LIKE](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-LIKE)
+    ///
+    /// `LIKE`
     Like,
+    /// Not Equals
+    ///
+    /// `!=`
     NotEquals,
 }
 impl Display for SQLComparison {

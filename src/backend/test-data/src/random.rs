@@ -171,7 +171,6 @@ async fn generate_random_case_note_on(
     Ok(())
 }
 #[cfg(test)]
-
 mod tests {
 
     #[tokio::test]

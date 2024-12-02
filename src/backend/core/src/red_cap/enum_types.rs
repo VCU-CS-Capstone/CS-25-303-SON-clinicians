@@ -325,7 +325,13 @@ pub enum MedicationFrequency {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RedCapMedicationFrequency {
+    /// The frequency of the medication
+    ///
+    /// Redcap Field: `med_freq{index}`
     pub frequency: Option<MedicationFrequency>,
+    /// The other value for the frequency
+    ///
+    /// Redcap Field: `other_med{index}`
     pub frequency_other: Option<String>,
 }
 impl From<MedicationFrequency> for RedCapMedicationFrequency {

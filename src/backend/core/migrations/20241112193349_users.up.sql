@@ -1,8 +1,12 @@
-
+CREATE COLLATION IF NOT EXISTS ignoreCase (
+  provider = 'icu',
+  locale = '@colStrength=secondary',
+  deterministic = false
+);
 -- Add up migration script here
 CREATE TABLE IF NOT EXISTS roles(
     id serial PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP
 );
@@ -20,15 +24,24 @@ CREATE TABLE IF NOT EXISTS role_permissions(
 INSERT INTO roles(name, description)
     VALUES ('Admin', 'Admin role');
 
+INSERT INTO roles(name, description)
+    VALUES ('Clinician', 'Clinician role');
+
 INSERT INTO role_permissions(role_id, permission)
     VALUES
     ((SELECT id FROM roles WHERE name = 'Admin'), 'Admin');
 
+INSERT INTO role_permissions(role_id, permission)
+    VALUES
+    ((SELECT id FROM roles WHERE name = 'Clinician'), 'participants:read'),
+    ((SELECT id FROM roles WHERE name = 'Clinician'), 'participants:update'),
+    ((SELECT id FROM roles WHERE name = 'Clinician'), 'schedule:read'),
+    ((SELECT id FROM roles WHERE name = 'Clinician'), 'schedule:manage');
 
 CREATE TABLE IF NOT EXISTS users(
     id serial PRIMARY KEY,
-    username VARCHAR(255) NOT NULL,
-    email TEXT NOT NULL,
+    username VARCHAR(255) NOT NULL COLLATE ignoreCase,
+    email VARCHAR(320) NOT NULL COLLATE ignoreCase,
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

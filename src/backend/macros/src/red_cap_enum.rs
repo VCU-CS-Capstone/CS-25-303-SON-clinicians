@@ -275,16 +275,20 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
                     }
                 }
             }
+            #[automatically_derived]
             impl sqlx::Type<::sqlx::Postgres> for #ident {
                 fn type_info() -> ::sqlx::postgres::PgTypeInfo {
                     sqlx::postgres::PgTypeInfo::with_name(#sql_type)
                 }
             }
+            #[automatically_derived]
+
             impl sqlx::postgres::PgHasArrayType for #ident {
                 fn array_type_info() -> ::sqlx::postgres::PgTypeInfo {
                     sqlx::postgres::PgTypeInfo::array_of(#sql_type)
                 }
             }
+            #[automatically_derived]
             impl<'q, DB: sqlx::Database> sqlx::encode::Encode<'q, DB> for #ident
             where
                 String: sqlx::encode::Encode<'q, DB>,
@@ -301,6 +305,7 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
                     self.as_ref().size_hint()
                 }
             }
+
         };
     };
     Ok(result)

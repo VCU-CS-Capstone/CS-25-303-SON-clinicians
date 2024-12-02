@@ -9,9 +9,35 @@ use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
 use strum::{Display, EnumIs};
 use thiserror::Error;
-use tracing::error;
+use tracing::{error, instrument};
+use utoipa::ToSchema;
 pub mod default;
 pub mod new;
+pub mod queries;
+mod question_options;
+pub use question_options::*;
+/// Removes the following tables:
+///
+/// This is used for testing and development
+///
+/// - question_options
+/// - questions
+/// - question_categories
+///
+/// All are truncated and the identity is restarted
+#[instrument]
+pub async fn clear_questions_tables(conn: &PgPool) -> DBResult<()> {
+    let _ = sqlx::query("TRUNCATE TABLE question_options RESTART IDENTITY")
+        .execute(conn)
+        .await?;
+    let _ = sqlx::query("TRUNCATE TABLE questions RESTART IDENTITY")
+        .execute(conn)
+        .await?;
+    let _ = sqlx::query("TRUNCATE TABLE question_categories RESTART IDENTITY")
+        .execute(conn)
+        .await?;
+    Ok(())
+}
 #[derive(Debug, Error)]
 pub enum QuestionError {
     #[error("Question Not Found By String Id: {0}")]
@@ -26,35 +52,7 @@ pub enum QuestionError {
     #[error("Option Not Found By String Id: {0}")]
     OptionNotFoundByStringId(String),
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AdditionalQuestionOptions {
-    Boolean(BooleanQuestionOptions),
-}
-impl AdditionalQuestionOptions {
-    pub fn is_of_type(&self, question_type: QuestionType) -> bool {
-        match self {
-            AdditionalQuestionOptions::Boolean(_) => question_type == QuestionType::Boolean,
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BooleanQuestionOptions {
-    /// Sometimes Red Cap uses 2 for true
-    pub true_value: usize,
-    pub false_value: usize,
-    pub true_name: Option<String>,
-    pub false_name: Option<String>,
-}
-impl Default for BooleanQuestionOptions {
-    fn default() -> Self {
-        Self {
-            true_value: 1,
-            false_value: 0,
-            true_name: None,
-            false_name: None,
-        }
-    }
-}
+
 /// Where does the question belong to
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[sqlx(type_name = "VARCHAR")]
@@ -64,15 +62,28 @@ pub enum QuestionForm {
     /// Participant Info
     ParticipantInfo,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIs, Serialize, Deserialize, Type, Display)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, EnumIs, Serialize, Deserialize, ToSchema, Type, Display,
+)]
 #[sqlx(type_name = "VARCHAR")]
 pub enum QuestionType {
+    /// Multi Check Box
     MultiCheckBox,
+    /// Radio or Dropdown. Only one option can be selected
     Radio,
+    /// Text
     Text,
+    /// Number
     Number,
+    /// Floating Point Number
     Float,
+    /// Boolean
     Boolean,
+}
+impl Default for QuestionType {
+    fn default() -> Self {
+        Self::Text
+    }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns)]
 
@@ -86,14 +97,7 @@ pub struct QuestionCategory {
     /// Category description
     pub description: Option<String>,
 }
-impl QuestionCategory {
-    pub async fn delete_all(conn: &PgPool) -> DBResult<()> {
-        let _ = sqlx::query("DELETE FROM question_categories")
-            .execute(conn)
-            .await?;
-        Ok(())
-    }
-}
+
 impl TableType for QuestionCategory {
     type Columns = QuestionCategoryColumn;
     fn table_name() -> &'static str
@@ -103,8 +107,7 @@ impl TableType for QuestionCategory {
         "question_categories"
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns)]
-
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns)]
 pub struct Question {
     pub id: i32,
     /// The category the question belongs to
@@ -126,7 +129,7 @@ pub struct Question {
     /// If the question is removed
     pub removed: bool,
     pub requirements: Option<String>,
-    pub additional_options: Option<Json<AdditionalQuestionOptions>>,
+    pub additional_options: Option<Json<AdditionalQuestionSettings>>,
 }
 impl Question {
     pub async fn find_by_string_id(red_cap_id: &str, conn: &PgPool) -> DBResult<Option<Self>> {
@@ -143,17 +146,18 @@ impl Question {
         other_id: &str,
         conn: &PgPool,
     ) -> DBResult<Option<Self>> {
-        let question = sqlx::query_as(
-            "
-            SELECT * FROM questions
-            WHERE string_id = $1 OR string_id_other = $1
-            LIMIT 1
-            ",
-        )
-        .bind(red_cap_id)
-        .bind(other_id)
-        .fetch_optional(conn)
-        .await?;
+        let question = SimpleSelectQueryBuilderV2::new(Self::table_name(), QuestionColumn::all())
+            .where_column(QuestionColumn::StringId, |builder| {
+                builder
+                    .equals(red_cap_id)
+                    .or(QuestionColumn::StringIdOther, |builder| {
+                        builder.equals(other_id).build()
+                    })
+            })
+            .limit(1)
+            .query_as::<Self>()
+            .fetch_optional(conn)
+            .await?;
         Ok(question)
     }
     pub async fn get_all_in_category(category_id: i32, conn: &PgPool) -> DBResult<Vec<Self>> {
@@ -174,12 +178,10 @@ impl TableType for Question {
         "questions"
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct OptionOptions {
-    pub triggers_other: Option<bool>,
-    pub unique: Option<bool>,
-}
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns)]
+
+#[derive(
+    Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema, FromRow, Columns,
+)]
 pub struct QuestionOptions {
     pub id: i32,
     pub question_id: i32,
@@ -193,7 +195,9 @@ pub struct QuestionOptions {
     pub description: Option<String>,
     /// Was the response removed
     pub removed: bool,
-    pub additional_options: Option<Json<OptionOptions>>,
+    /// Additional options
+    #[schema(value_type = Option<AdditionalOptionSettings>)]
+    pub additional_options: Option<Json<AdditionalOptionSettings>>,
 }
 impl QuestionOptions {
     pub async fn find_option_with_string_id_and_in_question(
@@ -202,10 +206,9 @@ impl QuestionOptions {
         conn: &PgPool,
     ) -> DBResult<Option<Self>> {
         let option =
-            SimpleSelectQueryBuilder::new(Self::table_name(), &QuestionOptionsColumn::all())
-                .where_equals_then(QuestionOptionsColumn::StringId, string_id, |builder| {
-                    builder.and_equals(QuestionOptionsColumn::QuestionId, question_id);
-                })
+            SimpleSelectQueryBuilderV2::new(Self::table_name(), QuestionOptionsColumn::all())
+                .where_equals(QuestionOptionsColumn::StringId, string_id)
+                .where_equals(QuestionOptionsColumn::QuestionId, question_id)
                 .limit(1)
                 .query_as::<Self>()
                 .fetch_optional(conn)
@@ -218,14 +221,9 @@ impl QuestionOptions {
         conn: &PgPool,
     ) -> DBResult<Option<Self>> {
         let option =
-            SimpleSelectQueryBuilder::new(Self::table_name(), &QuestionOptionsColumn::all())
-                .where_equals_then(
-                    QuestionOptionsColumn::RedCapOptionIndex,
-                    red_cap_index,
-                    |builder| {
-                        builder.and_equals(QuestionOptionsColumn::QuestionId, question_id);
-                    },
-                )
+            SimpleSelectQueryBuilderV2::new(Self::table_name(), QuestionOptionsColumn::all())
+                .where_equals(QuestionOptionsColumn::RedCapOptionIndex, red_cap_index)
+                .where_equals(QuestionOptionsColumn::QuestionId, question_id)
                 .limit(1)
                 .query_as::<Self>()
                 .fetch_optional(conn)

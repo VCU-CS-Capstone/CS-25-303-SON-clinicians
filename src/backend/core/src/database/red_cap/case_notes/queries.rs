@@ -191,7 +191,6 @@ impl BloodPressureHistory {
 }
 
 #[cfg(test)]
-
 mod tests {
     #[tokio::test]
     pub async fn bp_test() -> anyhow::Result<()> {

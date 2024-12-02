@@ -4,8 +4,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
 
 use super::{
-    AdditionalQuestionOptions, OptionOptions, Question, QuestionCategory, QuestionColumn,
-    QuestionError, QuestionForm, QuestionOptions, QuestionOptionsColumn, QuestionType,
+    AdditionalOptionSettings, AdditionalQuestionSettings, Question, QuestionCategory,
+    QuestionColumn, QuestionError, QuestionForm, QuestionOptions, QuestionOptionsColumn,
+    QuestionType,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Builder)]
@@ -53,7 +54,7 @@ pub struct NewQuestion {
     pub string_id: String,
     pub string_id_other: Option<String>,
     pub requirements: Option<String>,
-    pub additional_options: Option<AdditionalQuestionOptions>,
+    pub additional_options: Option<AdditionalQuestionSettings>,
 }
 
 impl NewQuestion {
@@ -105,7 +106,7 @@ pub struct NewQuestionOptions {
     pub description: Option<String>,
     pub red_cap_option_index: Option<i32>,
     #[serde(alias = "options")]
-    pub additional_options: Option<OptionOptions>,
+    pub additional_options: Option<AdditionalOptionSettings>,
 }
 
 impl NewQuestionOptions {

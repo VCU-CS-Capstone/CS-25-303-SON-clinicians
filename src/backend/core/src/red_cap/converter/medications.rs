@@ -4,17 +4,39 @@ use crate::{
     database::red_cap::participants::{NewMedication, ParticipantMedications},
     red_cap::{MedStatus, RedCapDataSet, RedCapMedicationFrequency, RedCapType},
 };
-
+/// Medications are a form with a set of fields that repeat 40 times.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RedCapMedication {
+    /// The name of the medication
+    ///
+    /// Redcap Field: `med{index}`
     pub name: String,
+    /// The dosage of the medication
+    ///
+    /// Redcap Field: `dosage{index}`
     pub dosage: Option<String>,
+    /// The frequency of the medication
     pub frequency: Option<RedCapMedicationFrequency>,
+    /// The date the medication was prescribed
+    ///
+    /// Redcap Field: `med_date{index}`
     pub date_prescribed: Option<NaiveDate>,
+    /// The date the medication was entered into the system
+    ///
+    /// Redcap Field: `med_red_{index}`
     pub date_entered_into_system: Option<NaiveDate>,
+    /// The status of the medication
+    ///
+    /// Redcap Field: `med_status{index}`
     pub status: Option<MedStatus>,
+    /// The date the medication was discontinued
     pub date_discontinued: Option<NaiveDate>,
+    /// Comments about the medication
     pub comments: Option<String>,
+    /// The index of the medication in red cap\
+    /// 1-40
+    ///
+    /// This is used for syncing purposes
     pub red_cap_index: Option<i32>,
 }
 impl From<ParticipantMedications> for RedCapMedication {
@@ -73,6 +95,12 @@ impl From<RedCapMedication> for NewMedication {
     }
 }
 impl RedCapMedication {
+    /// Reads a medication from a red cap data set
+    ///
+    /// # Note
+    /// if name is null. This will return None
+    ///
+    /// Otherwise it accepts null values for all other fields
     pub fn read_index<D: RedCapDataSet>(data: &D, index: usize) -> Option<Self>
     where
         Self: Sized,
@@ -98,7 +126,9 @@ impl RedCapMedication {
             red_cap_index: Some(index as i32),
         })
     }
-
+    /// Reads all medications from a red cap data set
+    ///
+    /// Just a loop of 40 times.
     pub fn read<D: RedCapDataSet>(data: &D) -> Vec<Self>
     where
         Self: Sized,

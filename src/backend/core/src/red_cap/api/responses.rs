@@ -7,7 +7,7 @@ mod _serde_red_cap_value {
     use super::RedCapValue;
 
     pub struct RedCapValueVisitor;
-    impl<'de> Visitor<'de> for RedCapValueVisitor {
+    impl Visitor<'_> for RedCapValueVisitor {
         type Value = super::RedCapValue;
 
         fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -78,7 +78,7 @@ pub mod fix_red_cap_bad_data_format {
     use serde::{de::Visitor, Deserialize, Deserializer};
 
     pub struct ValueVisitor;
-    impl<'de> Visitor<'de> for ValueVisitor {
+    impl Visitor<'_> for ValueVisitor {
         type Value = Option<usize>;
         fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
             formatter.write_str("a string or an integer")

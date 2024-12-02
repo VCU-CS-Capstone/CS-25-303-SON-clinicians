@@ -3,8 +3,7 @@ use std::fmt::Display;
 use sqlx::{Arguments, Database, Encode, Postgres, Type};
 
 use super::{
-    concat_columns, AndOr, ColumnType, HasArguments, QueryTool, SQLComparison,
-    WhereColumn,
+    concat_columns, AndOr, ColumnType, HasArguments, QueryTool, SQLComparison, WhereColumn,
 };
 
 pub struct SimpleSelectQueryBuilder<'args> {
@@ -128,7 +127,7 @@ pub struct SimpleSelectWhereQueryBuilder<'query, 'args> {
     query: &'query mut SimpleSelectQueryBuilder<'args>,
 }
 
-impl<'query, 'args> SimpleSelectWhereQueryBuilder<'query, 'args> {
+impl<'args> SimpleSelectWhereQueryBuilder<'_, 'args> {
     pub fn and_equals<C, T>(&mut self, column: C, value: T) -> &mut Self
     where
         C: WhereColumn,

@@ -1,6 +1,7 @@
 use ahash::{HashMap, HashMapExt};
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, types::Json};
+use tracing::instrument;
 use utoipa::ToSchema;
 
 use crate::{
@@ -15,9 +16,13 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
 pub struct Locations {
     pub id: i32,
+    /// Location Name
     pub name: String,
+    /// The Program the Location is in
     pub program: Programs,
+    /// The parent location
     pub parent_location: Option<i32>,
+    /// Rules for connecting to Red Cap
     #[schema(value_type = RedCapLocationConnectionRules)]
     pub red_cap_connection_rules: Json<RedCapLocationConnectionRules>,
 }
@@ -28,45 +33,57 @@ impl TableType for Locations {
     }
 }
 impl Locations {
+    /// Find a location by its name
+    ///
+    /// This is used to find the location by its name.
+    #[instrument]
     pub async fn find_by_name(
         name: &str,
         database: &sqlx::PgPool,
     ) -> Result<Option<Locations>, sqlx::Error> {
-        let result = sqlx::query_as(
-            r#"
-            SELECT * FROM locations
-            WHERE name = $1
-            "#,
-        )
-        .bind(name)
-        .fetch_optional(database)
-        .await?;
+        let result =
+            SimpleSelectQueryBuilderV2::new(Locations::table_name(), LocationsColumn::all())
+                .where_equals(LocationsColumn::Name, name)
+                .query_as()
+                .fetch_optional(database)
+                .await?;
         Ok(result)
     }
-
+    /// Find all children locations of a parent location
+    #[instrument]
+    #[inline]
+    pub async fn find_children(&self, database: &sqlx::PgPool) -> Result<Vec<Locations>, DBError> {
+        Self::find_children_of(self.id, database).await
+    }
+    /// Find all children locations of a parent location
+    #[instrument]
     pub async fn find_children_of(
         parent_id: i32,
         database: &sqlx::PgPool,
     ) -> Result<Vec<Locations>, DBError> {
-        SimpleSelectQueryBuilder::new(Locations::table_name(), &LocationsColumn::all())
+        SimpleSelectQueryBuilderV2::new(Locations::table_name(), LocationsColumn::all())
             .where_equals(LocationsColumn::ParentLocation, parent_id)
             .query_as()
             .fetch_all(database)
             .await
             .map_err(DBError::from)
     }
+    /// Get all locations in the system
+    #[instrument]
     pub async fn get_all(database: &sqlx::PgPool) -> Result<Vec<Locations>, DBError> {
-        SimpleSelectQueryBuilder::new(Locations::table_name(), &LocationsColumn::all())
+        SimpleSelectQueryBuilderV2::new(Locations::table_name(), LocationsColumn::all())
             .query_as()
             .fetch_all(database)
             .await
             .map_err(DBError::from)
     }
+    /// Find all locations in a program
+    #[instrument]
     pub async fn find_all_in_program(
         program: Programs,
         database: &sqlx::PgPool,
     ) -> Result<Vec<Locations>, DBError> {
-        SimpleSelectQueryBuilder::new(Locations::table_name(), &LocationsColumn::all())
+        SimpleSelectQueryBuilderV2::new(Locations::table_name(), LocationsColumn::all())
             .where_equals(LocationsColumn::Program, program)
             .query_as()
             .fetch_all(database)
@@ -83,10 +100,14 @@ impl Locations {
 /// Each field corresponds to the field name in Red Cap.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, ToSchema)]
 pub struct RedCapLocationConnectionRules {
+    /// Visit Rules to find
     /// RWHP Red Cap ID: `rhwp_location_visit`
     /// MHWP Red Cap ID: `mhwp_location_visit`
     /// Petersburg Sub Red Cap ID: `mhwp_location_visit_petersburg`
     pub visit: HashMap<String, i32>,
+    /// Participant Rules to find
+    ///
+    /// Used when reading the data from Red Cap
     pub participant: HashMap<String, i32>,
 }
 impl RedCapLocationConnectionRules {

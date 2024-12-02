@@ -3,6 +3,7 @@ use std::fmt::Display;
 use sqlx::{Encode, Postgres, Type};
 
 use super::{AndOr, ColumnType, FunctionCallColumn, HasArguments, SQLComparison};
+
 pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
     fn where_column<SC, F>(&mut self, column: SC, where_: F) -> &mut Self
     where
@@ -16,7 +17,7 @@ pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
 
         self
     }
-
+    /// Adds a where clause to check if the column is equal to the value
     fn where_equals<SC, T>(&mut self, column: SC, value: T) -> &mut Self
     where
         SC: WhereColumn + Send + 'static,
@@ -25,6 +26,7 @@ pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
         self.where_column(column, |builder| builder.equals(value).build())
     }
 
+    /// Adds a where clause to check if the column is like the value
     fn where_like<SC, T>(&mut self, column: SC, value: T) -> &mut Self
     where
         SC: WhereColumn + Send + 'static,
@@ -32,21 +34,27 @@ pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
     {
         self.where_column(column, |builder| builder.like(value).build())
     }
-
+    /// Required to push the where comparison to the query
     fn where_is_not_null<SC>(&mut self, column: SC) -> &mut Self
     where
         SC: WhereColumn + Send + 'static,
     {
         self.where_column(column, |builder| builder.is_not_null().build())
     }
-
+    /// Adds a where clause to check if the column is null
     fn where_is_null<SC>(&mut self, column: SC) -> &mut Self
     where
         SC: WhereColumn + Send + 'static,
     {
         self.where_column(column, |builder| builder.is_null().build())
     }
+
+
     /// Required to push the where comparison to the query
+    ///
+    /// The internal structure will be a Vec<WhereComparison>
+    ///
+    /// Each are concatenated with an AND
     fn push_where_comparison(&mut self, comparison: WhereComparison);
 }
 pub trait WhereColumn {

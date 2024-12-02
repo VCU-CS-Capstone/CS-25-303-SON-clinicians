@@ -2,7 +2,6 @@ use http::{header::ToStrError, HeaderValue};
 use tracing::error;
 
 /// Extension trait for [http::HeaderValue]
-
 pub trait HeaderValueExt {
     /// Converts the header value to a string
     fn to_string(&self) -> Result<String, ToStrError>;

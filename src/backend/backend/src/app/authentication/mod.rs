@@ -24,7 +24,7 @@ use axum::{
 };
 use axum_extra::extract::cookie::Cookie;
 use cs25_303_core::database::{user::User, DBError};
-use cs25_303_core::user::Scopes;
+use cs25_303_core::user::Permissions;
 use derive_more::derive::From;
 use header::AuthorizationHeader;
 use http::request::Parts;
@@ -99,7 +99,7 @@ impl Authentication {
     pub async fn has_permission(
         &self,
         _state: &SiteState,
-        _scope: Scopes,
+        _scope: Permissions,
     ) -> Result<(), AuthenticationError> {
         Ok(())
     }
@@ -107,7 +107,7 @@ impl Authentication {
     pub async fn has_many_scopes(
         &self,
         _state: &SiteState,
-        _scopes: impl Iterator<Item = Scopes>,
+        _scopes: impl Iterator<Item = Permissions>,
     ) -> Result<(), AuthenticationError> {
         Ok(())
     }

@@ -1,11 +1,11 @@
 use crate::database::prelude::*;
-use crate::user::Scopes;
+use crate::user::Permissions;
 
 #[derive(Debug, Clone, PartialEq, Eq, FromRow)]
 pub struct RolePermissions {
     pub id: i32,
     pub role_id: i32,
-    pub scope: Scopes,
+    pub scope: Permissions,
     pub created_at: DateTime<FixedOffset>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, FromRow)]

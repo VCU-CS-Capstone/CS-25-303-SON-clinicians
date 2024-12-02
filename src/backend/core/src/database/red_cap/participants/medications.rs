@@ -7,21 +7,44 @@ use utoipa::ToSchema;
 use crate::red_cap::MedicationFrequency;
 
 use super::TableType;
-
+/// Participant Medications
+///
+/// Table Name: participant_medications
+///
+/// Relationships:
+/// * Belongs to [Participants](crate::database::red_cap::participants::Participants)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
 pub struct ParticipantMedications {
+    /// The ID of the medication
     pub id: i32,
+    /// The ID of the participant
     pub participant_id: i32,
+    /// The name of the medication
     pub name: String,
+    /// The dosage of the medication
     pub dosage: Option<String>,
+    /// The frequency of the medication
     pub frequency: Option<MedicationFrequency>,
+    /// The date the medication was prescribed
+    ///
+    /// Null if not known
     pub date_prescribed: Option<NaiveDate>,
+    /// The date the medication was entered into the system
+    ///
+    /// Defaults to the current date
     pub date_entered_into_system: Option<NaiveDate>,
     pub is_current: Option<bool>,
+
     pub date_discontinued: Option<NaiveDate>,
+    /// Comments about the medication
     pub comments: Option<String>,
+    /// The index of the medication in red cap
     pub red_cap_index: Option<i32>,
+    /// Whether the medication is hidden from red cap
+    ///
+    /// This is done when we hit past the 40 medication limit
     pub hidden_from_red_cap: bool,
+    /// When the medication was inserted into the database
     pub created_at: chrono::DateTime<FixedOffset>,
 }
 impl ParticipantMedications {
