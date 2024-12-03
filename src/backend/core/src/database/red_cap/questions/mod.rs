@@ -353,7 +353,7 @@ pub struct DBQuestionResponse {
     pub value_float: Option<f32>,
     pub value_boolean: Option<bool>,
     pub value_radio: DBQuestionAnswerRadio,
-    pub options: Vec<QuestionAnswerMCB>,
+    pub options: Option<Vec<QuestionAnswerMCB>>,
 }
 
 /// A clean response for a question with answer
@@ -373,7 +373,7 @@ impl From<DBQuestionResponse> for CleanQuestionResponse {
     fn from(value: DBQuestionResponse) -> Self {
         let data_value = match value.response_type {
             QuestionType::MultiCheckBox => {
-                let options = value.options;
+                let options = value.options.unwrap_or_default();
                 let other = value.value_text;
                 if other.is_none() && options.is_empty() {
                     None

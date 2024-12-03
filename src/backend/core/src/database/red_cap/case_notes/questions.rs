@@ -172,11 +172,12 @@ impl DBQuestionResponse {
 
             case_note_question_answers.value_boolean as value_boolean,
             (question_options.id, question_options.name) as value_radio,
-            array(
-                SELECT (mcb.option_id, qo.name, qo.string_id) FROM case_note_question_answer_mcb as mcb
+            case
+                when questions.question_type = 'MultiCheckBox' then array(
+                    SELECT (mcb.option_id, qo.name, qo.string_id) FROM case_note_question_answer_mcb as mcb
                                 JOIN public.question_options qo on qo.id = mcb.option_id
-                                WHERE question_answers_id = case_note_question_answers.id
-            ) as options
+                                WHERE question_answers_id = case_note_question_answers.id)
+                end as options
         FROM case_note_question_answers
             JOIN questions  on case_note_question_answers.question_id = questions.id
             LEFT JOIN question_options on case_note_question_answers.value_radio = question_options.id

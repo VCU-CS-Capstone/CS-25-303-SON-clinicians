@@ -5,7 +5,7 @@ mod select;
 mod select_v2;
 mod update;
 mod where_sql;
-use derive_more::derive::{From, Into};
+use derive_more::{From, Into};
 pub use insert::*;
 pub use select::*;
 pub use select_v2::*;

@@ -25,7 +25,7 @@ uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 ahash = "0.8"
 base64 = "0.22"
-derive_more = { version = "1", features = ["deref", "as_ref", "from"] }
+derive_more = { version = "1", features = ["deref", "as_ref", "from", "into"] }
 strum = { version = "0.26", features = ["derive"] }
 
 
