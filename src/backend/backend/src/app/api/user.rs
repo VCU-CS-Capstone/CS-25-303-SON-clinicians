@@ -10,6 +10,7 @@ use axum_extra::{
     headers::UserAgent,
     TypedHeader,
 };
+use cs25_303_core::database::user::login::AdditionalFootprint;
 use http::{header::SET_COOKIE, StatusCode};
 use tracing::instrument;
 use utoipa::{OpenApi, ToSchema};
@@ -67,8 +68,18 @@ pub async fn login(
         email_or_username,
         password,
     } = login;
-
-    let user = match verify_login(email_or_username, password, &site.database).await {
+    let additional_footprint = AdditionalFootprint {
+        user_agent: user_agent.to_string(),
+    };
+    let user = match verify_login(
+        email_or_username,
+        password,
+        addr.to_string(),
+        Some(additional_footprint),
+        &site.database,
+    )
+    .await
+    {
         Ok(ok) => ok,
         Err(err) => {
             return Ok(err.into_response());

@@ -9,6 +9,7 @@ pub mod new;
 pub mod roles;
 mod tools;
 pub use tools::*;
+pub mod login;
 pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
     fn get_id(&self) -> i32;
     fn columns() -> Vec<UserColumn> {

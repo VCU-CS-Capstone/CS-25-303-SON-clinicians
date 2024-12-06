@@ -3,7 +3,7 @@ use sqlx::{Database, Postgres};
 use super::{
     concat_columns,
     where_sql::{format_where, WhereBuilder, WhereColumn, WhereComparison},
-    ColumnType, HasArguments, QueryTool, SQLOrder, WhereableTool,
+    ColumnType, HasArguments, PaginationSupportingTool, QueryTool, SQLOrder, WhereableTool,
 };
 pub struct SelectExists<'table, 'args> {
     table: &'table str,
@@ -108,6 +108,17 @@ pub struct SimpleSelectQueryBuilderV2<'table, 'args, C: ColumnType> {
     offset: Option<i32>,
     order_by: Option<(C, SQLOrder)>,
 }
+impl<C: ColumnType> PaginationSupportingTool for SimpleSelectQueryBuilderV2<'_, '_, C> {
+    fn limit(&mut self, limit: i32) -> &mut Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    fn offset(&mut self, offset: i32) -> &mut Self {
+        self.offset = Some(offset);
+        self
+    }
+}
 impl<'table, 'args, C> SimpleSelectQueryBuilderV2<'table, 'args, C>
 where
     C: ColumnType,
@@ -123,15 +134,6 @@ where
             offset: None,
             order_by: None,
         }
-    }
-    pub fn offset(&mut self, offset: i32) -> &mut Self {
-        self.offset = Some(offset);
-        self
-    }
-
-    pub fn limit(&mut self, limit: i32) -> &mut Self {
-        self.limit = Some(limit);
-        self
     }
     pub fn order_by(&mut self, column: C, order: SQLOrder) -> &mut Self {
         self.order_by = Some((column, order));

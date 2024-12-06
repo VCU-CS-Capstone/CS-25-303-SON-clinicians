@@ -92,36 +92,25 @@ impl ParticipantLookupQuery {
         page_and_size: impl Into<PageParams> + Debug,
         database: &PgPool,
     ) -> DBResult<PaginatedResponse<ParticipantLookup>> {
-        let PageParams {
-            page_size,
-            page_number: page,
-        }: PageParams = page_and_size.into();
+        let page_params: PageParams = page_and_size.into();
         let mut query = SimpleSelectQueryBuilderV2::new(
             Participants::table_name(),
             ParticipantLookup::columns(),
         );
         self.apply_arguments(&mut query);
+        query.page_params(page_params);
         #[cfg(test)]
         {
             let sql = query.sql();
             tracing::debug!("SQL: {}", sql);
         }
-        if page > 0 {
-            query.offset(page * page_size);
-        }
-        query.limit(page_size);
-
         let total: i64 = {
             let mut count = SelectCount::new(Participants::table_name());
             self.apply_arguments(&mut count);
             count.query_scalar().fetch_one(database).await?
         };
         let result: Vec<ParticipantLookup> = query.query_as().fetch_all(database).await?;
-        let result = PaginatedResponse {
-            total_pages: (total / page_size as i64) as i32,
-            total,
-            data: result,
-        };
+        let result = page_params.create_result(total, result);
         Ok(result)
     }
 }

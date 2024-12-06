@@ -186,7 +186,10 @@ impl AuthenticationRaw {
 
 pub mod utils {
     use cs25_303_core::database::user::{
-        auth::UserAndPasswordAuth, find_user_by_email_or_username_with_password_auth, User,
+        auth::UserAndPasswordAuth,
+        find_user_by_email_or_username_with_password_auth,
+        login::{add_login_attempt, AdditionalFootprint},
+        User,
     };
     use sqlx::PgPool;
     use tracing::instrument;
@@ -201,6 +204,8 @@ pub mod utils {
     pub async fn verify_login(
         username: impl AsRef<str>,
         password: impl AsRef<str>,
+        ip_address: String,
+        additional_footprint: Option<AdditionalFootprint>,
         database: &PgPool,
     ) -> Result<User, AuthenticationError> {
         let user_found: Option<UserAndPasswordAuth> =
@@ -212,13 +217,41 @@ pub mod utils {
             password_auth,
         }) = user_found
         else {
+            add_login_attempt(None, &ip_address, false, additional_footprint, database).await?;
             return Err(AuthenticationError::Unauthorized);
         };
-        if let Some(password_auth) = password_auth {
-            password::verify_password(password.as_ref(), password_auth.password.as_deref())?;
-        } else {
+        let Some(password_auth) = password_auth else {
+            add_login_attempt(
+                Some(user.id),
+                &ip_address,
+                false,
+                additional_footprint,
+                database,
+            )
+            .await?;
             return Err(AuthenticationError::Unauthorized);
+        };
+        if let Err(err) =
+            password::verify_password(password.as_ref(), password_auth.password.as_deref())
+        {
+            add_login_attempt(
+                Some(user.id),
+                &ip_address,
+                false,
+                additional_footprint,
+                database,
+            )
+            .await?;
+            return Err(err);
         }
+        add_login_attempt(
+            Some(user.id),
+            &ip_address,
+            true,
+            additional_footprint,
+            database,
+        )
+        .await?;
         Ok(user)
     }
 

@@ -18,7 +18,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 tracing-appender = "0.2"
 
 # API Documentation
-utoipa = { version = "5.0.0", features = ["chrono", "uuid", "url", "debug"] }
+utoipa = { version = "5.2", features = ["chrono", "uuid", "url", "debug"] }
 
 # Other Utilities
 uuid = { version = "1", features = ["v4", "serde"] }
@@ -35,7 +35,7 @@ tokio = { version = "1", features = ["full"] }
 # Web Stuff
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1" }
-http = "1.1"
+http = "1.2"
 http-body-util = "0.1"
 http-body = "1"
 bytes = "1"

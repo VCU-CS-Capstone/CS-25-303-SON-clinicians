@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS users(
 );
 INSERT INTO users(username, email, first_name, last_name)
     VALUES ('admin','admin@example.com', 'Admin', 'User');
+
 CREATE TABLE IF NOT EXISTS user_permissions(
     id serial PRIMARY KEY,
     user_id integer NOT NULL,
@@ -99,3 +100,19 @@ CREATE TABLE IF NOT EXISTS user_authentication_password(
 INSERT INTO user_authentication_password(user_id, password)
     VALUES
     ((SELECT id FROM users WHERE username = 'admin'), '$argon2i$v=19$m=16,t=2,p=1$VjJ1RHZic2l4VXFxbUNaMA$ewDhK5UqOdofv+BhAs+FUg');
+
+
+CREATE TABLE IF NOT EXISTS user_login_attempts(
+    id bigserial PRIMARY KEY,
+    user_id integer,
+    -- Relates to users table
+        CONSTRAINT FK_user_login_attempts_user_id
+            FOREIGN KEY (user_id)
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+    ip_address VARCHAR(255),
+    -- HTTP Headers such as User-Agent
+    additional_footprint JSONB,
+    success BOOLEAN NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP
+);
