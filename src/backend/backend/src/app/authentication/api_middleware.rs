@@ -17,7 +17,7 @@ use std::{
 };
 use tower::Layer;
 use tower_service::Service;
-use tracing::trace;
+use tracing::{debug, trace};
 #[derive(Debug, Clone, From)]
 pub struct AuthenticationLayer(pub SiteState);
 
@@ -69,12 +69,16 @@ where
             };
         }
         let (mut parts, body) = req.into_parts();
+        if self.site.is_debug() {
+            debug!(?parts, "Request Received");
+        }
         let cookie_jar = CookieJar::from_headers(&parts.headers);
         let authorization_header = parts
             .headers
             .get(AUTHORIZATION)
             .map(|header| header.parsed::<AuthorizationHeader, InvalidAuthorizationHeader>());
         if let Some(auth) = authorization_header {
+            debug!("Authorization Header Received");
             match auth {
                 Ok(auth) => {
                     parts
@@ -90,9 +94,12 @@ where
                 }
             }
         } else if let Some(cookie) = cookie_jar.get("session") {
+            debug!("Session Cookie Received");
             parts
                 .extensions
                 .insert(AuthenticationRaw::new_from_cookie(cookie, &self.site));
+        } else {
+            trace!("No Authentication Header or Cookie Found");
         }
 
         // Continue the request

@@ -1,6 +1,9 @@
+use std::{fmt::Debug, future::Future};
+
 use super::prelude::*;
 use auth::UserAndPasswordAuth;
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 use utoipa::ToSchema;
 
 use crate::{database::DBResult, user::Permissions};
@@ -10,7 +13,7 @@ pub mod roles;
 mod tools;
 pub use tools::*;
 pub mod login;
-pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
+pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Debug {
     fn get_id(&self) -> i32;
     fn columns() -> Vec<UserColumn> {
         UserColumn::all()
@@ -52,6 +55,16 @@ pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
                     .bind(scope)
                     .bind(self.get_id()).fetch_one(database).await?;
         Ok(result > 0)
+    }
+    #[instrument]
+    fn has_permission(
+        &self,
+        permission: Permissions,
+        database: &PgPool,
+    ) -> impl Future<Output = Result<bool, DBError>> + Send {
+        async {
+            return Ok(true);
+        }
     }
 }
 #[derive(Debug, Clone, PartialEq, Eq, FromRow, Serialize, Deserialize, ToSchema, Columns)]

@@ -49,7 +49,6 @@ pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
         self.where_column(column, |builder| builder.is_null().build())
     }
 
-
     /// Required to push the where comparison to the query
     ///
     /// The internal structure will be a Vec<WhereComparison>

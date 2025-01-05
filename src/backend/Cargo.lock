@@ -2383,9 +2383,9 @@ dependencies = [
 
 [[package]]
 name = "prettyplease"
-version = "0.2.25"
+version = "0.2.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64d1ec885c64d0457d564db4ec299b2dae3f9c02808b8ad9c3a089c591b18033"
+checksum = "483f8c21f64f3ea09fe0f30f5d48c3e8eefe5dac9129f0075f76593b4c1da705"
 dependencies = [
  "proc-macro2",
  "syn 2.0.95",
@@ -3927,8 +3927,8 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "utoipa"
-version = "5.3.0"
-source = "git+https://github.com/juhaku/utoipa.git#3ffad4bed73e5caeddc311bab70f810d1d772079"
+version = "5.3.1"
+source = "git+https://github.com/juhaku/utoipa.git#e5bb59f52f664dfda2828ef22662c015b6da6439"
 dependencies = [
  "indexmap 2.7.0",
  "serde",
@@ -3938,8 +3938,8 @@ dependencies = [
 
 [[package]]
 name = "utoipa-gen"
-version = "5.3.0"
-source = "git+https://github.com/juhaku/utoipa.git#3ffad4bed73e5caeddc311bab70f810d1d772079"
+version = "5.3.1"
+source = "git+https://github.com/juhaku/utoipa.git#e5bb59f52f664dfda2828ef22662c015b6da6439"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3951,8 +3951,8 @@ dependencies = [
 
 [[package]]
 name = "utoipa-scalar"
-version = "0.2.0"
-source = "git+https://github.com/juhaku/utoipa.git#3ffad4bed73e5caeddc311bab70f810d1d772079"
+version = "0.2.1"
+source = "git+https://github.com/juhaku/utoipa.git#e5bb59f52f664dfda2828ef22662c015b6da6439"
 dependencies = [
  "axum 0.8.1",
  "serde",

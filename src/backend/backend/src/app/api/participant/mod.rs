@@ -65,7 +65,7 @@ pub fn participant_routes() -> axum::Router<SiteState> {
         ("api_token" = []),
     )
 )]
-#[instrument]
+#[instrument(name = "api::participant::look_up_participant")]
 pub async fn look_up_participant(
     State(site): State<SiteState>,
     Query(page): Query<PageParams>,
@@ -92,7 +92,7 @@ pub async fn look_up_participant(
         ("api_token" = []),
     )
 )]
-#[instrument]
+#[instrument(name = "api::participant::get")]
 pub async fn get_participants(
     State(site): State<SiteState>,
     Path(id): Path<i32>,
@@ -121,7 +121,7 @@ pub async fn get_participants(
         ("api_token" = []),
     )
 )]
-#[instrument]
+#[instrument(name = "api::participant::get_health_overview")]
 pub async fn get_health_overview(
     State(site): State<SiteState>,
     Path(id): Path<i32>,
@@ -150,7 +150,7 @@ pub async fn get_health_overview(
         ("api_token" = []),
     )
 )]
-#[instrument]
+#[instrument(name = "api::participant::get_demographics")]
 pub async fn get_demographics(
     State(site): State<SiteState>,
     Path(id): Path<i32>,

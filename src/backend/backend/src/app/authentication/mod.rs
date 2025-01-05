@@ -15,23 +15,29 @@
 //! the state of the website and return the [Authentication] type. By checking further that the authentication is valid.
 //! Might make database queries or a request to another service to ensure authentication is valid.
 
-use super::{error::IntoErrorResponse, SiteState};
+use std::future::Future;
+
+use super::{error::IntoErrorResponse, utils::response::MissingPermission, SiteState};
 use axum::{
     body::Body,
     extract::{FromRef, FromRequestParts},
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::cookie::Cookie;
-use cs25_303_core::database::{user::User, DBError};
+use cs25_303_core::database::{
+    user::{User, UserType},
+    DBError,
+};
 use cs25_303_core::user::Permissions;
 use derive_more::derive::From;
 use header::AuthorizationHeader;
 use http::request::Parts;
 use serde::Serialize;
 use session::{Session, SessionManager};
+use sqlx::PgPool;
 use strum::EnumIs;
 use thiserror::Error;
-use tracing::{error, instrument};
+use tracing::{debug, error, instrument};
 use utoipa::ToSchema;
 pub mod api_middleware;
 pub mod header;
@@ -57,6 +63,8 @@ pub enum AuthenticationError {
     /// The user login is accepted but the action is forbidden with current credentials
     #[error("Forbidden")]
     Forbidden,
+    #[error(transparent)]
+    MissingPermission(#[from] MissingPermission),
 }
 impl From<DBError> for AuthenticationError {
     fn from(err: DBError) -> Self {
@@ -68,6 +76,7 @@ impl IntoResponse for AuthenticationError {
         error!("Authentication Error: {}", self);
         match self {
             AuthenticationError::RequestTypeError(err) => err.into_response_boxed(),
+            AuthenticationError::MissingPermission(err) => err.into_response(),
             AuthenticationError::Forbidden => Response::builder()
                 .status(http::StatusCode::FORBIDDEN)
                 .body(Body::from(
@@ -81,12 +90,77 @@ impl IntoResponse for AuthenticationError {
         }
     }
 }
+pub trait PermissionCheck {
+    #[instrument(
+        name = "PermissionCheck::check_permissions",
+        skip(user, db),
+        fields(project_module = "Authentication")
+    )]
+    fn check_permissions(
+        user: &User,
+        db: &PgPool,
+    ) -> impl Future<Output = Result<(), AuthenticationError>> + Send {
+        async move {
+            let log_permission_checks = tracing::enabled!(tracing::Level::DEBUG);
+
+            for permission in Self::permissions_required() {
+                if log_permission_checks {
+                    debug!("Checking permission: {:?}", permission);
+                }
+                if !user.has_permission(*permission, db).await? {
+                    return Err(MissingPermission::from(*permission).into());
+                }
+            }
+            if log_permission_checks {
+                debug!("All permissions passed");
+            }
+            Ok(())
+        }
+    }
+
+    fn permissions_required() -> &'static [Permissions];
+}
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct NoRequiredPermissions;
+impl PermissionCheck for NoRequiredPermissions {
+    fn permissions_required() -> &'static [Permissions] {
+        &[]
+    }
+    async fn check_permissions(_: &User, _: &PgPool) -> Result<(), AuthenticationError> {
+        Ok(())
+    }
+}
+macro_rules! permission_check {
+    (
+        $(#[$docs:meta])*
+        $name:ident => $($perm:expr),+
+    ) => {
+        $(#[$docs])*
+        pub struct $name;
+        impl crate::app::authentication::auth_with_perm::PermissionCheck for $name {
+            fn permissions_required() -> &'static [Permissions] {
+                &[$($perm),+]
+            }
+        }
+        impl std::fmt::Debug for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                use crate::app::authentication::auth_with_perm::PermissionCheck;
+                f.debug_struct(stringify!($name))
+                .field("permissions", &Self::permissions_required())
+                .finish()
+            }
+        }
+    };
+}
 
 #[derive(Clone, Debug, PartialEq, EnumIs)]
-pub enum Authentication {
+#[allow(clippy::large_enum_variant)]
+pub enum Authentication<PC: PermissionCheck = NoRequiredPermissions> {
     UserViaSession { user: User, session: Session },
+
+    Phantom(std::marker::PhantomData<PC>),
 }
-impl Authentication {
+impl<PC: PermissionCheck> Authentication<PC> {
     /// Checks if the user has the required permission
     ///
     /// # Arguments
@@ -111,10 +185,11 @@ impl Authentication {
         Ok(())
     }
 }
-impl<S> FromRequestParts<S> for Authentication
+impl<S, PC> FromRequestParts<S> for Authentication<PC>
 where
     SiteState: FromRef<S>,
     S: Send + Sync,
+    PC: PermissionCheck,
 {
     type Rejection = AuthenticationError;
     #[instrument(
@@ -129,6 +204,8 @@ where
             Some(AuthenticationRaw::Session(session)) => {
                 let user = session.get_user(&state.database).await?;
                 if let Some(user) = user {
+                    PC::check_permissions(&user, &state.database).await?;
+
                     return Ok(Authentication::UserViaSession { user, session });
                 } else {
                     error!("User not found");
@@ -136,7 +213,7 @@ where
                 }
             }
             _ => {
-                error!("No Authentication was found");
+                error!("No Authentication Data Extracted from Request");
                 return Err(AuthenticationError::Unauthorized);
             }
         }
@@ -184,7 +261,7 @@ pub mod utils {
         User,
     };
     use sqlx::PgPool;
-    use tracing::instrument;
+    use tracing::{debug, instrument};
 
     use super::AuthenticationError;
 
@@ -204,15 +281,20 @@ pub mod utils {
             find_user_by_email_or_username_with_password_auth(username, database)
                 .await
                 .map_err(|err| AuthenticationError::RequestTypeError(Box::new(err)))?;
-        let Some(UserAndPasswordAuth {
-            user,
-            password_auth,
-        }) = user_found
-        else {
+
+        let Some(user_found) = user_found else {
+            debug!("User not found");
             add_login_attempt(None, &ip_address, false, additional_footprint, database).await?;
             return Err(AuthenticationError::Unauthorized);
         };
+
+        let UserAndPasswordAuth {
+            user,
+            password_auth,
+        } = user_found;
+
         let Some(password_auth) = password_auth else {
+            debug!(?user, "User has no password auth");
             add_login_attempt(
                 Some(user.id),
                 &ip_address,
@@ -223,9 +305,12 @@ pub mod utils {
             .await?;
             return Err(AuthenticationError::Unauthorized);
         };
+
         if let Err(err) =
             password::verify_password(password.as_ref(), password_auth.password.as_deref())
         {
+            debug!("Invalid Password: {}", err);
+
             add_login_attempt(
                 Some(user.id),
                 &ip_address,
@@ -236,6 +321,7 @@ pub mod utils {
             .await?;
             return Err(err);
         }
+        debug!("Login successful");
         add_login_attempt(
             Some(user.id),
             &ip_address,
@@ -252,7 +338,7 @@ pub mod utils {
             password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
         };
         use rand::rngs::OsRng;
-        use tracing::{error, instrument};
+        use tracing::{debug, error, instrument};
 
         use crate::app::authentication::AuthenticationError;
         #[instrument(skip(password), fields(project_module = "Authentication"))]
@@ -281,6 +367,7 @@ pub mod utils {
                 AuthenticationError::RequestTypeError(Box::new(err))
             })?
             else {
+                debug!("No password hash set");
                 return Err(AuthenticationError::Unauthorized);
             };
 

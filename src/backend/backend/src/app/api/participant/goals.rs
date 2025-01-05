@@ -47,7 +47,7 @@ pub fn participant_goals() -> axum::Router<SiteState> {
         ("api_token" = []),
     )
 )]
-#[instrument]
+#[instrument(name = "api::participant::goals::get_all")]
 pub async fn get_participants_goals(
     State(site): State<SiteState>,
     Path(id): Path<i32>,
@@ -78,7 +78,7 @@ pub async fn get_participants_goals(
         ("api_token" = []),
     )
 )]
-#[instrument]
+#[instrument(name = "api::participant::goals::get_steps_for_goal")]
 pub async fn get_steps_for_goal(
     State(site): State<SiteState>,
     Path(id): Path<i32>,
@@ -110,7 +110,7 @@ pub async fn get_steps_for_goal(
         ("api_token" = []),
     )
 )]
-#[instrument]
+#[instrument(name = "api::participant::goals::get_steps_without_goal")]
 pub async fn get_steps_without_goal(
     State(site): State<SiteState>,
     Path(id): Path<i32>,

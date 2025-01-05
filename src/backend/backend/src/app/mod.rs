@@ -2,14 +2,18 @@ use std::sync::Arc;
 pub mod error;
 use anyhow::Context;
 use authentication::session::SessionManager;
-use axum::routing::Router;
-
+use axum::{extract::Request, routing::Router};
+pub mod request_logging;
 mod state;
+pub mod utils;
 use http::HeaderName;
 use sqlx::postgres::PgConnectOptions;
 pub use state::*;
 pub mod authentication;
-use tower_http::request_id::PropagateRequestIdLayer;
+use tower_http::{
+    request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
+    trace::TraceLayer,
+};
 mod api;
 mod open_api;
 mod web;
@@ -45,7 +49,17 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
         router = router.merge(open_api::build_router())
     }
     router = router
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(request_logging::make_span)
+                .on_request(|request: &Request<_>, span: &tracing::Span| {
+                    request_logging::on_request(request, span);
+                })
+                .on_failure(request_logging::on_failure)
+                .on_response(request_logging::on_response),
+        )
         .layer(PropagateRequestIdLayer::new(REQUEST_ID_HEADER))
+        .layer(SetRequestIdLayer::new(REQUEST_ID_HEADER, MakeRequestUuid))
         .layer(authentication::api_middleware::AuthenticationLayer(
             website.clone(),
         ));

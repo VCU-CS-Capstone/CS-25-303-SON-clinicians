@@ -131,4 +131,8 @@ impl SiteState {
             }
         }
     }
+    //TODO FIX ME
+    pub fn is_debug(&self) -> bool {
+        true
+    }
 }
