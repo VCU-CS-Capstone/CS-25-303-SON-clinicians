@@ -32,7 +32,7 @@ pub fn admin_user_routes() -> axum::Router<SiteState> {
     axum::Router::new()
         .route("/all", get(all_users))
         .route("/new", post(new_user))
-        .route("/:id/update", post(update_user))
+        .route("/{user_id}/update", post(update_user))
 }
 /// Returns a list of all users
 #[utoipa::path(
@@ -137,11 +137,11 @@ pub struct UpdateUser {
 #[instrument]
 pub async fn update_user(
     State(site): State<SiteState>,
-    Path(id): Path<i32>,
+    Path(user_id): Path<i32>,
     auth: Authentication,
     Json(update): Json<UpdateUser>,
 ) -> Result<Response, InternalError> {
-    let Some(user_to_update) = User::get_by_id(id, &site.database).await? else {
+    let Some(user_to_update) = User::get_by_id(user_id, &site.database).await? else {
         return not_found_response();
     };
     let UpdateUser {
@@ -153,7 +153,7 @@ pub async fn update_user(
 
     let mut update = SimpleUpdateQueryBuilder::new(User::table_name());
     update
-        .where_equals(UserColumn::Id, id)
+        .where_equals(UserColumn::Id, user_id)
         .set(UserColumn::UpdatedAt, Local::now().fixed_offset());
     if let Some(username) = username {
         if !user_to_update.username.eq_ignore_ascii_case(&username) {
@@ -181,6 +181,6 @@ pub async fn update_user(
     }
 
     update.query().execute(&site.database).await?;
-    let user = User::get_by_id(id, &site.database).await?;
+    let user = User::get_by_id(user_id, &site.database).await?;
     ok_json_response(user)
 }

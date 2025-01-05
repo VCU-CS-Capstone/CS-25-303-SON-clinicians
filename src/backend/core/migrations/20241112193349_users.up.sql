@@ -103,7 +103,7 @@ INSERT INTO user_authentication_password(user_id, password)
 
 
 CREATE TABLE IF NOT EXISTS user_login_attempts(
-    id bigserial PRIMARY KEY,
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id integer,
     -- Relates to users table
         CONSTRAINT FK_user_login_attempts_user_id

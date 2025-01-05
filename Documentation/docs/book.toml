@@ -1,0 +1,6 @@
+[book]
+authors = ["Wyatt Herkamp<herkampwj@vcu.edu>"]
+language = "en"
+multilingual = false
+src = "src"
+title = "CS 25 303 Docs"

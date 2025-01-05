@@ -2,11 +2,12 @@ use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
 use tracing::instrument;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 use crate::database::prelude::*;
 #[derive(Debug, Clone, PartialEq, Eq, FromRow, Serialize, Deserialize, ToSchema, Columns)]
 pub struct UserLoginAttempt {
-    pub id: i64,
+    pub id: Uuid,
     pub user_id: Option<i32>,
     pub ip_address: String,
     pub success: bool,

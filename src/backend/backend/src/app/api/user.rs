@@ -36,7 +36,7 @@ pub struct LoginPasswordBody {
     /// The password of the user
     pub password: String,
 }
-
+/// Attempts a user login with a password.
 #[utoipa::path(
     post,
     path = "/login/password",

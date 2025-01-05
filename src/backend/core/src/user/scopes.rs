@@ -57,20 +57,13 @@ pub enum Permissions {
         category = "Participants"
     )]
     UpdateParticipants,
-    /// A user who can add, update, remove appointments
-    #[permission(
-        key = "schedule:manage",
-        title = "Manage Schedule",
-        category = "Schedule"
-    )]
-    ManageSchedule,
     /// A user who can view appointments
     #[permission(key = "schedule:read", title = "View Schedule", category = "Schedule")]
     ReadSchedule,
     /// Update Their Own User Information Excluding Password
     #[permission(key = "self:update", title = "Update Self", category = "Self")]
     UpdateSelf,
-    /// Change, Update, ADd Their Own Password
+    /// Change, Update, Add Their Own Password
     ///
     /// This should not be allowed in a Single Sign On System
     #[permission(key = "self:password", title = "Update Password", category = "Self")]

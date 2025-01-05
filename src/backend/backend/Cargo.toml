@@ -7,8 +7,8 @@ edition.workspace = true
 [dependencies]
 tokio.workspace = true
 # Web
-axum = { version = "0.7", features = ["macros", "tokio"] }
-axum-extra = { version = "0.9", features = [
+axum = { version = "0.8", features = ["macros", "tokio"] }
+axum-extra = { version = "0.10", features = [
     "multipart",
     "cookie",
     "typed-header",
@@ -22,9 +22,11 @@ http.workspace = true
 http-body-util.workspace = true
 # API Documentation
 utoipa = { workspace = true, features = ["axum_extras"] }
-utoipa-scalar = { version = "0.2.0", features = ["axum"], optional = true }
+# TODO: When axum 0.8 support is released move this back to a stable version
+utoipa-scalar = { git = "https://github.com/juhaku/utoipa.git", features = [
+    "axum",
+], optional = true }
 # Async utilities
-async-trait = "0.1"
 pin-project = "1"
 # TLS
 tokio-rustls = "0.26"

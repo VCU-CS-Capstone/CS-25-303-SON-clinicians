@@ -27,14 +27,17 @@ pub struct ParticipantStatAPI;
 
 pub fn stat_routes() -> axum::Router<SiteState> {
     axum::Router::new()
-        .route("/weight/history/:id", get(participant_weight_history))
-        .route("/bp/history/:id", get(bp_history))
+        .route(
+            "/weight/history/{participant_id}",
+            get(participant_weight_history),
+        )
+        .route("/bp/history/{participant_id}", get(bp_history))
 }
 #[utoipa::path(
     get,
-    path = "/weight/history/{id}",
+    path = "/weight/history/{participant_id}",
     params(
-        ("id" = i32, Path, description = "Participant ID"),
+        ("participant_id" = i32, Path, description = "Participant ID"),
         PageParams,
     ),
     responses(
@@ -49,13 +52,16 @@ pub fn stat_routes() -> axum::Router<SiteState> {
 #[instrument]
 pub async fn participant_weight_history(
     State(site): State<SiteState>,
-    Path(id): Path<i32>,
+    Path(participant_id): Path<i32>,
     Query(page): Query<PageParams>,
     auth: Authentication,
 ) -> Result<Response, InternalError> {
-    let weights = WeightHistory::find_all_for_participant(id, page, &site.database).await?;
+    let weights =
+        WeightHistory::find_all_for_participant(participant_id, page, &site.database).await?;
     // If the participant does not exist, return a 404
-    if weights.is_empty() && !Participants::does_participant_id_exist(id, &site.database).await? {
+    if weights.is_empty()
+        && !Participants::does_participant_id_exist(participant_id, &site.database).await?
+    {
         return not_found_response();
     }
     ok_json_response(weights)
@@ -63,9 +69,9 @@ pub async fn participant_weight_history(
 
 #[utoipa::path(
     get,
-    path = "/bp/history/{id}",
+    path = "/bp/history/{participant_id}",
     params(
-        ("id" = i32, Path, description = "Participant ID"),
+        ("participant_id" = i32, Path, description = "Participant ID"),
         PageParams,
     ),
     responses(
@@ -80,14 +86,18 @@ pub async fn participant_weight_history(
 #[instrument]
 pub async fn bp_history(
     State(site): State<SiteState>,
-    Path(id): Path<i32>,
+    Path(participant_id): Path<i32>,
     Query(page): Query<PageParams>,
 
     auth: Authentication,
 ) -> Result<Response, InternalError> {
-    let readings = BloodPressureHistory::find_all_for_participant(id, page, &site.database).await?;
+    let readings =
+        BloodPressureHistory::find_all_for_participant(participant_id, page, &site.database)
+            .await?;
     // If the participant does not exist, return a 404
-    if readings.is_empty() && !Participants::does_participant_id_exist(id, &site.database).await? {
+    if readings.is_empty()
+        && !Participants::does_participant_id_exist(participant_id, &site.database).await?
+    {
         return not_found_response();
     }
     ok_json_response(readings)

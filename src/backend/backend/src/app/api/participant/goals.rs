@@ -24,16 +24,19 @@ pub struct ParticipantGoalsAPI;
 
 pub fn participant_goals() -> axum::Router<SiteState> {
     axum::Router::new()
-        .route("/:id/all", get(get_participants_goals))
-        .route("/:id/steps", get(get_steps_for_goal))
-        .route("/:id/steps/without_goal", get(get_steps_without_goal))
+        .route("/{participant_id}/all", get(get_participants_goals))
+        .route("/{goal_id}/steps", get(get_steps_for_goal))
+        .route(
+            "/{participant_id}/steps/without_goal",
+            get(get_steps_without_goal),
+        )
 }
 /// Returns all goals for a participant
 #[utoipa::path(
     get,
-    path = "/{id}/all",
+    path = "/{participant_id}/all",
     params(
-        ("id", Path,  description = "Participant ID"),
+        ("participant_id", Path,  description = "Participant ID"),
     ),
     responses(
         (status = 200, description = "goals for participant", body = Vec<ParticipantGoals>),
@@ -62,9 +65,9 @@ pub async fn get_participants_goals(
 /// Returns all steps for a goal
 #[utoipa::path(
     get,
-    path = "/{id}/steps",
+    path = "/{goal_id}/steps",
     params(
-        ("id", Path,  description = "Goal ID"),
+        ("goal_id", Path,  description = "Goal ID"),
     ),
     responses(
         (status = 200, description = "Steps for Goal", body = Vec<ParticipantGoalsSteps>),

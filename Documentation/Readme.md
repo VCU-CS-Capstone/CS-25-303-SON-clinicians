@@ -6,3 +6,11 @@
 | Detailed Design | Identify modules making up each component.  data flows between modules.  Also ERDs and other documentation depending upon technologies used |
 | Installation Guide| How to install and configure the project |
 | User Guide | Any user interface instructions |
+
+
+
+## Docs Folder
+
+The docs folder is where you will find non user documentation. Such as information on using the backends api and other techincal design info for developers.
+
+Kind of to be treated as a developer wiki.

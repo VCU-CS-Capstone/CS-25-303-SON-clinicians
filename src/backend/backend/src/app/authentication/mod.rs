@@ -16,7 +16,6 @@
 //! Might make database queries or a request to another service to ensure authentication is valid.
 
 use super::{error::IntoErrorResponse, SiteState};
-use async_trait::async_trait;
 use axum::{
     body::Body,
     extract::{FromRef, FromRequestParts},
@@ -112,7 +111,6 @@ impl Authentication {
         Ok(())
     }
 }
-#[async_trait]
 impl<S> FromRequestParts<S> for Authentication
 where
     SiteState: FromRef<S>,
@@ -146,11 +144,8 @@ where
 }
 #[derive(Clone, Debug, PartialEq, EnumIs)]
 pub enum AuthenticationRaw {
+    /// The user is logged in with a session
     Session(Session),
-    Basic {
-        username: String,
-        password: String,
-    },
     /// No Authorization Header was passed.API Routes will most likely reject this
     NoIdentification,
 }
@@ -175,9 +170,6 @@ impl AuthenticationRaw {
         match header {
             AuthorizationHeader::Session { session } => {
                 AuthenticationRaw::session_cookie(&session, site)
-            }
-            AuthorizationHeader::Basic { username, password } => {
-                AuthenticationRaw::Basic { username, password }
             }
             _ => AuthenticationRaw::NoIdentification,
         }

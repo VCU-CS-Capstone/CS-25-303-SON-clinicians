@@ -41,9 +41,9 @@ pub struct ParticipantAPI;
 pub fn participant_routes() -> axum::Router<SiteState> {
     axum::Router::new()
         .route("/lookup", post(look_up_participant))
-        .route("/get/:id", get(get_participants))
-        .route("/get/:id/health_overview", get(get_health_overview))
-        .route("/get/:id/demographics", get(get_demographics))
+        .route("/get/{id}", get(get_participants))
+        .route("/get/{id}/health_overview", get(get_health_overview))
+        .route("/get/{id}/demographics", get(get_demographics))
         .nest("/case_notes", case_note::case_note_routes())
         .nest("/stats", stats::stat_routes())
         .nest("/goals", goals::participant_goals())

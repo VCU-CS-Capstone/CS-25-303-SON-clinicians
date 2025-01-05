@@ -23,14 +23,17 @@ use crate::{
 pub struct CaseNoteAPI;
 
 pub fn case_note_routes() -> axum::Router<SiteState> {
-    axum::Router::new().route("/:id/list/all", get(get_all_case_notes_for_participant))
+    axum::Router::new().route(
+        "/{participant_id}/list/all",
+        get(get_all_case_notes_for_participant),
+    )
 }
 /// Returns a list of all case notes for a participant
 #[utoipa::path(
     get,
-    path = "/{id}/list/all",
+    path = "/{participant_id}/list/all",
     params(
-        ("id" = i32, Path, description = "Participant ID")
+        ("participant_id" = i32, Path, description = "Participant ID")
     ),
     responses(
         (status = 200, description = "Participants Found", body = Vec<CaseNoteListItem>),

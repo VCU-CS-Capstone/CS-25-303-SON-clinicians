@@ -61,7 +61,9 @@ impl Modify for SecurityAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
         if let Some(components) = openapi.components.as_mut() {
             let mut session_value = ApiKeyValue::new("session");
-            session_value.description = Some("Session Cookie".to_string());
+            session_value.description = Some(r#"A cookie with the session_id.
+            However, you are also able pass it in as a header using Header Name of Authorization then putting `Session` as the schema and the session_id as the next parameter
+            Authorization: Session {session_id}"#.to_string());
             components.add_security_scheme(
                 "session",
                 SecurityScheme::ApiKey(ApiKey::Cookie(session_value)),
