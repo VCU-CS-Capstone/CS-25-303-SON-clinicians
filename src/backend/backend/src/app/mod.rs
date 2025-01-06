@@ -14,6 +14,7 @@ use tower_http::{
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
     trace::TraceLayer,
 };
+use tracing::info;
 mod api;
 mod open_api;
 mod web;
@@ -31,9 +32,12 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
     } = config;
     // Start the logger
     crate::logging::init(log, mode)?;
+    info!("Starting web server");
+
     // Connect to database
     let pg_options: PgConnectOptions = database.try_into()?;
     let database = cs25_303_core::database::connect(pg_options, true).await?;
+    info!("Connected to database");
     let session = SessionManager::new(None, mode)?;
     // Create the website state
     let inner = SiteStateInner::new(auth, session);
@@ -42,6 +46,7 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
         database,
     };
     website.start().await;
+    info!("Website Configured");
     let mut router = Router::new()
         .nest("/api", api::api_routes())
         .with_state(website.clone());
@@ -63,6 +68,7 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
         .layer(authentication::api_middleware::AuthenticationLayer(
             website.clone(),
         ));
+    info!("Router Configured");
     // Start the web server
     let tls = tls
         .map(|tls| {
@@ -73,6 +79,7 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
     if let Some(_tls) = tls {
         todo!("Start the web server with TLS");
     } else {
+        info!("Starting web server without TLS");
         web::start(web_server.bind_address, web_server.port, router, website).await?;
     }
     Ok(())

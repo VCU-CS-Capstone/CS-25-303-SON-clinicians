@@ -76,6 +76,8 @@ pub struct TlsConfig {
 pub struct LoggingConfig {
     pub logging_directory: PathBuf,
     pub tracing: Option<TracingConfig>,
+    pub otel_logger: Option<TracingConfig>,
+    pub otel_metrics: Option<TracingConfig>,
     pub stdout_log_levels: Option<LoggingLevels>,
     pub file_log_levels: Option<LoggingLevels>,
 }
@@ -85,22 +87,34 @@ impl Default for LoggingConfig {
         Self {
             logging_directory: logging_dir,
             tracing: None,
+            otel_logger: None,
+            otel_metrics: None,
             stdout_log_levels: None,
             file_log_levels: None,
         }
     }
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum TracingType {
+pub enum TracingProtocol {
     GRPC,
     /// Not Implemented Yet
-    HTTP,
+    HttpBinary,
+    HttpJson,
+}
+impl From<TracingProtocol> for opentelemetry_otlp::Protocol {
+    fn from(value: TracingProtocol) -> Self {
+        match value {
+            TracingProtocol::GRPC => opentelemetry_otlp::Protocol::Grpc,
+            TracingProtocol::HttpBinary => opentelemetry_otlp::Protocol::HttpBinary,
+            TracingProtocol::HttpJson => opentelemetry_otlp::Protocol::HttpJson,
+        }
+    }
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct TracingConfig {
-    pub tracing_enabled: bool,
-    pub tracing_type: TracingType,
+    pub enabled: bool,
+    pub protocol: TracingProtocol,
     /// Endpoint for the tracing collector.
     pub endpoint: String,
     /// Tracing Config Resource Values.
@@ -110,7 +124,26 @@ pub struct TracingConfig {
     /// "service.version" = "0.1.0"
     /// "service.environment" = "development"
     /// ```
-    pub trace_config: HashMap<String, String>,
+    pub config: HashMap<String, String>,
+
+    pub log_levels: Option<LoggingLevels>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct OtelLoggingConfig {
+    pub enabled: bool,
+    pub protocol: TracingProtocol,
+    /// Endpoint for the tracing collector.
+    pub endpoint: String,
+    /// Tracing Config Resource Values.
+    ///
+    /// ```toml
+    /// "service.name" = "cs-25-303"
+    /// "service.version" = "0.1.0"
+    /// "service.environment" = "development"
+    /// ```
+    pub log_config: HashMap<String, String>,
 
     pub log_levels: Option<LoggingLevels>,
 }
@@ -119,6 +152,24 @@ impl TracingConfig {
         let mut log_levels = HashMap::new();
         log_levels.insert("cs-25-303".to_string(), Level::INFO);
         log_levels
+    }
+}
+impl Default for OtelLoggingConfig {
+    fn default() -> Self {
+        let mut trace_config = HashMap::new();
+        trace_config.insert("service.name".to_string(), "cs-25-303".to_string());
+        trace_config.insert(
+            "service.version".to_string(),
+            env!("CARGO_PKG_VERSION").to_string(),
+        );
+        trace_config.insert("service.environment".to_string(), "development".to_string());
+        Self {
+            enabled: false,
+            protocol: TracingProtocol::GRPC,
+            endpoint: "127.0.0.1:5959".to_owned(),
+            log_config: trace_config,
+            log_levels: None,
+        }
     }
 }
 impl Default for TracingConfig {
@@ -131,10 +182,10 @@ impl Default for TracingConfig {
         );
         trace_config.insert("service.environment".to_string(), "development".to_string());
         Self {
-            tracing_enabled: false,
-            tracing_type: TracingType::GRPC,
+            enabled: false,
+            protocol: TracingProtocol::GRPC,
             endpoint: "127.0.0.1:5959".to_owned(),
-            trace_config,
+            config: trace_config,
             log_levels: None,
         }
     }

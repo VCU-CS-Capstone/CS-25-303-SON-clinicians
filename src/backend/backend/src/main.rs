@@ -95,7 +95,7 @@ fn save_default_config_file(location: PathBuf) -> anyhow::Result<()> {
         database: Default::default(),
         log: LoggingConfig {
             tracing: Some(TracingConfig {
-                tracing_enabled: false,
+                enabled: false,
                 ..Default::default()
             }),
             ..Default::default()
