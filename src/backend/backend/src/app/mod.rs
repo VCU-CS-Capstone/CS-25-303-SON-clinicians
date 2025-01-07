@@ -7,6 +7,7 @@ pub mod request_logging;
 mod state;
 pub mod utils;
 use http::HeaderName;
+use request_logging::metrics::AppMetricLayer;
 use sqlx::postgres::PgConnectOptions;
 pub use state::*;
 pub mod authentication;
@@ -65,6 +66,7 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
         )
         .layer(PropagateRequestIdLayer::new(REQUEST_ID_HEADER))
         .layer(SetRequestIdLayer::new(REQUEST_ID_HEADER, MakeRequestUuid))
+        .layer(AppMetricLayer(website.clone()))
         .layer(authentication::api_middleware::AuthenticationLayer(
             website.clone(),
         ));

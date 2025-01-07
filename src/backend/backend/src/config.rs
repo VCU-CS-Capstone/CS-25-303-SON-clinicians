@@ -77,7 +77,7 @@ pub struct LoggingConfig {
     pub logging_directory: PathBuf,
     pub tracing: Option<TracingConfig>,
     pub otel_logger: Option<TracingConfig>,
-    pub otel_metrics: Option<TracingConfig>,
+    pub otel_metrics: Option<MetricsConfig>,
     pub stdout_log_levels: Option<LoggingLevels>,
     pub file_log_levels: Option<LoggingLevels>,
 }
@@ -128,10 +128,9 @@ pub struct TracingConfig {
 
     pub log_levels: Option<LoggingLevels>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
-pub struct OtelLoggingConfig {
+pub struct MetricsConfig {
     pub enabled: bool,
     pub protocol: TracingProtocol,
     /// Endpoint for the tracing collector.
@@ -143,10 +142,9 @@ pub struct OtelLoggingConfig {
     /// "service.version" = "0.1.0"
     /// "service.environment" = "development"
     /// ```
-    pub log_config: HashMap<String, String>,
-
-    pub log_levels: Option<LoggingLevels>,
+    pub config: HashMap<String, String>,
 }
+
 impl TracingConfig {
     pub fn default_log_levels() -> HashMap<String, Level> {
         let mut log_levels = HashMap::new();
@@ -154,7 +152,7 @@ impl TracingConfig {
         log_levels
     }
 }
-impl Default for OtelLoggingConfig {
+impl Default for MetricsConfig {
     fn default() -> Self {
         let mut trace_config = HashMap::new();
         trace_config.insert("service.name".to_string(), "cs-25-303".to_string());
@@ -167,8 +165,7 @@ impl Default for OtelLoggingConfig {
             enabled: false,
             protocol: TracingProtocol::GRPC,
             endpoint: "127.0.0.1:5959".to_owned(),
-            log_config: trace_config,
-            log_levels: None,
+            config: trace_config,
         }
     }
 }

@@ -3,6 +3,7 @@ use axum::{
     http::{header::USER_AGENT, Request},
     http::{HeaderMap, HeaderName},
 };
+pub mod metrics;
 use opentelemetry::{global, propagation::Extractor, trace::TraceContextExt};
 use std::net::SocketAddr;
 use tracing::{field::Empty, info_span};
@@ -46,11 +47,10 @@ pub fn make_span<B>(request: &Request<B>) -> tracing::Span {
         otel.kind = ?opentelemetry::trace::SpanKind::Server,
         http.status_code = Empty,
         http.referer = Empty,
+        http.raw_path = ?request.uri().path(),
         otel.status_code = Empty,
         trace_id = Empty,
-
         exception.message = Empty,
-
         request_id = Empty,
     );
 
