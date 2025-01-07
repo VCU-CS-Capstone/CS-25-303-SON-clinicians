@@ -2,6 +2,10 @@ use std::{fmt::Debug, ops::Deref, sync::Arc};
 
 use axum::extract::State;
 use cs25_303_core::user::auth::AuthenticationProvidersConfig;
+use opentelemetry::{
+    global,
+    metrics::{Counter, Histogram, Meter, UpDownCounter},
+};
 use sqlx::PgPool;
 use tokio::{sync::Mutex, task::JoinHandle};
 use tracing::info;
@@ -14,6 +18,8 @@ pub struct SiteStateInner {
     pub authentication: AuthenticationProvidersConfig,
     pub session: SessionManager,
     session_cleaner: Mutex<Option<JoinHandle<()>>>,
+
+    pub metrics: AppMetrics,
 }
 impl SiteStateInner {
     async fn set_session_cleaner(&self, handle: JoinHandle<()>) {
@@ -39,6 +45,40 @@ impl SiteStateInner {
             authentication,
             session,
             session_cleaner: Mutex::new(None),
+            metrics: AppMetrics::default(),
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct AppMetrics {
+    pub meter: Meter,
+    pub request_size_bytes: Histogram<u64>,
+    pub response_size_bytes: Histogram<u64>,
+    pub request_duration: Histogram<f64>,
+    pub active_sessions: UpDownCounter<i64>,
+}
+impl Default for AppMetrics {
+    fn default() -> Self {
+        let meter = global::meter("axum-request-metrics");
+
+        Self {
+            active_sessions: meter
+                .i64_up_down_counter("http.server.active_sessions")
+                .with_description("The number of active sessions")
+                .build(),
+            request_size_bytes: meter
+                .u64_histogram("http.server.request.body.size")
+                .with_unit("by")
+                .build(),
+            response_size_bytes: meter
+                .u64_histogram("http.server.response.body.size")
+                .with_unit("by")
+                .build(),
+            request_duration: meter
+                .f64_histogram("http.server.request.duration")
+                .with_unit("s")
+                .build(),
+            meter,
         }
     }
 }
@@ -92,7 +132,8 @@ macro_rules! as_ref {
 as_ref!(
     inner => {
         authentication => AuthenticationProvidersConfig,
-        session => SessionManager
+        session => SessionManager,
+        metrics => AppMetrics
     }
 );
 as_ref!(
@@ -121,9 +162,10 @@ impl SiteState {
     /// - Session Cleaner Task
     pub(super) async fn close(self) {
         // Close the website
-        let SiteState { database, inner } = self;
+        let SiteState {
+            database, inner, ..
+        } = self;
         database.close().await;
-
         {
             inner.session.stop_cleaner();
             if let Some(handle) = inner.take_session_cleaner().await {

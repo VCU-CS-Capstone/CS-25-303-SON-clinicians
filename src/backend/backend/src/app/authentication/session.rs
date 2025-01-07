@@ -16,7 +16,11 @@ use redb::{CommitError, Database, Error, ReadableTable, ReadableTableMetadata, T
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::task::JoinHandle;
-use tracing::{debug, error, info, instrument};
+use tracing::{
+    debug, error,
+    field::{display, DisplayValue, Empty},
+    info, instrument, span, Level,
+};
 use tuxs_config_types::chrono_types::duration::ConfigDuration;
 mod data;
 use crate::{
@@ -196,17 +200,34 @@ impl SessionManager {
         let session_manager = &this.session;
 
         while session_manager.running.load(Ordering::Relaxed) {
-            info!("Cleaning sessions");
-            let sleep_for = match session_manager.clean_inner() {
-                Ok(value) => {
-                    info!("Cleaned {} sessions", value);
-                    how_often
-                }
-                Err(err) => {
-                    error!("Failed to clean sessions: {:?}", err);
-                    how_often / 2
+            let sleep_for = {
+                let span = span!(
+                    Level::INFO,
+                    "Session Cleaner",
+                    sessions.removed = Empty,
+                    session.cleaner.error = Empty
+                );
+                let _enter = span.enter();
+
+                info!("Cleaning sessions");
+                match session_manager.clean_inner() {
+                    Ok(value) => {
+                        info!("Cleaned {} sessions", value);
+                        span.record("sessions.removed", value);
+                        how_often
+                    }
+                    Err(err) => {
+                        error!("Failed to clean sessions: {:?}", err);
+                        span.record("session.cleaner.error", display(err));
+                        how_often / 2
+                    }
                 }
             };
+            if let Ok(number_of_sessions) = session_manager.number_of_sessions() {
+                this.metrics
+                    .active_sessions
+                    .add(number_of_sessions as i64, &[]);
+            }
             tokio::time::sleep(sleep_for).await
         }
     }
