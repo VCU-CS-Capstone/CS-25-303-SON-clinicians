@@ -192,11 +192,7 @@ where
     PC: PermissionCheck,
 {
     type Rejection = AuthenticationError;
-    #[instrument(
-        name = "api_auth_from_request",
-        skip(parts, state),
-        fields(project_module = "Authentication")
-    )]
+
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let raw_extension = parts.extensions.get::<AuthenticationRaw>().cloned();
         let state = SiteState::from_ref(state);
@@ -260,7 +256,7 @@ pub mod utils {
         login::{add_login_attempt, AdditionalFootprint},
         User,
     };
-    use sqlx::PgPool;
+    use sqlx::{types::Uuid, PgPool};
     use tracing::{debug, instrument};
 
     use super::AuthenticationError;
@@ -276,7 +272,7 @@ pub mod utils {
         ip_address: String,
         additional_footprint: Option<AdditionalFootprint>,
         database: &PgPool,
-    ) -> Result<User, AuthenticationError> {
+    ) -> Result<(User, Uuid), AuthenticationError> {
         let user_found: Option<UserAndPasswordAuth> =
             find_user_by_email_or_username_with_password_auth(username, database)
                 .await
@@ -322,7 +318,7 @@ pub mod utils {
             return Err(err);
         }
         debug!("Login successful");
-        add_login_attempt(
+        let id = add_login_attempt(
             Some(user.id),
             &ip_address,
             true,
@@ -330,7 +326,7 @@ pub mod utils {
             database,
         )
         .await?;
-        Ok(user)
+        Ok((user, id))
     }
 
     pub mod password {

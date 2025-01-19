@@ -1,85 +1,74 @@
-use std::vec;
-
-use crate::config::{LoggingConfig, MetricsConfig, Mode, TracingConfig};
-use ahash::{HashMap, HashMapExt};
-use opentelemetry::trace::TracerProvider as _;
-use opentelemetry::StringValue;
-use opentelemetry::{global, KeyValue};
+use config::{
+    AppLogger, AppLoggerType, ConsoleLogger, LoggingConfig, LoggingLevels,
+    MetricsConfig, OtelConfig, RollingFileLogger,
+};
+use opentelemetry::{global, trace::TracerProvider as _};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{LogExporter, MetricExporter, SpanExporter, WithExportConfig};
-use opentelemetry_sdk::logs::{Logger, LoggerProvider};
-use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
-use opentelemetry_sdk::trace::{Tracer, TracerProvider};
-use opentelemetry_sdk::{propagation::TraceContextPropagator, Resource};
-use serde::{Deserialize, Serialize};
-use tracing::info;
-use tracing::level_filters::LevelFilter;
-use tracing_subscriber::filter::Targets;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use tracing_subscriber::{Layer, Registry};
-fn tracer(mut config: TracingConfig) -> anyhow::Result<Tracer> {
-    println!("Loading Tracing {config:#?}");
+use opentelemetry_sdk::{
+    logs::LoggerProvider,
+    metrics::{PeriodicReader, SdkMeterProvider},
+    propagation::TraceContextPropagator,
+    trace::TracerProvider,
+    Resource,
+};
+use tracing::debug;
+use tracing_appender::rolling::RollingFileAppender;
+use tracing_subscriber::{
+    filter::Targets, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry,
+};
 
-    if !config.config.contains_key("service.name") {
-        config
-            .config
-            .insert("service.name".to_owned(), "cs25_303".to_owned());
+pub mod config;
+struct TracerResult {
+    levels: LoggingLevels,
+    logging: Option<LoggerProvider>,
+    tracing: Option<TracerProvider>,
+}
+fn tracer(config: OtelConfig) -> anyhow::Result<Option<TracerResult>> {
+    if !config.enabled {
+        return Ok(None);
     }
-    let resources: Vec<KeyValue> = config
-        .config
-        .into_iter()
-        .map(|(k, v)| KeyValue::new(k, Into::<StringValue>::into(v)))
-        .collect();
-    let exporter = SpanExporter::builder()
-        .with_tonic()
-        .with_protocol(config.protocol.into())
-        .with_endpoint(&config.endpoint);
-    let provider = TracerProvider::builder()
-        .with_resource(Resource::new(resources))
-        .with_batch_exporter(exporter.build()?, opentelemetry_sdk::runtime::Tokio)
-        .build();
-    Ok(provider.tracer("tracing-otel-subscriber"))
+    let resources: Resource = config.config.into();
+
+    let tracer = if config.traces {
+        let exporter = SpanExporter::builder()
+            .with_tonic()
+            .with_protocol(config.protocol.into())
+            .with_endpoint(&config.endpoint);
+        let provider = TracerProvider::builder()
+            .with_resource(resources.clone())
+            .with_batch_exporter(exporter.build()?, opentelemetry_sdk::runtime::Tokio)
+            .build();
+        Some(provider)
+    } else {
+        None
+    };
+    let logger = if config.logs {
+        let exporter = LogExporter::builder()
+            .with_tonic()
+            .with_protocol(config.protocol.into())
+            .with_endpoint(&config.endpoint);
+        let provider = LoggerProvider::builder()
+            .with_resource(resources.clone())
+            .with_batch_exporter(exporter.build()?, opentelemetry_sdk::runtime::Tokio)
+            .build();
+        Some(provider)
+    } else {
+        None
+    };
+
+    Ok(Some(TracerResult {
+        levels: config.levels.levels,
+        logging: logger,
+        tracing: tracer,
+    }))
 }
 
-fn logger(
-    mut config: TracingConfig,
-) -> anyhow::Result<OpenTelemetryTracingBridge<LoggerProvider, Logger>> {
+fn metrics(config: MetricsConfig) -> anyhow::Result<SdkMeterProvider> {
     println!("Loading Tracing {config:#?}");
 
-    if !config.config.contains_key("service.name") {
-        config
-            .config
-            .insert("service.name".to_owned(), "cs25_303".to_owned());
-    }
-    let resources: Vec<KeyValue> = config
-        .config
-        .into_iter()
-        .map(|(k, v)| KeyValue::new(k, Into::<StringValue>::into(v)))
-        .collect();
-    let exporter = LogExporter::builder()
-        .with_tonic()
-        .with_protocol(config.protocol.into())
-        .with_endpoint(&config.endpoint);
-    let provider = LoggerProvider::builder()
-        .with_resource(Resource::new(resources))
-        .with_batch_exporter(exporter.build()?, opentelemetry_sdk::runtime::Tokio)
-        .build();
-    Ok(OpenTelemetryTracingBridge::new(&provider))
-}
+    let resources: Resource = config.config.into();
 
-fn metrics(mut config: MetricsConfig) -> anyhow::Result<SdkMeterProvider> {
-    println!("Loading Tracing {config:#?}");
-
-    if !config.config.contains_key("service.name") {
-        config
-            .config
-            .insert("service.name".to_owned(), "cs25_303".to_owned());
-    }
-    let resources: Vec<KeyValue> = config
-        .config
-        .into_iter()
-        .map(|(k, v)| KeyValue::new(k, Into::<StringValue>::into(v)))
-        .collect();
     let exporter = MetricExporter::builder()
         .with_tonic()
         .with_protocol(config.protocol.into())
@@ -89,149 +78,153 @@ fn metrics(mut config: MetricsConfig) -> anyhow::Result<SdkMeterProvider> {
 
     Ok(SdkMeterProvider::builder()
         .with_reader(reader)
-        .with_resource(Resource::new(resources))
+        .with_resource(resources)
         .build())
 }
-pub fn init(config: LoggingConfig, mode: Mode) -> anyhow::Result<()> {
-    let std_out_filter: Targets = config
-        .stdout_log_levels
-        .unwrap_or_else(|| default_other_levels(mode))
-        .into();
-    let file_filter: Targets = config
-        .file_log_levels
-        .unwrap_or_else(|| default_other_levels(mode))
-        .into();
 
-    let fmt_layer = tracing_subscriber::Layer::with_filter(
-        tracing_subscriber::fmt::layer().pretty(),
-        std_out_filter,
-    );
-    // Rolling File fmt_layer
-    let file = {
-        let file_appender =
-            tracing_appender::rolling::hourly(config.logging_directory, "cs25_303.log");
-        tracing_subscriber::fmt::layer()
-            .with_ansi(false)
-            .with_file(true)
-            .with_level(true)
-            .with_writer(file_appender)
-            .with_filter(file_filter)
+pub fn init(config: LoggingConfig) -> anyhow::Result<LoggingState> {
+    let mut layers: Vec<Box<dyn Layer<Registry> + Send + Sync>> =
+        Vec::with_capacity(config.loggers.len());
+    let mut state = LoggingState {
+        items: Vec::with_capacity(config.loggers.len()),
+        ..Default::default()
     };
-    global::set_text_map_propagator(TraceContextPropagator::new());
-    let mut layers = vec![fmt_layer.boxed(), file.boxed()];
+    let LoggingConfig {
+        loggers,
+        metrics: metrics_config,
+        levels: parent_levels,
+    } = config;
 
-    if let Some(otel) = config.otel_logger {
-        if otel.enabled {
-            let otel_filter: Targets = otel
-                .log_levels
-                .clone()
-                .unwrap_or_else(|| default_otel_levels(mode))
-                .into();
-            let logger = logger(otel)?;
-            layers.push(logger.with_filter(otel_filter).boxed());
+    for (name, logger) in loggers
+        .into_iter()
+        .filter(|(_, logger)| logger.enabled())
+        .map(|(k, mut logger)| {
+            if logger.inherit_levels_from_parent() {
+                println!("{k} is Inheriting levels from parent");
+                logger.get_levels_mut().inherit_from(&parent_levels);
+            }
+            (k, logger)
+        })
+    {
+        match logger {
+            AppLogger::Otel(config) => {
+                let Some(TracerResult {
+                    levels,
+                    logging,
+                    tracing,
+                }) = tracer(config)?
+                else {
+                    continue;
+                };
+                println!("Otel Levels: {levels:?}");
+                state.set_global_text_propagator();
+                let logging_levels: Targets = levels.into();
+                if let Some(tracer_provider) = tracing {
+                    let tracer = tracer_provider.tracer(name);
+                    state.items.push(LoggingStateItem::Tracer(tracer_provider));
+                    let otel_layer = tracing_subscriber::Layer::with_filter(
+                        tracing_opentelemetry::layer().with_tracer(tracer).boxed(),
+                        logging_levels.clone(),
+                    );
+                    layers.push(otel_layer.boxed());
+                }
+                if let Some(logging_provider) = logging {
+                    let tracing_bridge = OpenTelemetryTracingBridge::new(&logging_provider);
+                    state.items.push(LoggingStateItem::Logger(logging_provider));
+
+                    let otel_layer =
+                        tracing_subscriber::Layer::with_filter(tracing_bridge, logging_levels);
+
+                    layers.push(otel_layer.boxed());
+                }
+            }
+            AppLogger::Console(config) => {
+                let ConsoleLogger {
+                    pretty,
+                    levels,
+                    rules,
+                    ..
+                } = config;
+                let logging_levels: Targets = levels.levels.into();
+                if pretty {
+                    let fmt_layer = rules.layer_pretty().with_filter(logging_levels);
+                    layers.push(fmt_layer.boxed());
+                } else {
+                    let fmt_layer = rules.layer().with_filter(logging_levels);
+
+                    layers.push(fmt_layer.boxed());
+                }
+            }
+            AppLogger::RollingFile(config) => {
+                let RollingFileLogger {
+                    levels,
+                    rules,
+                    path,
+                    file_prefix,
+                    interval,
+                    ..
+                } = config;
+                let logging_levels: Targets = levels.levels.into();
+
+                let file_appender =
+                    RollingFileAppender::new(interval.into(), path.clone(), file_prefix.clone());
+
+                let fmt_layer = if rules.pretty {
+                    rules
+                        .layer()
+                        .with_writer(file_appender)
+                        .with_filter(logging_levels)
+                        .boxed()
+                } else {
+                    rules
+                        .layer_pretty()
+                        .with_writer(file_appender)
+                        .with_filter(logging_levels)
+                        .boxed()
+                };
+
+                layers.push(fmt_layer);
+            }
         }
-    }
-    if let Some(tracing) = config.tracing {
-        let otel_filter: Targets = tracing
-            .log_levels
-            .clone()
-            .unwrap_or_else(|| default_otel_levels(mode))
-            .into();
-        let tracer = tracer(tracing)?;
-        let otel_layer = tracing_subscriber::Layer::with_filter(
-            tracing_opentelemetry::layer().with_tracer(tracer).boxed(),
-            otel_filter,
-        );
-        layers.push(otel_layer.boxed());
     }
     let subscriber = Registry::default().with(layers);
     subscriber.init();
-    info!("Logging initialized");
-    if let Some(metrics_config) = config.otel_metrics {
+    if let Some(metrics_config) = metrics_config {
         if metrics_config.enabled {
             let provider = metrics(metrics_config)?;
-            global::set_meter_provider(provider);
+            global::set_meter_provider(provider.clone());
+            state.items.push(LoggingStateItem::Meter(provider));
         }
     }
-    Ok(())
-}
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct LoggingLevels {
-    pub default: LevelSerde,
-    pub others: HashMap<String, LevelSerde>,
-}
-impl From<LoggingLevels> for Targets {
-    fn from(targets: LoggingLevels) -> Self {
-        let mut builder = tracing_subscriber::filter::Targets::new();
-
-        builder = builder.with_default(targets.default);
-        for (name, level) in targets.others {
-            builder = builder.with_target(name, level);
-        }
-        builder
-    }
+    Ok(state)
 }
 
-impl Default for LoggingLevels {
-    fn default() -> Self {
-        Self {
-            default: LevelSerde::Info,
-            others: HashMap::default(),
+#[derive(Debug, Default)]
+pub struct LoggingState {
+    pub items: Vec<LoggingStateItem>,
+    has_set_global_text_propagator: bool,
+}
+impl LoggingState {
+    pub fn close(self) -> anyhow::Result<()> {
+        // TODO Call shutdown when https://github.com/open-telemetry/opentelemetry-rust/issues/868 is resolved
+        for item in self.items {
+            debug!("Closing {:?}", item);
         }
-    }
-}
-pub fn default_otel_levels(mode: Mode) -> LoggingLevels {
-    let mut others = HashMap::new();
-    others.insert("cs25_303_backend".to_string(), LevelSerde::Trace);
-    others.insert("cs25_303_core".to_string(), LevelSerde::Trace);
-    others.insert("h2".to_string(), LevelSerde::Warn);
-    others.insert("tower".to_string(), LevelSerde::Warn);
-    others.insert("tonic".to_string(), LevelSerde::Warn);
-    others.insert("hyper_util".to_string(), LevelSerde::Warn);
-    let default = match mode {
-        Mode::Debug => LevelSerde::Trace,
-        Mode::Release => LevelSerde::Info,
-    };
-    LoggingLevels { default, others }
-}
 
-pub fn default_other_levels(mode: Mode) -> LoggingLevels {
-    match mode {
-        Mode::Debug => {
-            let mut others = HashMap::new();
-            others.insert("cs25_303_backend".to_string(), LevelSerde::Trace);
-            others.insert("cs25_303_core".to_string(), LevelSerde::Trace);
-            others.insert("h2".to_string(), LevelSerde::Warn);
-            others.insert("tower".to_string(), LevelSerde::Warn);
-            others.insert("tonic".to_string(), LevelSerde::Warn);
-            others.insert("hyper_util".to_string(), LevelSerde::Warn);
-            LoggingLevels {
-                default: LevelSerde::Trace,
-                others,
-            }
+        Ok(())
+    }
+
+    fn set_global_text_propagator(&mut self) {
+        if self.has_set_global_text_propagator {
+            return;
         }
-        Mode::Release => LoggingLevels {
-            default: LevelSerde::Info,
-            others: HashMap::new(),
-        },
+        self.has_set_global_text_propagator = true;
+        global::set_text_map_propagator(TraceContextPropagator::new());
     }
 }
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Deserialize, Serialize)]
-pub enum LevelSerde {
-    Error,
-    Warn,
-    Info,
-    Debug,
-    Trace,
-}
-impl From<LevelSerde> for LevelFilter {
-    fn from(level: LevelSerde) -> Self {
-        match level {
-            LevelSerde::Error => LevelFilter::ERROR,
-            LevelSerde::Warn => LevelFilter::WARN,
-            LevelSerde::Info => LevelFilter::INFO,
-            LevelSerde::Debug => LevelFilter::DEBUG,
-            LevelSerde::Trace => LevelFilter::TRACE,
-        }
-    }
+#[derive(Debug)]
+pub enum LoggingStateItem {
+    Logger(LoggerProvider),
+    Tracer(TracerProvider),
+    Meter(SdkMeterProvider),
 }

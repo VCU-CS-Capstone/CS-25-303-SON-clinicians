@@ -1,13 +1,15 @@
 use super::header::{AuthorizationHeader, InvalidAuthorizationHeader};
 use crate::app::authentication::AuthenticationRaw;
+use crate::app::error::InternalError;
+use crate::app::request_logging::{RequestId, RequestSpan};
 use crate::app::SiteState;
 use crate::utils::HeaderValueExt;
 use axum::body::Body;
 use axum_extra::extract::CookieJar;
 use derive_more::derive::From;
 use http::header::AUTHORIZATION;
+use http::request::Parts;
 use http::{Request, Response};
-use http_body_util::Either;
 use pin_project::pin_project;
 use std::task::ready;
 use std::{
@@ -17,7 +19,8 @@ use std::{
 };
 use tower::Layer;
 use tower_service::Service;
-use tracing::{debug, trace};
+use tracing::field::Empty;
+use tracing::{info, trace, trace_span, Span};
 #[derive(Debug, Clone, From)]
 pub struct AuthenticationLayer(pub SiteState);
 
@@ -31,85 +34,113 @@ impl<S> Layer<S> for AuthenticationLayer {
         }
     }
 }
-type ServiceBody<T> = Either<T, Body>;
-type ServiceResponse<T> = Response<ServiceBody<T>>;
 /// Middleware that handles the authentication of the user
 #[derive(Debug, Clone)]
 pub struct AuthenticationMiddleware<S> {
     inner: S,
     site: SiteState,
 }
-
-impl<S, ReqBody, ResBody> Service<Request<ReqBody>> for AuthenticationMiddleware<S>
-where
-    S: Service<Request<ReqBody>, Response = Response<ResBody>>,
-    ReqBody: Default,
-{
-    type Response = ServiceResponse<ResBody>;
-    type Error = S::Error;
-    type Future = ResponseFuture<S::Future>;
-    // Async Stuff we can ignore
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.inner.poll_ready(cx)
-    }
-    /// Parse the request authentication and pass it into an extension
-    #[tracing::instrument(
-        skip(self, req),
-        name = "AuthenticationMiddleware",
-        fields(project_module = "Authentication")
-    )]
-    fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        if req.method() == http::Method::OPTIONS {
-            // Options requests are ignored
-            trace!("Options Request");
-            return ResponseFuture {
-                inner: Kind::Ok {
-                    future: self.inner.call(req),
-                },
-            };
-        }
-        let (mut parts, body) = req.into_parts();
-        if self.site.is_debug() {
-            debug!(?parts, "Request Received");
-        }
+impl<S> AuthenticationMiddleware<S> {
+    pub fn process_from_parts(&self, parts: &mut Parts, span: &Span) -> Result<(), InternalError> {
         let cookie_jar = CookieJar::from_headers(&parts.headers);
         let authorization_header = parts
             .headers
             .get(AUTHORIZATION)
-            .map(|header| header.parsed::<AuthorizationHeader, InvalidAuthorizationHeader>());
+            .map(|header| header.parsed::<AuthorizationHeader, InvalidAuthorizationHeader>())
+            .transpose()?;
         if let Some(auth) = authorization_header {
-            debug!("Authorization Header Received");
-            match auth {
-                Ok(auth) => {
-                    parts
-                        .extensions
-                        .insert(AuthenticationRaw::new_from_auth_header(auth, &self.site));
-                }
-                Err(err) => {
-                    return ResponseFuture {
-                        inner: Kind::InvalidAuthentication {
-                            error: err.to_string(),
-                        },
-                    };
-                }
-            }
+            span.record("auth.method", "Authorization Header");
+            trace!("Authorization Header Received");
+            parts
+                .extensions
+                .insert(AuthenticationRaw::new_from_auth_header(auth, &self.site));
         } else if let Some(cookie) = cookie_jar.get("session") {
-            debug!("Session Cookie Received");
+            span.record("auth.method", "Session Cookie");
+            trace!("Session Cookie Received");
             parts
                 .extensions
                 .insert(AuthenticationRaw::new_from_cookie(cookie, &self.site));
         } else {
             trace!("No Authentication Header or Cookie Found");
         }
+        Ok(())
+    }
+}
+
+impl<S> Service<Request<Body>> for AuthenticationMiddleware<S>
+where
+    S: Service<Request<Body>, Response = Response<Body>> + Send + Sync + Clone + 'static,
+    S::Future: Send + 'static,
+    S::Error: std::fmt::Display + 'static,
+{
+    type Response = Response<Body>;
+    type Error = S::Error;
+    type Future = ResponseFuture<S::Future>;
+    // Async Stuff we can ignore
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, req: Request<Body>) -> Self::Future {
+        let parent_span = req
+            .extensions()
+            .get::<RequestSpan>()
+            .map(|span| {
+                println!("Request Span(From Extension) {:?}", span.0);
+                span.0.clone()
+            })
+            .unwrap_or_else(Span::current);
+
+        if req.method() == http::Method::OPTIONS {
+            // Options requests are ignored
+            trace!("Options Request");
+            let inner = parent_span.in_scope(|| self.inner.call(req));
+            return ResponseFuture {
+                inner: Kind::Ok { future: inner },
+            };
+        }
+        let request_id = req
+            .extensions()
+            .get::<RequestId>()
+            .map(|id| id.to_string())
+            .unwrap_or_else(|| "<unknown>".to_string());
+        info!("Executing Authentication Middleware");
+        let (mut parts, body) = req.into_parts();
+
+        {
+            let span = trace_span!(
+                parent: &parent_span,
+                "Authentication Middleware",
+                project_module = "Authentication",
+                otel.status_code = Empty,
+                exception.message = Empty,
+                auth.method = Empty,
+                trace_id = Empty,
+                request_id = request_id,
+            );
+            let _auth_guard = span.enter();
+            if let Err(error) = self.process_from_parts(&mut parts, &span) {
+                span.record("exception.message", &error.to_string());
+                span.record("otel.status_code", "ERROR");
+                return ResponseFuture {
+                    inner: Kind::InvalidAuthentication {
+                        error: error.to_string(),
+                    },
+                };
+            } else {
+                span.record("otel.status_code", "OK");
+            }
+        }
 
         // Continue the request
+        let req = Request::from_parts(parts, body);
+        let inner = parent_span.in_scope(|| self.inner.call(req));
         ResponseFuture {
-            inner: Kind::Ok {
-                future: self.inner.call(Request::from_parts(parts, body)),
-            },
+            inner: Kind::Ok { future: inner },
         }
     }
 }
+
 /// Async Wrapper for Response
 #[pin_project]
 pub struct ResponseFuture<F> {
@@ -127,23 +158,23 @@ enum Kind<F> {
     /// An unparsable authentication header was passed
     InvalidAuthentication { error: String },
 }
-impl<F, B, E> Future for ResponseFuture<F>
+impl<F, E> Future for ResponseFuture<F>
 where
-    F: Future<Output = Result<Response<B>, E>>,
+    F: Future<Output = Result<Response<Body>, E>>,
 {
-    type Output = Result<ServiceResponse<B>, E>;
+    type Output = Result<Response<Body>, E>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match self.project().inner.project() {
+        let this = self.project();
+        match this.inner.project() {
             KindProj::InvalidAuthentication { error } => {
                 let body = Body::from(format!("Invalid Authentication Header: {}", error));
-                let response = Response::new(Either::Right(body));
-
+                let response = Response::new(body);
                 Poll::Ready(Ok(response))
             }
             KindProj::Ok { future } => {
-                let response: Response<B> = ready!(future.poll(cx))?;
-                let response = response.map(Either::Left);
+                let response: Response<Body> = ready!(future.poll(cx))?;
+
                 Poll::Ready(Ok(response))
             }
         }

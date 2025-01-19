@@ -1,13 +1,11 @@
 use std::{fs::read_to_string, path::PathBuf};
 
-use ahash::{HashMap, HashMapExt};
 use cs25_303_core::database::DatabaseConfig;
 use cs25_303_core::user::auth::AuthenticationProvidersConfig;
 use serde::{Deserialize, Serialize};
 use strum::EnumIs;
-use tracing::Level;
 
-use crate::logging::LoggingLevels;
+use crate::logging::config::LoggingConfig;
 pub const CONFIG_PREFIX: &str = "CS-25-303";
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq, EnumIs)]
 pub enum Mode {
@@ -52,6 +50,7 @@ pub struct WebServerConfig {
     pub bind_address: String,
     pub port: u16,
     pub open_api_routes: bool,
+    pub scalar: bool,
 }
 impl Default for WebServerConfig {
     fn default() -> Self {
@@ -62,6 +61,7 @@ impl Default for WebServerConfig {
             open_api_routes: true,
             #[cfg(not(debug_assertions))]
             open_api_routes: false,
+            scalar: true,
         }
     }
 }
@@ -71,122 +71,6 @@ pub struct TlsConfig {
     pub certificate_chain: PathBuf,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default)]
-pub struct LoggingConfig {
-    pub logging_directory: PathBuf,
-    pub tracing: Option<TracingConfig>,
-    pub otel_logger: Option<TracingConfig>,
-    pub otel_metrics: Option<MetricsConfig>,
-    pub stdout_log_levels: Option<LoggingLevels>,
-    pub file_log_levels: Option<LoggingLevels>,
-}
-impl Default for LoggingConfig {
-    fn default() -> Self {
-        let logging_dir = PathBuf::from("logs");
-        Self {
-            logging_directory: logging_dir,
-            tracing: None,
-            otel_logger: None,
-            otel_metrics: None,
-            stdout_log_levels: None,
-            file_log_levels: None,
-        }
-    }
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum TracingProtocol {
-    GRPC,
-    /// Not Implemented Yet
-    HttpBinary,
-    HttpJson,
-}
-impl From<TracingProtocol> for opentelemetry_otlp::Protocol {
-    fn from(value: TracingProtocol) -> Self {
-        match value {
-            TracingProtocol::GRPC => opentelemetry_otlp::Protocol::Grpc,
-            TracingProtocol::HttpBinary => opentelemetry_otlp::Protocol::HttpBinary,
-            TracingProtocol::HttpJson => opentelemetry_otlp::Protocol::HttpJson,
-        }
-    }
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default)]
-pub struct TracingConfig {
-    pub enabled: bool,
-    pub protocol: TracingProtocol,
-    /// Endpoint for the tracing collector.
-    pub endpoint: String,
-    /// Tracing Config Resource Values.
-    ///
-    /// ```toml
-    /// "service.name" = "cs-25-303"
-    /// "service.version" = "0.1.0"
-    /// "service.environment" = "development"
-    /// ```
-    pub config: HashMap<String, String>,
-
-    pub log_levels: Option<LoggingLevels>,
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default)]
-pub struct MetricsConfig {
-    pub enabled: bool,
-    pub protocol: TracingProtocol,
-    /// Endpoint for the tracing collector.
-    pub endpoint: String,
-    /// Tracing Config Resource Values.
-    ///
-    /// ```toml
-    /// "service.name" = "cs-25-303"
-    /// "service.version" = "0.1.0"
-    /// "service.environment" = "development"
-    /// ```
-    pub config: HashMap<String, String>,
-}
-
-impl TracingConfig {
-    pub fn default_log_levels() -> HashMap<String, Level> {
-        let mut log_levels = HashMap::new();
-        log_levels.insert("cs-25-303".to_string(), Level::INFO);
-        log_levels
-    }
-}
-impl Default for MetricsConfig {
-    fn default() -> Self {
-        let mut trace_config = HashMap::new();
-        trace_config.insert("service.name".to_string(), "cs-25-303".to_string());
-        trace_config.insert(
-            "service.version".to_string(),
-            env!("CARGO_PKG_VERSION").to_string(),
-        );
-        trace_config.insert("service.environment".to_string(), "development".to_string());
-        Self {
-            enabled: false,
-            protocol: TracingProtocol::GRPC,
-            endpoint: "127.0.0.1:5959".to_owned(),
-            config: trace_config,
-        }
-    }
-}
-impl Default for TracingConfig {
-    fn default() -> Self {
-        let mut trace_config = HashMap::new();
-        trace_config.insert("service.name".to_string(), "cs-25-303".to_string());
-        trace_config.insert(
-            "service.version".to_string(),
-            env!("CARGO_PKG_VERSION").to_string(),
-        );
-        trace_config.insert("service.environment".to_string(), "development".to_string());
-        Self {
-            enabled: false,
-            protocol: TracingProtocol::GRPC,
-            endpoint: "127.0.0.1:5959".to_owned(),
-            config: trace_config,
-            log_levels: None,
-        }
-    }
-}
 macro_rules! env_or_file_or_default {
     (
         $config:ident,

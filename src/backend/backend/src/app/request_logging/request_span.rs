@@ -1,20 +1,36 @@
-use axum::{
-    extract::{ConnectInfo, MatchedPath},
-    http::{header::USER_AGENT, Request},
-    http::{HeaderMap, HeaderName},
-};
-pub mod metrics;
-use opentelemetry::{global, propagation::Extractor, trace::TraceContextExt};
 use std::net::SocketAddr;
+
+use axum::extract::{ConnectInfo, FromRef, FromRequestParts, MatchedPath};
+use derive_more::derive::From;
+use http::{
+    header::{REFERER, USER_AGENT},
+    request::Parts,
+    HeaderMap, HeaderName, Request,
+};
+use opentelemetry::{global, propagation::Extractor, trace::TraceContextExt};
 use tracing::{field::Empty, info_span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
-#[allow(clippy::declare_interior_mutable_const)]
-const X_FORWARDED_FOR_HEADER: HeaderName = HeaderName::from_static("x-forwarded-for");
-#[allow(clippy::declare_interior_mutable_const)]
-const X_REQUEST_ID: HeaderName = HeaderName::from_static("x-request-id");
-#[allow(clippy::declare_interior_mutable_const)]
-const REFERER: HeaderName = HeaderName::from_static("referer");
+use crate::app::{error::MissingInternelExtension, SiteState};
+
+use super::{RequestId, X_FORWARDED_FOR_HEADER};
+
+#[derive(Debug, Clone, From)]
+pub struct RequestSpan(pub tracing::Span);
+impl<S> FromRequestParts<S> for RequestSpan
+where
+    SiteState: FromRef<S>,
+    S: Send + Sync,
+{
+    type Rejection = MissingInternelExtension;
+
+    async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
+        let extension = parts.extensions.get::<RequestSpan>();
+        extension
+            .map(|r| r.clone())
+            .ok_or(MissingInternelExtension("Request Span"))
+    }
+}
 pub fn extract_header_as_str(headers: &HeaderMap, header: HeaderName) -> Option<String> {
     headers
         .get(header)
@@ -34,11 +50,11 @@ impl Extractor for HeaderMapCarrier<'_> {
     }
 }
 
-pub fn make_span<B>(request: &Request<B>) -> tracing::Span {
+pub fn make_span<B>(request: &Request<B>, request_id: RequestId) -> tracing::Span {
     let user_agent = extract_header_as_str(request.headers(), USER_AGENT)
         .unwrap_or_else(|| "<unknown>".to_string());
 
-    let span = info_span!("HTTP request",
+    let span = info_span!(target: "cs25_303_backend::requests","HTTP request",
         http.path = Empty,
         http.method = ?request.method(),
         http.version = ?request.version(),
@@ -49,9 +65,10 @@ pub fn make_span<B>(request: &Request<B>) -> tracing::Span {
         http.referer = Empty,
         http.raw_path = ?request.uri().path(),
         otel.status_code = Empty,
+        otel.name = "HTTP request",
         trace_id = Empty,
         exception.message = Empty,
-        request_id = Empty,
+        request_id = display(request_id),
     );
 
     let context = global::get_text_map_propagator(|propagator| {
@@ -59,6 +76,10 @@ pub fn make_span<B>(request: &Request<B>) -> tracing::Span {
     });
 
     if context.has_active_span() {
+        span.record(
+            "trace_id",
+            context.span().span_context().trace_id().to_string(),
+        );
         span.set_parent(context);
     }
 
@@ -70,7 +91,7 @@ pub fn on_request<B>(request: &Request<B>, span: &tracing::Span) {
         .extensions()
         .get::<MatchedPath>()
         .map_or(request.uri().path(), |p| p.as_str());
-
+    let method = request.method().as_str();
     let client_ip = extract_header_as_str(request.headers(), X_FORWARDED_FOR_HEADER)
         .or_else(|| {
             request
@@ -80,19 +101,15 @@ pub fn on_request<B>(request: &Request<B>, span: &tracing::Span) {
         })
         .unwrap_or_else(|| "<unknown>".to_string());
 
-    let request_id = extract_header_as_str(request.headers(), X_REQUEST_ID)
-        .unwrap_or_else(|| "<unknown>".to_string());
-
     span.record("http.path", path);
+    span.record("otel.name", format!("{method} {path}"));
     span.record("http.client_ip", &client_ip);
-    span.record("request_id", &request_id);
 
     let referer = extract_header_as_str(request.headers(), REFERER);
     if let Some(referer) = referer {
         span.record("http.referer", &referer);
     }
 }
-
 pub fn on_response<B>(
     response: &axum::http::Response<B>,
     _latency: std::time::Duration,

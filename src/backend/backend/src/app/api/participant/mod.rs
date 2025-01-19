@@ -1,5 +1,5 @@
 use crate::{
-    app::authentication::Authentication,
+    app::{authentication::Authentication, request_logging::RequestSpan},
     utils::{not_found_response, ok_json_response},
 };
 pub mod case_note;
@@ -20,7 +20,7 @@ use cs25_303_core::database::{
     },
     tools::{PageParams, PaginatedResponse},
 };
-use tracing::instrument;
+use tracing::{info, instrument};
 use utoipa::OpenApi;
 
 use crate::app::{error::InternalError, SiteState};
@@ -92,7 +92,7 @@ pub async fn look_up_participant(
         ("api_token" = []),
     )
 )]
-#[instrument(name = "api::participant::get")]
+#[instrument]
 pub async fn get_participants(
     State(site): State<SiteState>,
     Path(id): Path<i32>,

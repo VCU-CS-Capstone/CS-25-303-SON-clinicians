@@ -18,12 +18,7 @@ tracing-appender = "0.2"
 
 # API Documentation
 ## TODO: When axum 0.8 update is released move this back to a stable version
-utoipa = { git = "https://github.com/juhaku/utoipa.git", features = [
-    "chrono",
-    "uuid",
-    "url",
-    "debug",
-] }
+utoipa = { version = "5", features = ["chrono", "uuid", "url", "debug"] }
 
 # Other Utilities
 uuid = { version = "1", features = ["v4", "serde"] }

@@ -23,7 +23,10 @@ impl TableType for UserLoginAttempt {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub struct AdditionalFootprint {
+    #[serde(default)]
     pub user_agent: String,
+    #[serde(default)]
+    pub request_id: String,
 }
 #[instrument]
 pub async fn add_login_attempt(
@@ -32,8 +35,8 @@ pub async fn add_login_attempt(
     success: bool,
     additional_footprint: Option<AdditionalFootprint>,
     database: &sqlx::PgPool,
-) -> DBResult<()> {
-    SimpleInsertQueryBuilder::new(UserLoginAttempt::table_name())
+) -> DBResult<Uuid> {
+    let id = SimpleInsertQueryBuilder::new(UserLoginAttempt::table_name())
         .insert(UserLoginAttemptColumn::UserId, user_id)
         .insert(UserLoginAttemptColumn::IpAddress, ip_address)
         .insert(UserLoginAttemptColumn::Success, success)
@@ -41,8 +44,10 @@ pub async fn add_login_attempt(
             UserLoginAttemptColumn::AdditionalFootprint,
             additional_footprint.map(Json),
         )
-        .query()
-        .execute(database)
+        .return_columns(vec![UserLoginAttemptColumn::Id])
+        .query_scalar()
+        .fetch_one(database)
         .await?;
-    Ok(())
+    
+    Ok(id)
 }

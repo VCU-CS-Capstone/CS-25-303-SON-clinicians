@@ -10,7 +10,7 @@ use std::{
 
 use anyhow::Context;
 use clap::{Parser, Subcommand, ValueEnum};
-use config::{LoggingConfig, TracingConfig};
+use logging::config::LoggingConfig;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum ExportOptions {
     OpenAPI,
@@ -93,13 +93,7 @@ fn save_default_config_file(location: PathBuf) -> anyhow::Result<()> {
         mode: Mode::Debug,
         web_server: WebServerConfig::default(),
         database: Default::default(),
-        log: LoggingConfig {
-            tracing: Some(TracingConfig {
-                enabled: false,
-                ..Default::default()
-            }),
-            ..Default::default()
-        },
+        log: LoggingConfig::default(),
         tls: None,
         auth: Default::default(),
     };

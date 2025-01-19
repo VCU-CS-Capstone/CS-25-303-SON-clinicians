@@ -1,10 +1,10 @@
-use std::{error::Error, fmt::Display};
+use std::{borrow::Cow, error::Error, fmt::Display};
 
 use axum::{body::Body, response::IntoResponse};
 use http::header::CONTENT_TYPE;
 use thiserror::Error;
 mod api;
-use super::utils::response::PLAIN_TEXT_MEDIA_TYPE;
+use super::utils::response::{builder::ResponseBuilder, PLAIN_TEXT_MEDIA_TYPE};
 pub use api::APIErrorResponse;
 pub mod bad_request;
 pub trait IntoErrorResponse: Error + Send + Sync {
@@ -137,5 +137,24 @@ impl IntoResponse for ResponseBuildError {
             .header(CONTENT_TYPE, PLAIN_TEXT_MEDIA_TYPE)
             .body(axum::body::Body::from(message))
             .unwrap()
+    }
+}
+
+#[derive(Debug, Error, Clone, Copy)]
+#[error("{0} is missing from extensions")]
+pub struct MissingInternelExtension(pub &'static str);
+impl IntoErrorResponse for MissingInternelExtension {
+    fn into_response_boxed(self: Box<Self>) -> axum::response::Response {
+        self.into_response()
+    }
+}
+impl IntoResponse for MissingInternelExtension {
+    fn into_response(self) -> axum::response::Response {
+        let message: APIErrorResponse<&'static str, ()> = APIErrorResponse {
+            message: Cow::Owned(self.to_string()),
+            details: Some(self.0),
+            error: None,
+        };
+        ResponseBuilder::internal_server_error().json(&message)
     }
 }

@@ -28,7 +28,7 @@ pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
     fn columns() -> Vec<ParticipantsColumn> {
         ParticipantsColumn::all()
     }
-    #[tracing::instrument]
+    #[tracing::instrument(level = "trace", fields(result))]
     async fn find_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
         let result = SimpleSelectQueryBuilder::new(Participants::table_name(), &Self::columns())
             .where_equals(ParticipantsColumn::Id, id)
@@ -37,7 +37,7 @@ pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
             .await?;
         Ok(result)
     }
-    #[tracing::instrument]
+    #[tracing::instrument(level = "trace", fields(result))]
     async fn find_by_red_cap_id(
         red_cap_id: i32,
         database: &sqlx::PgPool,

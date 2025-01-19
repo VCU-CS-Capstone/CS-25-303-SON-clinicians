@@ -1,26 +1,21 @@
 use std::sync::Arc;
 pub mod error;
 use anyhow::Context;
-use authentication::session::SessionManager;
-use axum::{extract::Request, routing::Router};
+use authentication::{api_middleware::AuthenticationLayer, session::SessionManager};
+use axum::routing::Router;
 pub mod request_logging;
 mod state;
 pub mod utils;
-use http::HeaderName;
-use request_logging::metrics::AppMetricLayer;
+use request_logging::AppTracingLayer;
 use sqlx::postgres::PgConnectOptions;
 pub use state::*;
 pub mod authentication;
-use tower_http::{
-    request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
-    trace::TraceLayer,
-};
+
 use tracing::info;
 mod api;
 mod open_api;
 mod web;
 use crate::config::FullConfig;
-const REQUEST_ID_HEADER: HeaderName = HeaderName::from_static("x-request-id");
 
 pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
     let FullConfig {
@@ -32,7 +27,7 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
         auth,
     } = config;
     // Start the logger
-    crate::logging::init(log, mode)?;
+    crate::logging::init(log)?;
     info!("Starting web server");
 
     // Connect to database
@@ -48,28 +43,16 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
     };
     website.start().await;
     info!("Website Configured");
-    let mut router = Router::new()
+    let router = Router::new()
         .nest("/api", api::api_routes())
+        .merge(open_api::open_api_router(
+            web_server.open_api_routes,
+            web_server.scalar,
+        ))
+        .layer(AuthenticationLayer(website.clone()))
+        .layer(AppTracingLayer(website.clone()))
         .with_state(website.clone());
-    if web_server.open_api_routes {
-        router = router.merge(open_api::build_router())
-    }
-    router = router
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(request_logging::make_span)
-                .on_request(|request: &Request<_>, span: &tracing::Span| {
-                    request_logging::on_request(request, span);
-                })
-                .on_failure(request_logging::on_failure)
-                .on_response(request_logging::on_response),
-        )
-        .layer(PropagateRequestIdLayer::new(REQUEST_ID_HEADER))
-        .layer(SetRequestIdLayer::new(REQUEST_ID_HEADER, MakeRequestUuid))
-        .layer(AppMetricLayer(website.clone()))
-        .layer(authentication::api_middleware::AuthenticationLayer(
-            website.clone(),
-        ));
+
     info!("Router Configured");
     // Start the web server
     let tls = tls

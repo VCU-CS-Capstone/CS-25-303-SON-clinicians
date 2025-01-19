@@ -4,7 +4,7 @@ use axum::extract::State;
 use cs25_303_core::user::auth::AuthenticationProvidersConfig;
 use opentelemetry::{
     global,
-    metrics::{Counter, Histogram, Meter, UpDownCounter},
+    metrics::{Histogram, Meter, UpDownCounter},
 };
 use sqlx::PgPool;
 use tokio::{sync::Mutex, task::JoinHandle};

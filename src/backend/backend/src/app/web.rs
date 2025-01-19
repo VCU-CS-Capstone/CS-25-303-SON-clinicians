@@ -38,7 +38,7 @@ pub async fn start(
     site: SiteState,
 ) -> anyhow::Result<()> {
     let bind = format!("{}:{}", bind_address, port);
-    let listener = TcpListener::bind(bind).await?;
+    let listener: TcpListener = TcpListener::bind(bind).await?;
     tracing::debug!("listening on {}", listener.local_addr()?);
     axum::serve(
         listener,

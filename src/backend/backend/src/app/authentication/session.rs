@@ -14,11 +14,12 @@ use http::StatusCode;
 use rand::{distributions::Alphanumeric, rngs::StdRng, Rng, SeedableRng};
 use redb::{CommitError, Database, Error, ReadableTable, ReadableTableMetadata, TableDefinition};
 use serde::{Deserialize, Serialize};
+use sqlx::types::Uuid;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::{
     debug, error,
-    field::{display, DisplayValue, Empty},
+    field::{display, Empty},
     info, instrument, span, Level,
 };
 use tuxs_config_types::chrono_types::duration::ConfigDuration;
@@ -46,6 +47,8 @@ pub enum SessionError {
     CommitError(#[from] CommitError),
     #[error("Could not parse DateTime: {0}")]
     DateTimeParseError(#[from] chrono::ParseError),
+    #[error("Footprint Error: {0}")]
+    FootprintError(#[from] serde_json::Error),
 }
 impl IntoResponse for SessionError {
     fn into_response(self) -> axum::response::Response {
@@ -112,7 +115,13 @@ impl SessionManager {
             }
             database
         } else {
-            Database::create(&session_config.database_location)?
+            let database = Database::create(&session_config.database_location)?;
+            {
+                let session = database.begin_write()?;
+                session.open_table(TABLE)?;
+                session.commit()?;
+            }
+            database
         };
 
         Ok(Self {
@@ -150,7 +159,7 @@ impl SessionManager {
                     continue;
                 }
             };
-            let session = match Session::from_tuple(value.value()) {
+            let session = match Session::try_from(value.value()) {
                 Ok(ok) => ok,
                 Err(err) => {
                     error!("Failed to parse session: {:?}", err);
@@ -179,10 +188,10 @@ impl SessionManager {
             let mut table = sessions.open_table(TABLE)?;
             for key in to_remove {
                 debug!("Removing session: {:?}", key);
-                match table.remove(&*key.session_id) {
+                match table.remove(&*key.session_key) {
                     Ok(ok) => {
                         if self.mode == Mode::Debug {
-                            let ok = ok.map(|x| Session::from_tuple(x.value()));
+                            let ok = ok.map(|x| Session::try_from(x.value()));
                             debug!("Removed session: {:?}", ok);
                         }
                         sessions_removed += 1;
@@ -254,8 +263,7 @@ impl SessionManager {
     pub fn create_session(
         &self,
         user_id: i32,
-        user_agent: String,
-        ip_address: String,
+        login_id: Uuid,
         life: Duration,
     ) -> Result<Session, SessionError> {
         let sessions = self.sessions.begin_write()?;
@@ -263,7 +271,7 @@ impl SessionManager {
 
         let session_id =
             create_session_id(|x| session_table.get(x).map(|x| x.is_some()).unwrap_or(false));
-        let session = Session::new(user_id, session_id.clone(), user_agent, ip_address, life);
+        let session = Session::new(user_id, session_id.clone(), login_id, life);
 
         session_table.insert(&*session_id, session.as_tuple_ref())?;
         drop(session_table);
@@ -274,15 +282,9 @@ impl SessionManager {
     pub fn create_session_default_lifespan(
         &self,
         user_id: i32,
-        user_agent: String,
-        ip_address: String,
+        login_id: Uuid,
     ) -> Result<Session, SessionError> {
-        self.create_session(
-            user_id,
-            user_agent,
-            ip_address,
-            self.config.lifespan.duration,
-        )
+        self.create_session(user_id, login_id, self.config.lifespan.duration)
     }
     #[instrument]
     pub fn get_session(&self, session_id: &str) -> Result<Option<Session>, SessionError> {
@@ -291,7 +293,7 @@ impl SessionManager {
         let session = sessions.open_table(TABLE)?;
         let session = session
             .get(session_id)?
-            .map(|x| Session::from_tuple(x.value()))
+            .map(|x| Session::try_from(x.value()))
             .transpose()?;
         Ok(session)
     }
@@ -301,11 +303,12 @@ impl SessionManager {
         let mut table = sessions.open_table(TABLE)?;
         let session = table
             .remove(session_id)?
-            .map(|x| Session::from_tuple(x.value()))
-            .transpose()?;
+            .map(|x| Session::try_from(x.value()))
+            .transpose();
         drop(table);
         sessions.commit()?;
-        Ok(session)
+
+        session
     }
     pub fn delete_all_for_user(&self, user_id: i32) -> Result<(), SessionError> {
         let to_remove = self.filter_table(true, |session| session.user_id == user_id)?;
@@ -314,10 +317,10 @@ impl SessionManager {
             let mut table = sessions.open_table(TABLE)?;
             for key in to_remove {
                 debug!("Removing session: {:?}", key);
-                match table.remove(&*key.session_id) {
+                match table.remove(&*key.session_key) {
                     Ok(ok) => {
                         if self.mode == Mode::Debug {
-                            let ok = ok.map(|x| Session::from_tuple(x.value()));
+                            let ok = ok.map(|x| Session::try_from(x.value()));
                             debug!("Removed session: {:?}", ok);
                         }
                     }
@@ -336,7 +339,7 @@ impl SessionManager {
 pub fn create_session_id(exists_call_back: impl Fn(&str) -> bool) -> String {
     let mut rand = StdRng::from_entropy();
     loop {
-        let session_id: String = (0..7).map(|_| rand.sample(Alphanumeric) as char).collect();
+        let session_id: String = (0..15).map(|_| rand.sample(Alphanumeric) as char).collect();
         if !exists_call_back(&session_id) {
             break session_id;
         }

@@ -1,6 +1,6 @@
-use super::api::{
-    self, admin::AdminAPI, location::LocationsAPI, participant::ParticipantAPI, user::UserAPI,
-};
+use crate::app::api::auth::AuthApi;
+
+use super::api::{self, admin::AdminAPI, location::LocationsAPI, participant::ParticipantAPI};
 use axum::{
     response::{IntoResponse, Response},
     Json, Router,
@@ -30,7 +30,7 @@ use utoipa::{
 #[openapi(
     modifiers(&SecurityAddon),
     nest(
-        (path = "/api/user", api = UserAPI, tags=["user"]),
+        (path = "/api/auth", api = AuthApi, tags=["auth", "user"]),
         (path = "/api/participant", api = ParticipantAPI, tags=["participant"]),
         (path = "/api/location", api = LocationsAPI, tags=["location"]),
         (path = "/api/admin", api = AdminAPI, tags=["admin"])
@@ -52,7 +52,12 @@ use utoipa::{
         NumberSettings,
         FloatSettings
     )),
-    tags()
+    tags(
+        (name = "auth", description = "User Authentication"),
+        (name = "participant", description = "Participant Information"),
+        (name = "location", description = "Location Information"),
+        (name = "admin", description = "Admin Information")
+    )
 )]
 pub struct ApiDoc;
 struct SecurityAddon;
@@ -82,26 +87,46 @@ impl Modify for SecurityAddon {
     }
 }
 #[cfg(feature = "utoipa-scalar")]
-pub fn build_router<S>() -> axum::Router<S>
+pub fn open_api_router<S>(open_api: bool, scalar: bool) -> axum::Router<S>
 where
     S: Clone + Send + Sync + 'static,
 {
     use axum::routing::get;
+    use tracing::error;
     use utoipa_scalar::{Scalar, Servable};
 
-    Router::new()
-        .route("/open-api-doc-raw", get(api_docs))
-        .merge(Scalar::with_url("/scalar", ApiDoc::openapi()))
+    let mut router = Router::new();
+    if open_api {
+        router = router.route("/open-api-doc-raw", get(api_docs));
+        if scalar {
+            router = router.merge(Scalar::with_url("/scalar", ApiDoc::openapi()));
+        }
+    } else if scalar {
+        error!("Scalar is enabled but OpenAPI is not. Scalar will not be available.");
+    }
+
+    router
 }
+
 #[cfg(not(feature = "utoipa-scalar"))]
-pub fn build_router<S>() -> axum::Router<S>
+pub fn open_api_router<S>(open_api: bool, scalar: bool) -> axum::Router<S>
 where
     S: Clone + Send + Sync + 'static,
 {
     use axum::routing::get;
+    use tracing::error;
 
-    Router::new().route("/open-api-doc-raw", get(api_docs))
+    let mut router = Router::new();
+    if open_api {
+        router = router.route("/open-api-doc-raw", get(api_docs));
+    }
+    if scalar {
+        error!("Scalar feature is not built in. Scalar will not be available.");
+    }
+
+    router
 }
+
 async fn api_docs() -> Response {
     Json(ApiDoc::openapi()).into_response()
 }
