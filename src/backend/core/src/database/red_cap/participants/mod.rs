@@ -15,10 +15,12 @@ pub mod health_overview;
 mod lookup;
 mod medications;
 mod new;
+mod summary;
 pub use lookup::*;
 pub use medications::*;
 pub use new::*;
 use sqlx::{postgres::PgRow, prelude::FromRow};
+pub use summary::*;
 use tracing::error;
 use utoipa::ToSchema;
 pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {

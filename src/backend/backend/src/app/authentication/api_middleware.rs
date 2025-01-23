@@ -20,7 +20,7 @@ use std::{
 use tower::Layer;
 use tower_service::Service;
 use tracing::field::Empty;
-use tracing::{info, trace, trace_span, Span};
+use tracing::{info, info_span, trace, Span};
 #[derive(Debug, Clone, From)]
 pub struct AuthenticationLayer(pub SiteState);
 
@@ -108,7 +108,7 @@ where
         let (mut parts, body) = req.into_parts();
 
         {
-            let span = trace_span!(
+            let span = info_span!(
                 parent: &parent_span,
                 "Authentication Middleware",
                 project_module = "Authentication",

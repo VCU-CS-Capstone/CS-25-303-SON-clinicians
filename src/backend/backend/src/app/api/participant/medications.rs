@@ -38,7 +38,7 @@ pub fn participant_medications() -> axum::Router<SiteState> {
         ("api_token" = []),
     )
 )]
-#[instrument(name = "api::participant::medications::get_all")]
+#[instrument]
 pub async fn get_participants_medications(
     State(site): State<SiteState>,
     Path(participant_id): Path<i32>,

@@ -17,7 +17,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 tracing-appender = "0.2"
 
 # API Documentation
-## TODO: When axum 0.8 update is released move this back to a stable version
 utoipa = { version = "5", features = ["chrono", "uuid", "url", "debug"] }
 
 # Other Utilities

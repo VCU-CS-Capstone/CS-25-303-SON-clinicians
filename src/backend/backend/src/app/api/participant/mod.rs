@@ -1,5 +1,5 @@
 use crate::{
-    app::{authentication::Authentication, request_logging::RequestSpan},
+    app::authentication::Authentication,
     utils::{not_found_response, ok_json_response},
 };
 pub mod case_note;
@@ -20,7 +20,8 @@ use cs25_303_core::database::{
     },
     tools::{PageParams, PaginatedResponse},
 };
-use tracing::{info, instrument};
+
+use tracing::instrument;
 use utoipa::OpenApi;
 
 use crate::app::{error::InternalError, SiteState};
@@ -65,7 +66,7 @@ pub fn participant_routes() -> axum::Router<SiteState> {
         ("api_token" = []),
     )
 )]
-#[instrument(name = "api::participant::look_up_participant")]
+#[instrument]
 pub async fn look_up_participant(
     State(site): State<SiteState>,
     Query(page): Query<PageParams>,
@@ -121,7 +122,7 @@ pub async fn get_participants(
         ("api_token" = []),
     )
 )]
-#[instrument(name = "api::participant::get_health_overview")]
+#[instrument]
 pub async fn get_health_overview(
     State(site): State<SiteState>,
     Path(id): Path<i32>,
@@ -150,7 +151,7 @@ pub async fn get_health_overview(
         ("api_token" = []),
     )
 )]
-#[instrument(name = "api::participant::get_demographics")]
+#[instrument]
 pub async fn get_demographics(
     State(site): State<SiteState>,
     Path(id): Path<i32>,

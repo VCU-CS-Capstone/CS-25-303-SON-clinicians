@@ -44,7 +44,7 @@ pub fn case_note_routes() -> axum::Router<SiteState> {
         ("api_token" = []),
     )
 )]
-#[instrument(name = "api::participant::case_note::get_all")]
+#[instrument]
 pub async fn get_all_case_notes_for_participant(
     State(site): State<SiteState>,
     Path(id): Path<i32>,
