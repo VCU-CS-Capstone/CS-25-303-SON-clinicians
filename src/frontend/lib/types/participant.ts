@@ -15,9 +15,18 @@ export interface RecentVisit {
   location: number;
 }
 
-export interface Location {
+export interface ParticipantLookupRequest {
+  program?: string | null;
+  first_name?: string;
+  last_name?: string;
+}
+
+export interface ParticipantLookupResponse {
   id: number;
-  name: string;
+  first_name: string;
+  last_name: string;
+  phone_number_one?: string;
+  phone_number_two?: string;
   program: string;
-  parent_location?: number;
+  location: number;
 }

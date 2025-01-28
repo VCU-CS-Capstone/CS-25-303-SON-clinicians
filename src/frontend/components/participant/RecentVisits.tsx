@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, View, Text } from 'react-native';
 import api from '~/lib/api';
 import { RecentVisit } from '~/lib/types/participant';
+import { LocationName } from '../LocationName';
 
 export default function RecentVisits({ participantId }: { participantId: number }) {
   const [visits, setVisits] = useState<RecentVisit[] | undefined>(undefined);
@@ -36,7 +37,7 @@ function VisitSummary({ visit }: { visit: RecentVisit }) {
     <View className="mb-4 border-2 border-solid border-red-100">
       <Text>{visit.date_of_visit}</Text>
       <Text>{visit.visit_type}</Text>
-      <Text>{visit.location}</Text>
+      <LocationName locationId={visit.location} />
     </View>
   );
 }

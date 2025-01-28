@@ -1,6 +1,7 @@
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { View, Text } from 'react-native';
-import { RefreshControl, ScrollView } from 'react-native-gesture-handler';
+import { Button } from '~/components/Button';
 import LabelAndItem from '~/components/LabelAndItem';
 import RecentVisits from '~/components/participant/RecentVisits';
 
@@ -9,12 +10,14 @@ import api from '~/lib/api';
 import { Participant } from '~/lib/types/participant';
 
 export default function PatientInfo() {
+  const { participant_id } = useLocalSearchParams<{ participant_id: string }>();
+  const router = useRouter();
   const [participant, setParticipant] = useState<Participant | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const fetchPatient = async () => {
     try {
-      const patient = await api.participants.fetchById(1);
+      const patient = await api.participants.fetchById(Number.parseInt(participant_id));
       setParticipant(patient);
       setError(undefined);
       setLoading(false);
@@ -26,13 +29,12 @@ export default function PatientInfo() {
   useEffect(() => {
     fetchPatient();
   }, []);
-  const onRefresh = React.useCallback(() => {
-    setLoading(true);
-    fetchPatient();
-  }, []);
 
   return (
     <ProtectedRoute>
+      <Button title={'Refresh Page'} onPress={fetchPatient}>
+        Refresh
+      </Button>
       <View>
         {error ? <Text>{error}</Text> : null}
         {participant && participant.id !== undefined && <ShowParticipant {...participant} />}
@@ -55,7 +57,6 @@ function ShowParticipant(participant: Participant) {
             <Text>{participant.phone_number_one}</Text>
           </LabelAndItem>
         </View>
-        <RecentVisits participantId={participant.id} />
       </View>
     </View>
   );

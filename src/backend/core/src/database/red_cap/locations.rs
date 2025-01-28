@@ -90,6 +90,20 @@ impl Locations {
             .await
             .map_err(DBError::from)
     }
+    /// Find a location by its ID
+    #[instrument]
+    pub async fn find_by_id(
+        id: i32,
+        database: &sqlx::PgPool,
+    ) -> Result<Option<Locations>, sqlx::Error> {
+        let result =
+            SimpleSelectQueryBuilderV2::new(Locations::table_name(), LocationsColumn::all())
+                .where_equals(LocationsColumn::Id, id)
+                .query_as()
+                .fetch_optional(database)
+                .await?;
+        Ok(result)
+    }
 }
 /// So In Red Cap locations are split over multiple questions.
 ///
