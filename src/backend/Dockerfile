@@ -1,10 +1,12 @@
 FROM rust:latest AS build
 COPY . /home/build
+
 WORKDIR /home/build
 
 RUN apt-get install -y libssl-dev pkg-config
 
 WORKDIR /home/build/
+ENV SKIP_GIT_BUILD_INFO=true
 RUN  cargo build --release --all-features
 
 LABEL org.label-schema.name="CS-25-303" \

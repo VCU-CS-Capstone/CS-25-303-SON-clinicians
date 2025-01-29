@@ -23,12 +23,12 @@ pub struct Instance {
     /// The version of the Backend
     pub version: &'static str,
     /// The commit hash of the Backend
-    pub commit: &'static str,
+    pub commit: Option<&'static str>,
     /// The branch of the Backend Code
-    pub branch: &'static str,
+    pub branch: Option<&'static str>,
     /// When this version of the backend was commited
     #[schema(format = DateTime)]
-    pub commit_time: &'static str,
+    pub commit_time: Option<&'static str>,
     /// When this version of the backend was built
     #[schema(format = DateTime)]
     pub build_time: &'static str,
@@ -40,9 +40,9 @@ impl Instance {
     fn example() -> Self {
         Self {
             version: env!("CARGO_PKG_VERSION"),
-            commit: env!("PROJECT_COMMIT_SHORT"),
-            branch: env!("PROJECT_BRANCH"),
-            commit_time: env!("PROJECT_COMMIT_TIME"),
+            commit: option_env!("PROJECT_COMMIT_SHORT"),
+            branch: option_env!("PROJECT_BRANCH"),
+            commit_time: option_env!("PROJECT_COMMIT_TIME"),
             build_time: env!("PROJECT_BUILD_TIME"),
             features: EnabledFeatures::default(),
         }
@@ -50,9 +50,9 @@ impl Instance {
     pub fn new(state: SiteState) -> Self {
         Self {
             version: env!("CARGO_PKG_VERSION"),
-            commit: env!("PROJECT_COMMIT_SHORT"),
-            branch: env!("PROJECT_BRANCH"),
-            commit_time: env!("PROJECT_COMMIT_TIME"),
+            commit: option_env!("PROJECT_COMMIT_SHORT"),
+            branch: option_env!("PROJECT_BRANCH"),
+            commit_time: option_env!("PROJECT_COMMIT_TIME"),
             build_time: env!("PROJECT_BUILD_TIME"),
             features: state.inner.features.clone(),
         }

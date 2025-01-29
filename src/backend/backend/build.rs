@@ -8,12 +8,17 @@ fn main() -> anyhow::Result<()> {
         std::env::var_os("CARGO_MANIFEST_DIR").context("Failed to get CARGO_MANIFEST_DIR")?,
     );
     // Go from {project}/src/backend/backend to {project}
-    let dir_with_git = &go_many_parents(&manifiest_dir, 3);
-    //println!("cargo:warning=Dir With Git : {:?}", dir_with_git);
-    let repository = gix::discover(dir_with_git)?;
-    set_commit_short(&repository)?;
-    set_commit_time(&repository)?;
-    set_branch(&repository)?;
+    // Due to issues with docker this is not available yet...
+    if std::env::var_os("SKIP_GIT_BUILD_INFO").is_none() {
+        // Go from {project}/src/backend/backend to {project}
+        let dir_with_git = go_many_parents(&manifiest_dir, 3);
+        //println!("cargo:warning=Dir With Git : {:?}", dir_with_git);
+        let repository = gix::discover(dir_with_git)?;
+        set_commit_short(&repository)?;
+        set_commit_time(&repository)?;
+        set_branch(&repository)?;
+    }
+
     set_build_time();
     Ok(())
 }
