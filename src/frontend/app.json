@@ -1,10 +1,10 @@
 {
   "expo": {
     "name": "CS25 Clinicians Capstone",
-    "slug": "capstone-front-end",
+    "slug": "cs25-clinicians-capstone",
     "version": "1.0.0",
     "newArchEnabled": true,
-    "scheme": "capstone-front-end",
+    "scheme": "cs25-clinicians-capstone",
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -38,6 +38,15 @@
         "backgroundColor": "#ffffff"
       },
       "package": "edu.vcu.capstone.cs25.clinicians"
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "4fa6e62b-6a6f-4e73-aa05-040f31480b4c"
+      }
+    },
+    "owner": "cs25-303-capstone"
   }
 }
