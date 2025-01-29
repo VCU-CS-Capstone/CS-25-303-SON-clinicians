@@ -48,6 +48,9 @@ thiserror = "2.0"
 anyhow = "1.0"
 
 human-panic = "2"
+
+rand = { version = "0.9", features = ["std"] }
+
 # Database
 [workspace.dependencies.sqlx]
 version = "0.8"

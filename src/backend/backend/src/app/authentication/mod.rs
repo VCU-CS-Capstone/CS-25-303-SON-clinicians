@@ -130,6 +130,7 @@ impl PermissionCheck for NoRequiredPermissions {
         Ok(())
     }
 }
+#[allow(unused_macros)]
 macro_rules! permission_check {
     (
         $(#[$docs:meta])*
@@ -331,15 +332,18 @@ pub mod utils {
 
     pub mod password {
         use argon2::{
-            password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+            password_hash::{Salt, SaltString},
+            Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
         };
-        use rand::rngs::OsRng;
+        use rand::{rngs::OsRng, TryRngCore};
         use tracing::{debug, error, instrument};
 
         use crate::app::authentication::AuthenticationError;
         #[instrument(skip(password), fields(project_module = "Authentication"))]
         pub fn encrypt_password(password: &str) -> Option<String> {
-            let salt = SaltString::generate(&mut OsRng);
+            let mut bytes = [0u8; Salt::RECOMMENDED_LENGTH];
+            OsRng::default().try_fill_bytes(&mut bytes).unwrap();
+            let salt = SaltString::encode_b64(&bytes).expect("Failed to generate salt");
 
             let argon2 = Argon2::default();
 

@@ -1,5 +1,5 @@
 use crate::{
-    app::authentication::Authentication,
+    app::{authentication::Authentication, utils::response::builder::ResponseBuilder},
     utils::{not_found_response, ok_json_response},
 };
 pub mod case_note;
@@ -15,21 +15,22 @@ use axum::{
 use cs25_303_core::database::{
     red_cap::participants::{
         health_overview::{HealthOverview, HealthOverviewType},
-        ParticipantDemograhics, ParticipantLookup, ParticipantLookupQuery, ParticipantType,
-        Participants,
+        ParticipantDemograhics, ParticipantDemograhicsType, ParticipantLookup,
+        ParticipantLookupQuery, ParticipantType, Participants,
     },
     tools::{PageParams, PaginatedResponse},
 };
 
+use serde::Serialize;
 use tracing::instrument;
-use utoipa::OpenApi;
+use utoipa::{OpenApi, ToSchema};
 
 use crate::app::{error::InternalError, SiteState};
 
 #[derive(OpenApi)]
 #[openapi(
     paths(look_up_participant, get_participants,get_health_overview, get_demographics),
-    components(schemas(PageParams, ParticipantLookup, ParticipantLookupQuery, PaginatedResponse<ParticipantLookup>, Participants, HealthOverview, ParticipantDemograhics)),
+    components(schemas(PageParams, ParticipantLookup, ParticipantLookupQuery, PaginatedResponse<ParticipantLookup>, Participants, HealthOverview, ParticipantDemograhics, ParticipantPartNotFound)),
     nest(
         (path = "/case_notes", api = case_note::CaseNoteAPI, tags=["case_note"]),
         (path = "/stats", api = stats::ParticipantStatAPI, tags=["stats"]),
@@ -106,6 +107,12 @@ pub async fn get_participants(
         None => not_found_response(),
     }
 }
+/// Used in querying other parts of a participants information
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ParticipantPartNotFound {
+    /// Rather or not the participant exists
+    pub participant_exists: bool,
+}
 /// Gets a participant's health overview
 #[utoipa::path(
     get,
@@ -115,7 +122,7 @@ pub async fn get_participants(
     ),
     responses(
         (status = 200, description = "Participants Found", body = HealthOverview),
-        (status = 404, description = "Participant Not Found")
+        (status = 404, description = "Participant  Health Overview Not Found", body = ParticipantPartNotFound)
     ),
     security(
         ("session" = []),
@@ -132,7 +139,12 @@ pub async fn get_health_overview(
 
     match health_overview {
         Some(health_overview) => ok_json_response(health_overview),
-        None => not_found_response(),
+        None => {
+            let participant_exists =
+                Participants::does_participant_id_exist(id, &site.database).await?;
+
+            Ok(ResponseBuilder::not_found().json(&ParticipantPartNotFound { participant_exists }))
+        }
     }
 }
 /// Gets a participant's demographics
@@ -144,7 +156,7 @@ pub async fn get_health_overview(
     ),
     responses(
         (status = 200, description = "Participants Found", body = ParticipantDemograhics),
-        (status = 404, description = "Participant Not Found")
+        (status = 404, description = "Participant Demographics Not Found", body = ParticipantPartNotFound)
     ),
     security(
         ("session" = []),
@@ -157,10 +169,15 @@ pub async fn get_demographics(
     Path(id): Path<i32>,
     auth: Authentication,
 ) -> Result<Response, InternalError> {
-    let health_overview = HealthOverview::find_by_participant_id(id, &site.database).await?;
+    let health_overview = ParticipantDemograhics::find_by_participant(id, &site.database).await?;
 
     match health_overview {
         Some(health_overview) => ok_json_response(health_overview),
-        None => not_found_response(),
+        None => {
+            let participant_exists =
+                Participants::does_participant_id_exist(id, &site.database).await?;
+
+            Ok(ResponseBuilder::not_found().json(&ParticipantPartNotFound { participant_exists }))
+        }
     }
 }

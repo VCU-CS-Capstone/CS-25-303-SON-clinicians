@@ -1,6 +1,6 @@
 use config::{
-    AppLogger, AppLoggerType, ConsoleLogger, LoggingConfig, LoggingLevels,
-    MetricsConfig, OtelConfig, RollingFileLogger,
+    AppLogger, AppLoggerType, ConsoleLogger, LoggingConfig, LoggingLevels, MetricsConfig,
+    OtelConfig, RollingFileLogger,
 };
 use opentelemetry::{global, trace::TracerProvider as _};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;

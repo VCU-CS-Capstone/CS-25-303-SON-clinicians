@@ -25,6 +25,7 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
         mode,
         log,
         auth,
+        enabled_features,
     } = config;
     // Start the logger
     crate::logging::init(log)?;
@@ -36,7 +37,7 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
     info!("Connected to database");
     let session = SessionManager::new(None, mode)?;
     // Create the website state
-    let inner = SiteStateInner::new(auth, session);
+    let inner = SiteStateInner::new(auth, session, enabled_features.clone());
     let website = SiteState {
         inner: Arc::new(inner),
         database,
@@ -46,8 +47,8 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
     let router = Router::new()
         .nest("/api", api::api_routes())
         .merge(open_api::open_api_router(
-            web_server.open_api_routes,
-            web_server.scalar,
+            enabled_features.open_api_routes,
+            enabled_features.scalar,
         ))
         .layer(AuthenticationLayer(website.clone()))
         .layer(AppTracingLayer(website.clone()))

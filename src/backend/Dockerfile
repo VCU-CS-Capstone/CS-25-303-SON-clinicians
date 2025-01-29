@@ -4,7 +4,6 @@ WORKDIR /home/build
 
 RUN apt-get install -y libssl-dev pkg-config
 
-
 WORKDIR /home/build/
 RUN  cargo build --release --all-features
 

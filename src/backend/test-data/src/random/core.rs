@@ -6,7 +6,7 @@ use cs25_303_core::{
     },
     red_cap::{Gender, MedicationFrequency},
 };
-use rand::{seq::SliceRandom, Rng};
+use rand::{seq::IndexedRandom, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tracing::error;
@@ -22,7 +22,7 @@ impl RandomDateOptions {
         let min = min.unwrap_or_else(|| NaiveDate::from_ymd_opt(1970, 1, 1).unwrap());
         let max = max.unwrap_or_else(|| Local::now().date_naive());
         let days = max.signed_duration_since(min).num_days();
-        let random_days = rand::thread_rng().gen_range(0..days);
+        let random_days = rand::rng().random_range(0..days);
         min + chrono::Duration::days(random_days)
     }
 }
@@ -38,13 +38,11 @@ impl RandomValue {
     pub fn random_string_from_options(&self) -> String {
         match self {
             RandomValue::Array(options) => {
-                let value = options.choose(&mut rand::thread_rng()).unwrap();
+                let value = options.choose(&mut rand::rng()).unwrap();
                 value.as_str().unwrap_or_default().to_owned()
             }
-            RandomValue::Number { min, max } => {
-                rand::thread_rng().gen_range(*min..*max).to_string()
-            }
-            RandomValue::Bool => rand::thread_rng().gen_bool(0.5).to_string(),
+            RandomValue::Number { min, max } => rand::rng().random_range(*min..*max).to_string(),
+            RandomValue::Bool => rand::rng().random_bool(0.5).to_string(),
             RandomValue::Date(value) => {
                 let value = value.clone().unwrap_or_default();
                 value.random_date().to_string()
@@ -65,10 +63,10 @@ impl RandomValue {
     }
     pub fn random_i16(&self) -> i16 {
         match self {
-            RandomValue::Number { min, max } => rand::thread_rng().gen_range(*min..*max) as i16,
+            RandomValue::Number { min, max } => rand::rng().random_range(*min..*max) as i16,
             _ => {
                 error!("Not a number");
-                rand::thread_rng().gen_range(0..100) as i16
+                rand::rng().random_range(0..100) as i16
             }
         }
     }
@@ -136,7 +134,7 @@ impl RandomCompleteGoal {
     pub fn create_new_goal(&self) -> (NewParticipantGoal, Vec<NewParticipantGoalsSteps>) {
         let goal = self.goal.create_new_goal();
 
-        let random_step: &RandomGoalStep = self.steps.choose(&mut rand::thread_rng()).unwrap();
+        let random_step: &RandomGoalStep = self.steps.choose(&mut rand::rng()).unwrap();
         let steps = vec![random_step.create_new_goal_step()];
         (goal, steps)
     }

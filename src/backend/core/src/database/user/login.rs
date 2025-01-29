@@ -48,6 +48,6 @@ pub async fn add_login_attempt(
         .query_scalar()
         .fetch_one(database)
         .await?;
-    
+
     Ok(id)
 }

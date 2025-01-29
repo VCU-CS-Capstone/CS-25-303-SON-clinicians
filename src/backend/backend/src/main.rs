@@ -96,6 +96,7 @@ fn save_default_config_file(location: PathBuf) -> anyhow::Result<()> {
         log: LoggingConfig::default(),
         tls: None,
         auth: Default::default(),
+        enabled_features: Default::default(),
     };
 
     let toml = toml::to_string_pretty(&config)

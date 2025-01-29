@@ -10,7 +10,7 @@ use cs25_303_core::{
     },
     red_cap::{Gender, HealthInsurance, Programs, Race, Status, VisitType},
 };
-use rand::{seq::SliceRandom, Rng, SeedableRng};
+use rand::{seq::IndexedRandom, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
@@ -52,7 +52,7 @@ pub struct RandomSets {
 impl Default for RandomSets {
     fn default() -> Self {
         Self {
-            rand: rand::rngs::StdRng::from_entropy(),
+            rand: rand::rngs::StdRng::from_os_rng(),
             participants: Default::default(),
             goals: Default::default(),
             medications: Default::default(),
@@ -75,10 +75,10 @@ impl RandomSets {
         )
     }
     pub fn random_health_overview(&mut self) -> NewHealthOverview {
-        let height = match self.rand.gen_range(0..100) {
+        let height = match self.rand.random_range(0..100) {
             0..5 => None,
-            5..80 => Some(self.rand.gen_range(50..75)),
-            _ => Some(self.rand.gen_range(75..84)),
+            5..80 => Some(self.rand.random_range(50..75)),
+            _ => Some(self.rand.random_range(75..84)),
         };
         let has_blood_pressure_cuff = self.rand_bool(0.5);
         let takes_more_than_5_medications = self.rand_bool(0.5);
@@ -90,8 +90,8 @@ impl RandomSets {
         }
     }
     pub fn random_demographics(&mut self, gender: Gender) -> NewDemographics {
-        let is_veteran = !matches!(self.rand.gen_range(0..100), 0..90);
-        let (race, race_other, race_multiple) = match self.rand.gen_range(0..100) {
+        let is_veteran = !matches!(self.rand.random_range(0..100), 0..90);
+        let (race, race_other, race_multiple) = match self.rand.random_range(0..100) {
             0..50 => (Some(vec![Race::White]), None, None),
             50..65 => (Some(vec![Race::Black]), None, None),
             65..70 => (Some(vec![Race::Hispanic]), None, None),
@@ -106,21 +106,21 @@ impl RandomSets {
                 Some("White, Black".to_string()),
             ),
         };
-        let health_insurance = match self.rand.gen_range(0..100) {
+        let health_insurance = match self.rand.random_range(0..100) {
             0..50 => vec![HealthInsurance::Medicaid],
             50..75 => vec![HealthInsurance::Medicare],
             75..90 => vec![HealthInsurance::Private],
             _ => vec![],
         };
 
-        let highest_education_level = match self.rand.gen_range(0..100) {
+        let highest_education_level = match self.rand.random_range(0..100) {
             0..50 => None,
             50..75 => Some(cs25_303_core::red_cap::DegreeLevel::HighschoolOrGED),
             75..90 => Some(cs25_303_core::red_cap::DegreeLevel::Associates),
             _ => Some(cs25_303_core::red_cap::DegreeLevel::Bachelors),
         };
         NewDemographics {
-            age: Some(self.rand.gen_range(18..85) as i16),
+            age: Some(self.rand.random_range(18..85) as i16),
             gender: Some(gender),
             is_veteran: Some(is_veteran),
             race,
@@ -132,7 +132,7 @@ impl RandomSets {
         }
     }
     pub fn random_medications(&mut self) -> Vec<NewMedication> {
-        let number_of_meds = self.rand.gen_range(0..10);
+        let number_of_meds = self.rand.random_range(0..10);
 
         let mut meds: Vec<NewMedication> = Vec::with_capacity(number_of_meds);
 
@@ -150,7 +150,7 @@ impl RandomSets {
         meds
     }
     pub fn random_goals(&mut self) -> Vec<(NewParticipantGoal, Vec<NewParticipantGoalsSteps>)> {
-        let number_of_goals = self.rand.gen_range(0..3);
+        let number_of_goals = self.rand.random_range(0..3);
         info!(?number_of_goals, "Creating goals");
         let mut goals = Vec::with_capacity(number_of_goals);
         for _ in 0..number_of_goals {
@@ -160,7 +160,7 @@ impl RandomSets {
         goals
     }
     pub fn pick_random_program(&mut self) -> Programs {
-        if self.rand.gen_bool(1f64 / 3f64) {
+        if self.rand.random_bool(1f64 / 3f64) {
             Programs::MHWP
         } else {
             Programs::RHWP
@@ -175,7 +175,7 @@ impl RandomSets {
     }
     pub fn random_info_by_caregiver(&mut self) -> Option<String> {
         // 50 chance of none
-        if self.rand.gen_bool(0.5) {
+        if self.rand.random_bool(0.5) {
             return None;
         }
         Some(
@@ -198,7 +198,7 @@ impl RandomSets {
         )
     }
     pub fn random_visit_type(&self) -> Option<VisitType> {
-        match rand::thread_rng().gen_range(0..100) {
+        match rand::rng().random_range(0..100) {
             0..10 => Some(VisitType::OnsiteAndHome),
             _ => Some(VisitType::Onsite),
         }
@@ -209,28 +209,28 @@ impl RandomSets {
         if self.extended_patient_info[&participant].has_high_blood_pressure {
             let mut result = vec![NewBloodPressure {
                 blood_pressure_type: BloodPressureType::Sit,
-                systolic: self.rand.gen_range(130..180) as i16,
-                diastolic: self.rand.gen_range(80..120) as i16,
+                systolic: self.rand.random_range(130..180) as i16,
+                diastolic: self.rand.random_range(80..120) as i16,
             }];
             if should_add_stand {
                 result.push(NewBloodPressure {
                     blood_pressure_type: BloodPressureType::Stand,
-                    systolic: self.rand.gen_range(130..180) as i16,
-                    diastolic: self.rand.gen_range(80..120) as i16,
+                    systolic: self.rand.random_range(130..180) as i16,
+                    diastolic: self.rand.random_range(80..120) as i16,
                 });
             }
             result
         } else {
             let mut result = vec![NewBloodPressure {
                 blood_pressure_type: BloodPressureType::Sit,
-                systolic: self.rand.gen_range(90..120) as i16,
-                diastolic: self.rand.gen_range(60..80) as i16,
+                systolic: self.rand.random_range(90..120) as i16,
+                diastolic: self.rand.random_range(60..80) as i16,
             }];
             if should_add_stand {
                 result.push(NewBloodPressure {
                     blood_pressure_type: BloodPressureType::Stand,
-                    systolic: self.rand.gen_range(90..120) as i16,
-                    diastolic: self.rand.gen_range(60..80) as i16,
+                    systolic: self.rand.random_range(90..120) as i16,
+                    diastolic: self.rand.random_range(60..80) as i16,
                 });
             }
             result
@@ -247,20 +247,20 @@ impl RandomSets {
     }
     fn weight_for_female_in_class(&mut self, class: WeightCategory) -> f32 {
         match class {
-            WeightCategory::Underweight => self.rand.gen_range(90..120) as f32,
-            WeightCategory::Overweight => self.rand.gen_range(160..200) as f32,
-            WeightCategory::Normal => self.rand.gen_range(120..160) as f32,
+            WeightCategory::Underweight => self.rand.random_range(90..120) as f32,
+            WeightCategory::Overweight => self.rand.random_range(160..200) as f32,
+            WeightCategory::Normal => self.rand.random_range(120..160) as f32,
         }
     }
     fn weight_for_male_in_class(&mut self, class: WeightCategory) -> f32 {
         match class {
-            WeightCategory::Underweight => self.rand.gen_range(100..140) as f32,
-            WeightCategory::Overweight => self.rand.gen_range(180..220) as f32,
-            WeightCategory::Normal => self.rand.gen_range(140..180) as f32,
+            WeightCategory::Underweight => self.rand.random_range(100..140) as f32,
+            WeightCategory::Overweight => self.rand.random_range(180..220) as f32,
+            WeightCategory::Normal => self.rand.random_range(140..180) as f32,
         }
     }
     fn rand_bool(&mut self, chance: f64) -> bool {
-        self.rand.gen_bool(chance)
+        self.rand.random_bool(chance)
     }
     pub fn create_extended_profile_for_partiicpant(
         &mut self,
@@ -270,7 +270,7 @@ impl RandomSets {
         // About 47% chance of having high blood pressure
         let has_high_blood_pressure = self.rand_bool(0.47);
         let has_diabetes = self.rand_bool(0.1);
-        let weight_class = match self.rand.gen_range(0..10) {
+        let weight_class = match self.rand.random_range(0..10) {
             0..2 => WeightCategory::Underweight,
             2..8 => WeightCategory::Overweight,
             _ => WeightCategory::Normal,
@@ -289,13 +289,13 @@ impl RandomSets {
     pub fn random_phone_number(&mut self) -> String {
         let phone_number: String = format!(
             "(555) {:03}-{:04}",
-            self.rand.gen_range(100..999),
-            self.rand.gen_range(1000..9999)
+            self.rand.random_range(100..999),
+            self.rand.random_range(1000..9999)
         );
         phone_number
     }
     pub fn random_status(&mut self) -> Status {
-        match self.rand.gen_range(0..100) {
+        match self.rand.random_range(0..100) {
             0..75 => Status::Active,
             75..85 => Status::Inactive,
             85..95 => Status::NoValidContactStatus,

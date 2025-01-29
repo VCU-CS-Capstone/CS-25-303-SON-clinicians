@@ -14,15 +14,47 @@ pub mod location;
 pub mod participant;
 pub mod questions;
 pub mod user;
+use crate::config::EnabledFeatures;
+
 use super::{error::APIErrorResponse, utils::response::builder::ResponseBuilder, SiteState};
 #[derive(Debug, Clone, Serialize, ToSchema)]
+#[schema(examples(Instance::example))]
 pub struct Instance {
+    /// The version of the Backend
     pub version: &'static str,
+    /// The commit hash of the Backend
+    pub commit: &'static str,
+    /// The branch of the Backend Code
+    pub branch: &'static str,
+    /// When this version of the backend was commited
+    #[schema(format = DateTime)]
+    pub commit_time: &'static str,
+    /// When this version of the backend was built
+    #[schema(format = DateTime)]
+    pub build_time: &'static str,
+    /// Enabled Features on the Backend
+    pub features: EnabledFeatures,
 }
+
 impl Instance {
-    pub fn new(_state: SiteState) -> Self {
+    fn example() -> Self {
         Self {
             version: env!("CARGO_PKG_VERSION"),
+            commit: env!("PROJECT_COMMIT_SHORT"),
+            branch: env!("PROJECT_BRANCH"),
+            commit_time: env!("PROJECT_COMMIT_TIME"),
+            build_time: env!("PROJECT_BUILD_TIME"),
+            features: EnabledFeatures::default(),
+        }
+    }
+    pub fn new(state: SiteState) -> Self {
+        Self {
+            version: env!("CARGO_PKG_VERSION"),
+            commit: env!("PROJECT_COMMIT_SHORT"),
+            branch: env!("PROJECT_BRANCH"),
+            commit_time: env!("PROJECT_COMMIT_TIME"),
+            build_time: env!("PROJECT_BUILD_TIME"),
+            features: state.inner.features.clone(),
         }
     }
 }

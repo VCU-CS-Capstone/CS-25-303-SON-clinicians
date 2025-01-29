@@ -4,6 +4,7 @@ use cs25_303_core::database::DatabaseConfig;
 use cs25_303_core::user::auth::AuthenticationProvidersConfig;
 use serde::{Deserialize, Serialize};
 use strum::EnumIs;
+use utoipa::ToSchema;
 
 use crate::logging::config::LoggingConfig;
 pub const CONFIG_PREFIX: &str = "CS-25-303";
@@ -20,12 +21,38 @@ impl Default for Mode {
         return Mode::Release;
     }
 }
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
+#[serde(default)]
+pub struct EnabledFeatures {
+    /// Rather or not to enabled the scalar openapi page
+    pub scalar: bool,
+    /// Rather or not to enable the openapi routes
+    pub open_api_routes: bool,
+    /// Rather or not to enable participant data updates
+    pub update_participant_data: bool,
+    /// Rather or not to enable syncing data from redcap to this system
+    pub red_cap_read_syncing: bool,
+    /// Rather to sync data written to this system to red cap
+    pub red_cap_write_syncing: bool,
+}
+impl Default for EnabledFeatures {
+    fn default() -> Self {
+        Self {
+            scalar: true,
+            open_api_routes: true,
+            update_participant_data: true,
+            red_cap_read_syncing: false,
+            red_cap_write_syncing: false,
+        }
+    }
+}
 /// The configuration for the application.
 ///
 /// All fields are optional so we support reading from environment variables or configuration files or a mix of both.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct ReadConfigType {
     pub mode: Option<Mode>,
+    pub enabled_features: Option<EnabledFeatures>,
     pub web_server: Option<WebServerConfig>,
     pub database: Option<DatabaseConfig>,
     pub log: Option<LoggingConfig>,
@@ -37,7 +64,7 @@ pub struct ReadConfigType {
 
 pub struct FullConfig {
     pub mode: Mode,
-
+    pub enabled_features: EnabledFeatures,
     pub web_server: WebServerConfig,
     pub database: DatabaseConfig,
     pub log: LoggingConfig,
@@ -49,19 +76,12 @@ pub struct FullConfig {
 pub struct WebServerConfig {
     pub bind_address: String,
     pub port: u16,
-    pub open_api_routes: bool,
-    pub scalar: bool,
 }
 impl Default for WebServerConfig {
     fn default() -> Self {
         Self {
             bind_address: "0.0.0.0".to_string(),
             port: 8080,
-            #[cfg(debug_assertions)]
-            open_api_routes: true,
-            #[cfg(not(debug_assertions))]
-            open_api_routes: false,
-            scalar: true,
         }
     }
 }
@@ -101,14 +121,15 @@ pub fn load_config(path: Option<PathBuf>) -> anyhow::Result<FullConfig> {
         };
     // Merge the environment variables with the configuration file. If neither exists the default values are used.
     // Environment variables take precedence.
-    let (web_server, auth, log, database, mode) = env_or_file_or_default!(
+    let (web_server, auth, log, database, mode, enabled_features) = env_or_file_or_default!(
         config_from_file,
         environment,
         web_server,
         auth,
         log,
         database,
-        mode
+        mode,
+        enabled_features
     );
 
     let tls = environment.tls.or(config_from_file.tls.take());
@@ -120,5 +141,6 @@ pub fn load_config(path: Option<PathBuf>) -> anyhow::Result<FullConfig> {
         tls,
         log,
         auth,
+        enabled_features,
     })
 }

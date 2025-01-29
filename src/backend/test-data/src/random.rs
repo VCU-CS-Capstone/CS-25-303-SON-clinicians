@@ -14,7 +14,7 @@ use cs25_303_core::{
     },
     red_cap::Programs,
 };
-use rand::{seq::SliceRandom, Rng};
+use rand::{seq::IndexedRandom, Rng};
 use serde::de::DeserializeOwned;
 use set::RandomSets;
 use sqlx::{types::chrono::NaiveDate, PgPool};
@@ -71,7 +71,7 @@ pub async fn generate_participants(count: usize, database: PgPool) -> anyhow::Re
             .clone();
         let program_and_location = random_sets.pick_random_program();
         let location = random_sets.location_for_program(program_and_location);
-        let number_of_case_notes = random_sets.rand.gen_range(0..10);
+        let number_of_case_notes = random_sets.rand.random_range(0..10);
         let signed_up_on =
             Local::now().date_naive() - chrono::Duration::weeks(number_of_case_notes);
 

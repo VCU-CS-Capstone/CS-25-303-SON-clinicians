@@ -5,10 +5,7 @@ use derive_more::derive::{From, Into};
 use http::{header::InvalidHeaderValue, request::Parts, HeaderValue};
 use sqlx::types::Uuid;
 
-use crate::app::{
-    error::MissingInternelExtension,
-    SiteState,
-};
+use crate::app::{error::MissingInternelExtension, SiteState};
 
 #[derive(Debug, Clone, Copy, From, Into)]
 pub struct RequestId(pub Uuid);

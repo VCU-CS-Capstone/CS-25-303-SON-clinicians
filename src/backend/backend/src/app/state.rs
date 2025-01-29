@@ -10,6 +10,8 @@ use sqlx::PgPool;
 use tokio::{sync::Mutex, task::JoinHandle};
 use tracing::info;
 
+use crate::config::EnabledFeatures;
+
 use super::authentication::session::SessionManager;
 /// The Inner State of the Website.
 ///
@@ -18,7 +20,7 @@ pub struct SiteStateInner {
     pub authentication: AuthenticationProvidersConfig,
     pub session: SessionManager,
     session_cleaner: Mutex<Option<JoinHandle<()>>>,
-
+    pub features: EnabledFeatures,
     pub metrics: AppMetrics,
 }
 impl SiteStateInner {
@@ -40,10 +42,15 @@ impl Debug for SiteStateInner {
     }
 }
 impl SiteStateInner {
-    pub fn new(authentication: AuthenticationProvidersConfig, session: SessionManager) -> Self {
+    pub fn new(
+        authentication: AuthenticationProvidersConfig,
+        session: SessionManager,
+        features: EnabledFeatures,
+    ) -> Self {
         Self {
             authentication,
             session,
+            features,
             session_cleaner: Mutex::new(None),
             metrics: AppMetrics::default(),
         }

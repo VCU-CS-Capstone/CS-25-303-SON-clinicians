@@ -3,7 +3,7 @@ name = "cs25-303-backend"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
-
+build = "build.rs"
 [dependencies]
 tokio.workspace = true
 # Web
@@ -65,7 +65,7 @@ sqlx.workspace = true
 chrono.workspace = true
 anyhow.workspace = true
 argon2 = { version = "0.5", features = ["std"] }
-rand = "0.8"
+rand.workspace = true
 thiserror.workspace = true
 cs25-303-core.workspace = true
 redb = "2"
@@ -76,3 +76,9 @@ base64 = "0.22"
 ahash.workspace = true
 [features]
 default = ["utoipa-scalar"]
+
+[build-dependencies]
+anyhow = "1"
+gix = { version = "0.70" }
+gix-object = { version = "0.47" }
+chrono = { version = "0.4" }
