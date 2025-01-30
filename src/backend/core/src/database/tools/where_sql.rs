@@ -2,12 +2,12 @@ use std::fmt::Display;
 
 use sqlx::{Encode, Postgres, Type};
 
-use super::{AndOr, ColumnType, FunctionCallColumn, HasArguments, SQLComparison};
+use super::{AndOr, ColumnType, DynColumn, HasArguments, SQLComparison};
 
 pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
     fn where_column<SC, F>(&mut self, column: SC, where_: F) -> &mut Self
     where
-        SC: WhereColumn + Send + 'static,
+        SC: ColumnType + 'static,
         F: FnOnce(WhereBuilder<'_, 'args, Self>) -> WhereComparison,
     {
         let builder = WhereBuilder::new(self, column);
@@ -20,7 +20,7 @@ pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
     /// Adds a where clause to check if the column is equal to the value
     fn where_equals<SC, T>(&mut self, column: SC, value: T) -> &mut Self
     where
-        SC: WhereColumn + Send + 'static,
+        SC: ColumnType + 'static,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
         self.where_column(column, |builder| builder.equals(value).build())
@@ -29,7 +29,7 @@ pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
     /// Adds a where clause to check if the column is like the value
     fn where_like<SC, T>(&mut self, column: SC, value: T) -> &mut Self
     where
-        SC: WhereColumn + Send + 'static,
+        SC: ColumnType + 'static,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
         self.where_column(column, |builder| builder.like(value).build())
@@ -37,14 +37,14 @@ pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
     /// Required to push the where comparison to the query
     fn where_is_not_null<SC>(&mut self, column: SC) -> &mut Self
     where
-        SC: WhereColumn + Send + 'static,
+        SC: ColumnType + 'static,
     {
         self.where_column(column, |builder| builder.is_not_null().build())
     }
     /// Adds a where clause to check if the column is null
     fn where_is_null<SC>(&mut self, column: SC) -> &mut Self
     where
-        SC: WhereColumn + Send + 'static,
+        SC: ColumnType + 'static,
     {
         self.where_column(column, |builder| builder.is_null().build())
     }
@@ -56,40 +56,26 @@ pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
     /// Each are concatenated with an AND
     fn push_where_comparison(&mut self, comparison: WhereComparison);
 }
-pub trait WhereColumn {
-    fn format_where(&self) -> String;
-}
+
 pub enum WhereValue {
     CompareValue {
         comparison: SQLComparison,
         value: usize,
     },
+    Column {
+        comparison: SQLComparison,
+        column: DynColumn,
+    },
     NotNull,
     Null,
 }
 
-impl<C> WhereColumn for C
-where
-    C: ColumnType,
-{
-    fn format_where(&self) -> String {
-        self.column_name().to_string()
-    }
-}
-impl<C> WhereColumn for FunctionCallColumn<C>
-where
-    C: ColumnType,
-{
-    fn format_where(&self) -> String {
-        format!("{}({})", self.function_name, self.column.column_name())
-    }
-}
 pub struct WhereBuilder<'query, 'args, A>
 where
     A: HasArguments<'args>,
 {
     args: &'query mut A,
-    column: Box<dyn WhereColumn + Send>,
+    column: DynColumn,
     value: Option<WhereValue>,
     phantoms: std::marker::PhantomData<&'args ()>,
 }
@@ -99,11 +85,11 @@ where
 {
     pub fn new<SC>(args: &'query mut A, column: SC) -> Self
     where
-        SC: WhereColumn + Send + 'static,
+        SC: ColumnType + 'static,
     {
         Self {
             args,
-            column: Box::new(column),
+            column: column.dyn_column(),
             value: None,
             phantoms: std::marker::PhantomData,
         }
@@ -120,6 +106,16 @@ where
             ..self
         }
     }
+    pub fn compare_column<C>(mut self, comparison: SQLComparison, value: C) -> Self
+    where
+        C: ColumnType + 'static,
+    {
+        self.value = Some(WhereValue::Column {
+            comparison: comparison,
+            column: value.dyn_column(),
+        });
+        self
+    }
     pub fn compare<T>(mut self, comparison: SQLComparison, value: T) -> Self
     where
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
@@ -134,6 +130,12 @@ where
     {
         self.compare(SQLComparison::Equals, value)
     }
+    pub fn equals_column<C>(self, value: C) -> Self
+    where
+        C: ColumnType + 'static,
+    {
+        self.compare_column(SQLComparison::Equals, value)
+    }
     pub fn like<T>(self, value: T) -> Self
     where
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
@@ -146,7 +148,7 @@ where
     }
     pub fn then<'s: 'query, F, SC>(self, and_or: AndOr, then_column: SC, f: F) -> WhereComparison
     where
-        SC: WhereColumn + Send + 'static,
+        SC: ColumnType + 'static,
         F: FnOnce(WhereBuilder<'_, 'args, A>) -> WhereComparison,
     {
         let Self {
@@ -157,7 +159,7 @@ where
         } = self;
         let builder = WhereBuilder {
             args,
-            column: Box::new(then_column),
+            column: then_column.dyn_column(),
             value: None,
             phantoms: std::marker::PhantomData,
         };
@@ -171,14 +173,14 @@ where
     }
     pub fn and<F, SC>(self, column: SC, f: F) -> WhereComparison
     where
-        SC: WhereColumn + Send + 'static,
+        SC: ColumnType + 'static,
         F: FnOnce(WhereBuilder<'_, 'args, A>) -> WhereComparison,
     {
         self.then(AndOr::And, column, f)
     }
     pub fn or<F, SC>(self, column: SC, f: F) -> WhereComparison
     where
-        SC: WhereColumn + Send + 'static,
+        SC: ColumnType + 'static,
         F: FnOnce(WhereBuilder<'_, 'args, A>) -> WhereComparison,
     {
         self.then(AndOr::Or, column, f)
@@ -186,7 +188,7 @@ where
 }
 
 pub struct WhereComparison {
-    column: Box<dyn WhereColumn + Send>,
+    column: DynColumn,
     value: WhereValue,
     then: Option<(AndOr, Box<WhereComparison>)>,
 }
@@ -208,15 +210,23 @@ impl Display for WhereComparison {
             WhereValue::CompareValue { comparison, value } => write!(
                 f,
                 "({} {} ${}",
-                self.column.format_where(),
+                self.column.formatted_column(),
                 comparison,
                 value
             )?,
+            WhereValue::Column { comparison, column } => write!(
+                f,
+                "({} {} {}",
+                self.column.formatted_column(),
+                comparison,
+                column.formatted_column()
+            )?,
             WhereValue::NotNull => {
-                write!(f, "({} IS NOT NULL", self.column.format_where())?;
+                write!(f, "({} IS NOT NULL", self.column.formatted_column())?;
             }
+
             WhereValue::Null => {
-                write!(f, "({} IS NULL", self.column.format_where())?;
+                write!(f, "({} IS NULL", self.column.formatted_column())?;
             }
         }
         if let Some((and_or, then)) = &self.then {
@@ -251,7 +261,12 @@ mod tests {
         pub age: i32,
         pub email: String,
     }
-
+    impl TableType for TestTable {
+        type Columns = TestTableColumn;
+        fn table_name() -> &'static str {
+            "test_table"
+        }
+    }
     pub struct TestParentQuery<'args> {
         arguments: Option<<Postgres as sqlx::Database>::Arguments<'args>>,
     }
@@ -270,7 +285,7 @@ mod tests {
     pub fn where_format() {
         let part_one = {
             let then = Box::new(WhereComparison {
-                column: Box::new(TestTableColumn::Name),
+                column: TestTableColumn::Name.dyn_column(),
                 value: WhereValue::CompareValue {
                     comparison: SQLComparison::Equals,
                     value: 2,
@@ -278,7 +293,7 @@ mod tests {
                 then: None,
             });
             WhereComparison {
-                column: Box::new(TestTableColumn::Id),
+                column: TestTableColumn::Id.dyn_column(),
                 value: WhereValue::CompareValue {
                     comparison: SQLComparison::Equals,
                     value: 1,
@@ -289,7 +304,7 @@ mod tests {
 
         let part_two = {
             let then = Box::new(WhereComparison {
-                column: Box::new(TestTableColumn::Age),
+                column: TestTableColumn::Age.dyn_column(),
                 value: WhereValue::CompareValue {
                     comparison: SQLComparison::Equals,
                     value: 3,
@@ -297,7 +312,7 @@ mod tests {
                 then: None,
             });
             WhereComparison {
-                column: Box::new(TestTableColumn::Email),
+                column: TestTableColumn::Email.dyn_column(),
                 value: WhereValue::CompareValue {
                     comparison: SQLComparison::Equals,
                     value: 4,

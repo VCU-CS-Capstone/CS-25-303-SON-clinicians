@@ -51,3 +51,30 @@ pub async fn add_login_attempt(
 
     Ok(id)
 }
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    /// Tests the participant lookup query
+    ///
+    /// Note: This test may not find anything if the database is empty or if random data is not consistent with my setup
+    #[tokio::test]
+    #[ignore]
+    async fn test_insert_login_attempt() -> anyhow::Result<()> {
+        crate::test_utils::init_logger();
+        let database = crate::database::tests::connect_to_db().await?;
+
+        let id = add_login_attempt(
+            Some(1),
+            "127.0.0.1:55420",
+            true,
+            Some(AdditionalFootprint {
+                user_agent: "test".to_string(),
+                request_id: "test".to_string(),
+            }),
+            &database,
+        )
+        .await?;
+        Ok(())
+    }
+}

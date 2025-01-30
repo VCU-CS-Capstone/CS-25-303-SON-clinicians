@@ -36,6 +36,8 @@ pub fn stat_routes() -> axum::Router<SiteState> {
 #[utoipa::path(
     get,
     path = "/weight/history/{participant_id}",
+    summary= "Fetch the weight history for a participant",
+
     params(
         ("participant_id" = i32, Path, description = "Participant ID"),
         PageParams,
@@ -74,6 +76,7 @@ pub async fn participant_weight_history(
         ("participant_id" = i32, Path, description = "Participant ID"),
         PageParams,
     ),
+    summary="Fetch the blood pressure history for a participant",
     responses(
         (status = 200, description = "Blood Pressure History", body = Vec<BloodPressureHistory>),
         (status = 404, description = "Participant Not Found"),

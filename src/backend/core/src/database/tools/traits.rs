@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use sqlx::query::{Query, QueryAs, QueryScalar};
 use sqlx::{Arguments, FromRow};
 use sqlx::{Database, Postgres};
@@ -26,6 +28,12 @@ pub trait HasArguments<'args> {
         arguments.add(value).expect("Failed to add argument");
         arguments.len()
     }
+}
+pub trait FormatSql {
+    fn format_sql(&self) -> Cow<'_, str>;
+}
+pub trait FormatSqlQuery {
+    fn format_sql_query(&mut self) -> &str;
 }
 /// A base Query TOol type that can be used to build queries.
 pub trait QueryTool<'args>: HasArguments<'args> {

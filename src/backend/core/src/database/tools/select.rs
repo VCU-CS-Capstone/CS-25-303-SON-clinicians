@@ -2,9 +2,7 @@ use std::fmt::Display;
 
 use sqlx::{Arguments, Database, Encode, Postgres, Type};
 
-use super::{
-    concat_columns, AndOr, ColumnType, HasArguments, QueryTool, SQLComparison, WhereColumn,
-};
+use super::{concat_columns, AndOr, ColumnType, DynColumn, HasArguments, QueryTool, SQLComparison};
 
 pub struct SimpleSelectQueryBuilder<'args> {
     query: String,
@@ -60,7 +58,7 @@ impl<'args> SimpleSelectQueryBuilder<'args> {
     /// ```
     pub fn where_equals<C, T>(&mut self, column: C, value: T) -> &mut Self
     where
-        C: WhereColumn,
+        C: ColumnType,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
         self.where_inner::<C, T>(column, SQLComparison::Equals, value);
@@ -68,7 +66,7 @@ impl<'args> SimpleSelectQueryBuilder<'args> {
     }
     pub fn where_equals_then<C, T, F>(&mut self, column: C, value: T, then: F) -> &mut Self
     where
-        C: WhereColumn,
+        C: ColumnType,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
         F: FnOnce(&mut SimpleSelectWhereQueryBuilder<'_, 'args>),
     {
@@ -78,7 +76,7 @@ impl<'args> SimpleSelectQueryBuilder<'args> {
     }
     pub fn where_like_then<C, T, F>(&mut self, column: C, value: T, then: F) -> &mut Self
     where
-        C: WhereColumn,
+        C: ColumnType,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
         F: FnOnce(&mut SimpleSelectWhereQueryBuilder<'_, 'args>),
     {
@@ -99,11 +97,15 @@ impl<'args> SimpleSelectQueryBuilder<'args> {
         value: T,
     ) -> SimpleSelectWhereQueryBuilder<'_, 'args>
     where
-        C: WhereColumn,
+        C: ColumnType,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
         assert!(!self.created_where, "WHERE clause already created");
-        self.push(format!(" WHERE {} {} ", column.format_where(), comparison));
+        self.push(format!(
+            " WHERE {} {} ",
+            column.formatted_column(),
+            comparison
+        ));
         self.push_bind(value);
         SimpleSelectWhereQueryBuilder { query: self }
     }
@@ -130,21 +132,21 @@ pub struct SimpleSelectWhereQueryBuilder<'query, 'args> {
 impl<'args> SimpleSelectWhereQueryBuilder<'_, 'args> {
     pub fn and_equals<C, T>(&mut self, column: C, value: T) -> &mut Self
     where
-        C: WhereColumn,
+        C: ColumnType + 'static,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
         self.and_or_inner::<C, T>(AndOr::And, column, SQLComparison::Equals, value)
     }
     pub fn and_like<C, T>(&mut self, column: C, value: T) -> &mut Self
     where
-        C: WhereColumn,
+        C: ColumnType + 'static,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
         self.and_or_inner::<C, T>(AndOr::And, column, SQLComparison::Like, value)
     }
     pub fn or_equals<C, T>(&mut self, column: C, value: T) -> &mut Self
     where
-        C: WhereColumn,
+        C: ColumnType + 'static,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
         self.and_or_inner::<C, T>(AndOr::Or, column, SQLComparison::Equals, value)
@@ -158,13 +160,13 @@ impl<'args> SimpleSelectWhereQueryBuilder<'_, 'args> {
         value: T,
     ) -> &mut Self
     where
-        C: WhereColumn,
+        C: ColumnType + 'static,
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
     {
         self.query.push(format!(
             " {} {} {} ",
             and_or,
-            column.format_where(),
+            column.formatted_column(),
             comparison,
         ));
         self.query.push_bind(value);

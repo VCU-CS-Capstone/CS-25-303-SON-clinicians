@@ -82,7 +82,7 @@ pub mod test_utils {
                 .with(
                     stdout_log.with_filter(
                         filter::Targets::new()
-                            .with_target("cs25_303_core", LevelFilter::DEBUG)
+                            .with_target("cs25_303_core", LevelFilter::TRACE)
                             .with_target("sqlx", LevelFilter::INFO),
                     ),
                 )

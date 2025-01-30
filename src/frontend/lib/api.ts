@@ -1,7 +1,9 @@
-import { SessionProvider, useSession } from '~/contexts/SessionContext';
+import { BloodPressureStats, WeightEntry } from './types/stats';
 import { PaginatedResponse } from './RequestTypes';
 import {
   Participant,
+  ParticipantDemographics,
+  ParticipantHealthOverview,
   ParticipantLookupRequest,
   ParticipantLookupResponse,
   RecentVisit,
@@ -40,10 +42,7 @@ const api = {
       credentials: 'include',
     });
     console.debug('Secure Get Response', response);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${endpoint}, Error: ${response.status}`);
-    }
-    return await response.json();
+    return response;
   },
   post: async (endpoint: string, data: any) => {
     const url = appendEndpoint(endpoint);
@@ -73,38 +72,96 @@ const api = {
       body: JSON.stringify(data),
       credentials: 'include',
     });
-    console.debug('Secure Post Response', response);
-    if (!response.ok) {
-      throw new Error(`Failed to post ${endpoint}, Error: ${response.status}`);
-    }
-    return await response.json();
+    return response;
   },
   participants: {
     fetchById: async (id: number) => {
       const response = await api.getSecure(`/participant/get/${id}`);
-      console.log({ response });
-      return response as Participant;
+      if (response.ok) {
+        return (await response.json()) as Participant;
+      } else if (response.status === 404) {
+        return undefined;
+      } else {
+        throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
+      }
+    },
+    fetchDemographic: async (id: number) => {
+      const response = await api.getSecure(`/participant/get/${id}/demographics`);
+      if (response.ok) {
+        return (await response.json()) as ParticipantDemographics;
+      } else if (response.status === 404) {
+        return undefined;
+      } else {
+        throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
+      }
+    },
+    fetchHealthOverview: async (id: number) => {
+      const response = await api.getSecure(`/participant/get/${id}/health_overview`);
+      if (response.ok) {
+        return (await response.json()) as ParticipantHealthOverview;
+      } else if (response.status === 404) {
+        return undefined;
+      } else {
+        throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
+      }
     },
     getRecentVisits: async (id: number) => {
       const response = await api.getSecure(`/participant/case_notes/${id}/list/all`);
-      return response as RecentVisit[];
+      if (response.ok) {
+        return (await response.json()) as RecentVisit[];
+      } else if (response.status === 404) {
+        return undefined;
+      } else {
+        throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
+      }
+    },
+    fetchBpHistory: async (id: number, page_size?: number, page?: number) => {
+      const pageNumber = page || 1;
+      const pageSize = page_size || 10;
+      const response = await api.getSecure(
+        `/participant/stats/bp/history/${id}?page_size=${pageSize}&page=${pageNumber}`
+      );
+      if (response.ok) {
+        return (await response.json()) as PaginatedResponse<BloodPressureStats>;
+      } else if (response.status === 404) {
+        return undefined;
+      } else {
+        throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
+      }
+    },
+    fetchWeightHistory: async (id: number, page_size?: number, page?: number) => {
+      const pageNumber = page || 1;
+      const pageSize = page_size || 10;
+      const response = await api.getSecure(
+        `/participant/stats/weight/history/${id}?page_size=${pageSize}&page=${pageNumber}`
+      );
+      if (response.ok) {
+        return (await response.json()) as PaginatedResponse<WeightEntry>;
+      } else if (response.status === 404) {
+        return undefined;
+      } else {
+        throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
+      }
     },
     lookup: async (
       lookup: ParticipantLookupRequest
     ): Promise<PaginatedResponse<ParticipantLookupResponse>> => {
       const response = await api.postSecure('/participant/lookup', lookup);
-      return response as PaginatedResponse<ParticipantLookupResponse>;
+      if (!response.ok) {
+        throw new Error(`Failed to fetch participant lookup, Error: ${response.status}`);
+      }
+      return (await response.json()) as PaginatedResponse<ParticipantLookupResponse>;
     },
   },
 
   locations: {
     fetchAll: async () => {
       const response = await api.getSecure('/location/all');
-      return response as Location[];
+      return (await response.json()) as Location[];
     },
     fetchById: async (id: number) => {
       const response = await api.getSecure(`/location/${id}`);
-      return response as Location;
+      return (await response.json()) as Location;
     },
   },
   login: async (username: string, password: string) => {

@@ -103,6 +103,7 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
                     }
                 }
             }
+
             impl ColumnType for #column_enum_name {
                 fn column_name(&self) -> &'static str {
                     match self {
@@ -111,6 +112,11 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
                         ),*
                     }
                 }
+                fn formatted_column(&self) -> std::borrow::Cow<'static, str> {
+                    std::borrow::Cow::Owned(format!("{}.{}", <#ident as TableType>::table_name(), self.column_name()))
+                }
+            }
+            impl AllColumns for #column_enum_name {
                 fn all() -> std::vec::Vec<Self>
                     where
                         Self: Sized {

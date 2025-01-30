@@ -15,6 +15,7 @@ const DrawerLayout = () => {
       <Drawer>
         <Drawer.Screen
           name="overview"
+          //This is required to make sure when the user navigates to the overview page, the participant_id is passed as a parameter
           initialParams={{ participant_id: participant_id }}
           options={{
             headerTitle: 'Overview',
@@ -31,6 +32,28 @@ const DrawerLayout = () => {
           options={{
             headerTitle: 'Visits',
             drawerLabel: 'Visits',
+            drawerIcon: ({ size, color }) => (
+              <Ionicons name="home-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="blood-pressure-trends"
+          initialParams={{ participant_id: participant_id }}
+          options={{
+            headerTitle: 'Blood Pressure Trends',
+            drawerLabel: 'Blood Pressure Trends',
+            drawerIcon: ({ size, color }) => (
+              <Ionicons name="home-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="weight-trends"
+          initialParams={{ participant_id: participant_id }}
+          options={{
+            headerTitle: 'Weight Trends',
+            drawerLabel: 'Weight Trends',
             drawerIcon: ({ size, color }) => (
               <Ionicons name="home-outline" size={size} color={color} />
             ),

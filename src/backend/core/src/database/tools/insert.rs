@@ -19,7 +19,7 @@ impl<C: ColumnType> Display for Returning<C> {
             Self::None => write!(f, ""),
             Self::All => write!(f, " RETURNING *"),
             Self::Columns(columns) => {
-                let columns = super::concat_columns(columns, None);
+                let columns = super::concat_columns_no_table_name(columns);
                 write!(f, " RETURNING {}", columns)
             }
         }
@@ -122,7 +122,7 @@ impl<'table, 'args, C: ColumnType> SimpleInsertQueryBuilder<'table, 'args, C> {
         self
     }
     fn gen_sql(&mut self) {
-        let columns = super::concat_columns(&self.columns_to_insert, None);
+        let columns = super::concat_columns_no_table_name(&self.columns_to_insert);
         let placeholders = generate_placeholder_string(self.columns_to_insert.len());
         let sql = format!(
             "INSERT INTO {table} ({columns}) VALUES ({placeholders}){returning};",

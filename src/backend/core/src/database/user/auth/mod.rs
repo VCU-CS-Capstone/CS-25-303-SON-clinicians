@@ -22,6 +22,12 @@ pub struct UserPasswordAuthentication {
     pub updated_at: Option<DateTime<FixedOffset>>,
     pub created_at: DateTime<FixedOffset>,
 }
+impl TableType for UserPasswordAuthentication {
+    type Columns = UserPasswordAuthenticationColumn;
+    fn table_name() -> &'static str {
+        "user_authentication_password"
+    }
+}
 impl UserPasswordAuthentication {
     pub async fn find_by_user_id(user_id: i32, db: &PgPool) -> DBResult<Option<Self>> {
         sqlx::query_as("SELECT * FROM user_authentication_password WHERE user_id = $1")
@@ -44,3 +50,5 @@ pub struct SamlAuthentication {
     pub saml_id: String,
     pub created_on: DateTime<FixedOffset>,
 }
+
+
