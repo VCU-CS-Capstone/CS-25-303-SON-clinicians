@@ -143,9 +143,11 @@ const api = {
       }
     },
     fetchParticipantMedications: async (id: number, page_size: number = 10, page: number = 1) => {
-      const response = await api.getSecure(`/participant/medications/${id}/all`);
+      const response = await api.getSecure(
+        `/participant/medications/${id}/search?page_size=${page_size}&page=${page}`
+      );
       if (response.ok) {
-        return (await response.json()) as MedicationEntry[];
+        return (await response.json()) as PaginatedResponse<MedicationEntry>;
       } else if (response.status === 404) {
         return undefined;
       } else {

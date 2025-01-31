@@ -19,7 +19,7 @@ export default function MedicationList() {
       try {
         const medicationsResult =
           await api.participants.fetchParticipantMedications(participantNumberId);
-        setMedications(medicationsResult);
+        setMedications(medicationsResult?.data);
         console.log({ medicationsResult });
         setError(undefined);
         setLoading(false);

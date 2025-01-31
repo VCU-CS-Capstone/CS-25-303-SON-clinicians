@@ -64,18 +64,18 @@ function ShowTrends({ trends }: { trends: BloodPressureStats[] | undefined }) {
     const sitTrends = [];
     const standTrends = [];
     for (const trend of trends) {
-      if (trend.blood_pressure.Sit) {
+      if (trend.readings.sit) {
         sitTrends.push({
           case_note_id: trend.case_note_id,
           date_of_visit: new Date(trend.date_of_visit),
-          blood_pressure: trend.blood_pressure.Sit,
+          blood_pressure: trend.readings.sit,
         });
       }
-      if (trend.blood_pressure.Stand) {
+      if (trend.readings.stand) {
         standTrends.push({
           case_note_id: trend.case_note_id,
           date_of_visit: new Date(trend.date_of_visit),
-          blood_pressure: trend.blood_pressure.Stand,
+          blood_pressure: trend.readings.stand,
         });
       }
     }
@@ -110,10 +110,10 @@ function ListTrendItem({ trend }: { trend: BloodPressureStats }) {
   return (
     <View>
       <Text>{trend.date_of_visit}</Text>
-      <Text>{trend.blood_pressure.Sit?.systolic}</Text>
-      <Text>{trend.blood_pressure.Sit?.diastolic}</Text>
-      <Text>{trend.blood_pressure.Stand?.systolic}</Text>
-      <Text>{trend.blood_pressure.Stand?.diastolic}</Text>
+      <Text>{trend.readings.sit?.systolic}</Text>
+      <Text>{trend.readings.sit?.diastolic}</Text>
+      <Text>{trend.readings.stand?.systolic}</Text>
+      <Text>{trend.readings.stand?.diastolic}</Text>
     </View>
   );
 }

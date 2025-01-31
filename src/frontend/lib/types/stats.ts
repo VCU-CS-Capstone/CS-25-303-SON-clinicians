@@ -1,9 +1,10 @@
 export interface BloodPressureStats {
   case_note_id: number;
   date_of_visit: string;
-  blood_pressure: {
-    Sit?: BloodPressureReading;
-    Stand?: BloodPressureReading;
+  readings: {
+    sit?: BloodPressureReading;
+    stand?: BloodPressureReading;
+    personal?: BloodPressureReading;
   };
 }
 
