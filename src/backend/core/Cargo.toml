@@ -38,5 +38,6 @@ uuid.workspace = true
 serde-env = "0.2.0"
 tracing-subscriber.workspace = true
 tracing-appender.workspace = true
+sqlformat = "0.3"
 [lints]
 workspace = true

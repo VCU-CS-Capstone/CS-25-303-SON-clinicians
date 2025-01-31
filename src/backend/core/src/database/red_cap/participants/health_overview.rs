@@ -31,8 +31,7 @@ pub trait HealthOverviewType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
         participant_id: i32,
         database: impl Executor<'_, Database = Postgres>,
     ) -> DBResult<Option<Self>> {
-        let mut result =
-            SimpleSelectQueryBuilder::new("participant_health_overview", &Self::columns());
+        let mut result = SelectQueryBuilder::new("participant_health_overview", Self::columns());
         result.where_equals(HealthOverviewColumn::ParticipantId, participant_id);
         if tracing::enabled!(tracing::Level::DEBUG) {
             let query = result.sql();

@@ -50,5 +50,3 @@ pub struct SamlAuthentication {
     pub saml_id: String,
     pub created_on: DateTime<FixedOffset>,
 }
-
-

@@ -1,11 +1,10 @@
 use std::{borrow::Cow, mem};
 
-use clap::builder::Str;
 use sqlx::{Database, Postgres};
 
 use crate::database::tools::{
     concat_columns, format_where, ColumnType, DynColumn, FormatSql, FormatSqlQuery, HasArguments,
-    PaginationSupportingTool, SQLOrder, WhereComparison, WhereableTool,
+    SQLOrder, WhereComparison, WhereableTool,
 };
 pub struct SelectSubQuery {
     table: &'static str,
@@ -20,11 +19,19 @@ impl SelectSubQuery {
     fn generate_sql(&self) -> String {
         let concat_columns = concat_columns(&self.columns_to_select, Some(self.table));
         // Wrap the {columns} in parentheses because they are only allowed to return 1 column
-        let mut sql = format!(
-            "(SELECT ({columns}) FROM {table}",
-            columns = concat_columns,
-            table = self.table
-        );
+        let mut sql = if self.columns_to_select.len() == 1 {
+            format!(
+                "(SELECT {columns} FROM {table}",
+                columns = concat_columns,
+                table = self.table
+            )
+        } else {
+            format!(
+                "(SELECT ({columns}) FROM {table}",
+                columns = concat_columns,
+                table = self.table
+            )
+        };
         if !self.where_comparisons.is_empty() {
             let where_sql = format_where(&self.where_comparisons);
             sql.push_str(" WHERE ");
@@ -89,14 +96,13 @@ where
             phantoms: std::marker::PhantomData,
         }
     }
-    pub fn new_with_columns(
-        table: &'static str,
-        columns: Vec<DynColumn>,
-        args: &'query mut A,
-    ) -> Self {
+    pub fn new_with_columns<C>(table: &'static str, columns: Vec<C>, args: &'query mut A) -> Self
+    where
+        C: ColumnType + 'static,
+    {
         Self {
             table,
-            select_columns: columns,
+            select_columns: columns.into_iter().map(|c| c.dyn_column()).collect(),
             where_comparisons: Vec::new(),
             args,
             order_by: None,
@@ -160,40 +166,55 @@ where
 mod tests {
     use crate::database::{
         prelude::*,
-        tools::where_sql::{format_where, WhereBuilder},
+        tools::testing::{FakeArgumentsHolder, TestTable, TestTableColumn},
     };
 
-    use super::SelectSubQuery;
-    #[derive(Columns)]
-    pub struct TestTable {
-        pub id: i32,
-        pub name: String,
-        pub age: i32,
-        pub email: String,
-    }
-    impl TableType for TestTable {
-        type Columns = TestTableColumn;
-        fn table_name() -> &'static str {
-            "test_table"
-        }
-    }
     #[test]
-    pub fn test() {
-        let mut sub_query = SelectSubQuery {
-            table: "test_table",
-            columns_to_select: TestTableColumn::all()
-                .into_iter()
-                .map(|c| c.dyn_column())
-                .collect(),
-            where_comparisons: vec![],
-            order_by: None,
-            query_as: Some("sub_query".to_string()),
-            sql: None,
-        };
+    pub fn test_with_all_columns() {
+        let mut testing_args = FakeArgumentsHolder::default();
+        let mut sub_query_builder = SelectSubQueryBuilder::new_with_columns(
+            TestTable::table_name(),
+            TestTableColumn::all(),
+            &mut testing_args,
+        );
+        let sub_query = sub_query_builder.build_as("sub_query");
+
         let sql = sub_query.format_sql();
         assert_eq!(
             sql,
             "(SELECT (test_table.id, test_table.name, test_table.age, test_table.email) FROM test_table LIMIT 1) AS sub_query"
         );
+
+        let sql = sqlformat::format(
+            sql.as_ref(),
+            &sqlformat::QueryParams::None,
+            &sqlformat::FormatOptions::default(),
+        );
+
+        println!("{}", sql);
+    }
+    #[test]
+    pub fn test_with_filter() {
+        let mut testing_args = FakeArgumentsHolder::default();
+        let mut sub_query_builder =
+            SelectSubQueryBuilder::new(TestTable::table_name(), &mut testing_args);
+        sub_query_builder
+            .column(TestTableColumn::Id)
+            .where_column(TestTableColumn::Age, |builder| builder.equals(18).build());
+        let sub_query = sub_query_builder.build_as("sub_query");
+
+        let sql = sub_query.format_sql();
+        assert_eq!(
+            sql,
+            "(SELECT test_table.id FROM test_table WHERE test_table.age = $1 LIMIT 1) AS sub_query"
+        );
+
+        let sql = sqlformat::format(
+            sql.as_ref(),
+            &sqlformat::QueryParams::None,
+            &sqlformat::FormatOptions::default(),
+        );
+
+        println!("{}", sql);
     }
 }

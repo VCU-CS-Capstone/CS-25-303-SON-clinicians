@@ -53,9 +53,9 @@ impl ParticipantGoals {
         goal_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Option<ParticipantGoals>> {
-        SimpleSelectQueryBuilder::new(
+        SelectQueryBuilder::new(
             ParticipantGoals::table_name(),
-            &ParticipantGoalsColumn::all(),
+            ParticipantGoalsColumn::all(),
         )
         .where_equals(ParticipantGoalsColumn::Id, goal_id)
         .query_as()
@@ -83,7 +83,7 @@ impl ParticipantGoals {
         participant_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Vec<ParticipantGoals>> {
-        SimpleSelectQueryBuilderV2::new(
+        SelectQueryBuilder::new(
             ParticipantGoals::table_name(),
             ParticipantGoalsColumn::all(),
         )
@@ -221,7 +221,7 @@ impl ParticipantGoalsSteps {
         participant_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Vec<ParticipantGoalsSteps>> {
-        SimpleSelectQueryBuilderV2::new(
+        SelectQueryBuilder::new(
             ParticipantGoalsSteps::table_name(),
             ParticipantGoalsStepsColumn::all(),
         )
@@ -235,7 +235,7 @@ impl ParticipantGoalsSteps {
         goal_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Vec<ParticipantGoalsSteps>> {
-        SimpleSelectQueryBuilderV2::new(
+        SelectQueryBuilder::new(
             ParticipantGoalsSteps::table_name(),
             ParticipantGoalsStepsColumn::all(),
         )
@@ -249,7 +249,7 @@ impl ParticipantGoalsSteps {
         participant_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Vec<ParticipantGoalsSteps>> {
-        SimpleSelectQueryBuilderV2::new(
+        SelectQueryBuilder::new(
             ParticipantGoalsSteps::table_name(),
             ParticipantGoalsStepsColumn::all(),
         )

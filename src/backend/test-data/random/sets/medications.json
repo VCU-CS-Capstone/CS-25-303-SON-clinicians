@@ -30,7 +30,8 @@
             "options": [
                 "10mg",
                 "20mg",
-                "30mg"
+                "30mg",
+                "500mg"
             ]
         },
         "frequency": "Daily"
@@ -268,6 +269,18 @@
     },
     {
         "name": "Bupropion XL",
+        "dosage": {
+            "random": "Array",
+            "options": [
+                "10mg",
+                "20mg",
+                "30mg"
+            ]
+        },
+        "frequency": "Daily"
+    },
+    {
+        "name": "Warfarin",
         "dosage": {
             "random": "Array",
             "options": [

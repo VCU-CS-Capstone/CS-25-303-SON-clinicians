@@ -10,12 +10,9 @@ use cs25_303_core::{
 use tracing::instrument;
 use utoipa::OpenApi;
 
-use crate::{
-    app::{
-        authentication::Authentication, error::InternalError,
-        utils::response::builder::ResponseBuilder, SiteState,
-    },
-    utils::ok_json_response,
+use crate::app::{
+    authentication::Authentication, error::InternalError,
+    utils::response::builder::ResponseBuilder, SiteState,
 };
 
 #[derive(OpenApi)]
@@ -34,12 +31,12 @@ pub fn location_routes() -> axum::Router<SiteState> {
 #[utoipa::path(
     get,
     path = "/all",
+    summary = "Get all locations",
     responses(
         (status = 200, description = "All locations in the system", body = Vec<Locations>)
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
     )
 )]
 #[instrument]
@@ -48,21 +45,21 @@ pub async fn all_locations(
     auth: Authentication,
 ) -> Result<Response, InternalError> {
     let locations = Locations::get_all(&site.database).await?;
-    ok_json_response(locations)
+    Ok(ResponseBuilder::ok().json(&locations))
 }
 #[utoipa::path(
     get,
     path = "/{id}",
+    summary = "Get a location by ID",
     params(
         ("id" = i32, description = "The ID of the location to retrieve")
     ),
     responses(
-        (status = 200, description = "The location that was requested", body =Locations),
+        (status = 200, description = "The location that was requested", body = Locations),
         (status = 404, description = "The location was not found")
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
     )
 )]
 #[instrument]
@@ -81,6 +78,7 @@ pub async fn get_location_by_id(
 #[utoipa::path(
     get,
     path = "/program/{program}",
+    summary = "Get all locations in a program",
     params(
         ("program" = Programs, description = "The program you want to get locations for")
     ),
@@ -89,7 +87,6 @@ pub async fn get_location_by_id(
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
     )
 )]
 #[instrument]

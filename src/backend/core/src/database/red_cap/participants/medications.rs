@@ -1,7 +1,10 @@
+use std::fmt::Debug;
+
 use crate::database::prelude::*;
 use chrono::{Local, NaiveDate};
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
+use tracing::{debug, instrument, trace};
 use utoipa::ToSchema;
 
 use crate::red_cap::MedicationFrequency;
@@ -52,15 +55,103 @@ impl ParticipantMedications {
         participant_id: i32,
         database: &PgPool,
     ) -> DBResult<Vec<ParticipantMedications>> {
-        let result = SimpleSelectQueryBuilder::new(
+        let result = SelectQueryBuilder::new(
             ParticipantMedications::table_name(),
-            &ParticipantMedicationsColumn::all(),
+            ParticipantMedicationsColumn::all(),
         )
         .where_equals(ParticipantMedicationsColumn::ParticipantId, participant_id)
         .query_as()
         .fetch_all(database)
         .await?;
         Ok(result)
+    }
+    /// A Paginated Search for medications
+    #[instrument]
+    pub async fn search_medications(
+        participant_id: i32,
+        database: &PgPool,
+        name: Option<String>,
+        params: PageParams,
+    ) -> DBResult<PaginatedResponse<ParticipantMedications>> {
+        let name = name
+            .as_ref()
+            .map(|name| format!("%{}%", name.to_lowercase()));
+        trace!(?name, ?participant_id, ?params, "Searching for medications");
+        let count = {
+            let mut query = SelectCount::new(ParticipantMedications::table_name());
+            query.where_equals(ParticipantMedicationsColumn::ParticipantId, participant_id);
+            if let Some(name) = &name {
+                query.where_column(ParticipantMedicationsColumn::Name.lower(), |where_name| {
+                    where_name.like(name).build()
+                });
+            }
+            query.execute(database).await?
+        };
+        if count == 0 {
+            debug!(?name, ?params, "No medications found");
+            return Ok(PaginatedResponse::default());
+        }
+
+        if count < params.offset() as i64 {
+            debug!(
+                ?name,
+                ?params,
+                ?count,
+                "The offset os greater than the count"
+            );
+            return Ok(PaginatedResponse::default());
+        }
+
+        let mut query = SelectQueryBuilder::new(
+            ParticipantMedications::table_name(),
+            ParticipantMedicationsColumn::all(),
+        );
+        query.where_equals(ParticipantMedicationsColumn::ParticipantId, participant_id);
+        if let Some(name) = name {
+            query.where_column(ParticipantMedicationsColumn::Name.lower(), |where_name| {
+                where_name.like(name).build()
+            });
+        }
+        query.page_params(params);
+        let result = query.query_as().fetch_all(database).await?;
+
+        let result = PaginatedResponse {
+            total_pages: params.number_of_pages(count),
+            total: count,
+            data: result,
+        };
+        Ok(result)
+    }
+    /// Returns the number of medications for a participant with a name search
+    #[tracing::instrument]
+    pub async fn count_medications_with_name_search(
+        participant_id: i32,
+        database: &PgPool,
+        name: Option<&str>,
+    ) -> DBResult<i64> {
+        let mut query = SelectCount::new(ParticipantMedications::table_name());
+        query.where_equals(ParticipantMedicationsColumn::ParticipantId, participant_id);
+        if let Some(name) = name {
+            query.where_column(ParticipantMedicationsColumn::Name.lower(), |where_name| {
+                where_name
+                    .like(format!("%{}%", name.to_lowercase()))
+                    .build()
+            });
+        }
+        Ok(query.execute(database).await?)
+    }
+    /// Returns the number of medications for a participant
+    #[tracing::instrument]
+    pub async fn count_medications_for_participant(
+        participant_id: i32,
+        database: &PgPool,
+    ) -> DBResult<i64> {
+        let query = SelectCount::new(ParticipantMedications::table_name())
+            .where_equals(ParticipantMedicationsColumn::ParticipantId, participant_id)
+            .execute(database)
+            .await?;
+
+        Ok(query)
     }
 
     /// Will ensure each medication in has a red_cap_index.

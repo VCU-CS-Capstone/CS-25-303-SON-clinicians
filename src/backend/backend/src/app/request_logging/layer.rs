@@ -17,7 +17,7 @@ use tower_http::{
 };
 
 use tower_service::Service;
-use tracing::{debug, info};
+use tracing::debug;
 
 use crate::app::{request_logging::response_body::ResponseBody, SiteState};
 
@@ -129,7 +129,6 @@ where
         // One it has completed we can take the span and the classifier
         let span = this.span.take().unwrap();
         let _guard = span.enter();
-        info!("ResponseFuture polled after completion");
 
         let classifier = this.classifier.take().unwrap();
 

@@ -1,6 +1,9 @@
 //! Pagination Related Types and Functions
 
-use std::{fmt::Display, ops::Deref};
+use std::{
+    fmt::{Debug, Display},
+    ops::Deref,
+};
 
 use derive_more::derive::{From, Into};
 use serde::{Deserialize, Serialize};
@@ -24,7 +27,7 @@ pub trait PaginationSupportingTool {
 /// # Note
 /// Passing a page number less than 1 or equal to I32::MAX might result in all items being returned
 /// This is dependent on the request handler
-#[derive(Debug, Clone, Copy, PartialEq, Eq, From, Into, Deserialize, ToSchema, IntoParams)]
+#[derive(Clone, Copy, PartialEq, Eq, From, Into, Deserialize, ToSchema, IntoParams)]
 #[serde(default)]
 #[into_params(parameter_in = Query)]
 pub struct PageParams {
@@ -34,6 +37,16 @@ pub struct PageParams {
     /// The page number
     #[param(default = 1)]
     pub page_number: i32,
+}
+impl Debug for PageParams {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PageParams")
+            .field("page_size", &self.page_size)
+            .field("page_number", &self.page_number)
+            .field("offset", &self.offset())
+            .field("limit", &self.limit())
+            .finish()
+    }
 }
 impl PageParams {
     /// If the page size is greater than the max argument it is set to the max argument
@@ -60,7 +73,7 @@ impl PageParams {
     /// This function returns the index of the page.
     #[inline]
     pub fn page_index(&self) -> i32 {
-        (self.page_number - 1).min(0)
+        (self.page_number - 1).max(0)
     }
     /// Requests start at 1.
     #[inline]

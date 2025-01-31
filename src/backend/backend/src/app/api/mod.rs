@@ -77,7 +77,7 @@ pub fn api_routes() -> axum::Router<SiteState> {
     security(
         (),
         ("session" = []),
-        ("api_token" = []),
+
     )
 )]
 #[instrument]

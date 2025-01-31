@@ -1,10 +1,13 @@
 use std::borrow::Cow;
+use std::future::Future;
 
 use sqlx::query::{Query, QueryAs, QueryScalar};
-use sqlx::{Arguments, FromRow};
+use sqlx::{Arguments, Decode, FromRow, Type};
 use sqlx::{Database, Postgres};
 use sqlx_postgres::PgRow;
 use tracing::trace;
+
+use crate::database::DBResult;
 
 /// A sql tool that has [Arguments](sqlx::Arguments) that can be used to build a query.
 ///
@@ -80,5 +83,23 @@ pub trait QueryTool<'args>: HasArguments<'args> {
         let sql = self.sql();
         trace!(?sql, "Generated SQL");
         sqlx::query_scalar_with(sql, args)
+    }
+}
+/// Tools such as [SelectExists](super::SelectExists) and [SelectCount](super::SelectCount)
+/// that can be used to build queries that return a single value.
+pub trait QueryScalarTool<'args>: QueryTool<'args> + Send {
+    type Output: for<'r> Decode<'r, Postgres> + Type<Postgres> + Send + Unpin;
+    /// Executes the query and returns the number of rows affected.
+    ///
+    /// See [sqlx::query] for more information.
+    fn execute<'c, E>(&mut self, conn: E) -> impl Future<Output = DBResult<Self::Output>> + Send
+    where
+        E: sqlx::Executor<'c, Database = Postgres> + Send,
+    {
+        async move {
+            let query = self.query_scalar();
+            let result = query.fetch_one(conn).await?;
+            Ok(result)
+        }
     }
 }

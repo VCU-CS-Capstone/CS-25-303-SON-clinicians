@@ -76,7 +76,6 @@ pub async fn all_users(
     ),
     security(
         ("session" = ["ManageUsers"]),
-        ("api_token" = ["ManageUsers"]),
     )
 )]
 #[instrument]
@@ -131,7 +130,6 @@ pub struct UpdateUser {
     ),
     security(
         ("session" = ["ManageUsers"]),
-        ("api_token" = ["ManageUsers"]),
     )
 )]
 #[instrument]

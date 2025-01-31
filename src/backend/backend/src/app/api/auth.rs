@@ -12,21 +12,27 @@ use axum_extra::{
 };
 use cs25_303_core::database::user::login::AdditionalFootprint;
 use http::{header::SET_COOKIE, StatusCode};
-use tracing::instrument;
+use tracing::{debug, instrument};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::app::{
-    authentication::{utils::verify_login, MeWithSession},
+    authentication::{utils::verify_login, Authentication, MeWithSession},
     error::InternalError,
     request_logging::RequestId,
+    utils::response::builder::ResponseBuilder,
     SiteState,
 };
 
 #[derive(OpenApi)]
-#[openapi(paths(login), components(schemas(LoginPasswordBody, MeWithSession)))]
+#[openapi(
+    paths(login, logout),
+    components(schemas(LoginPasswordBody, MeWithSession))
+)]
 pub struct AuthApi;
 pub fn auth_routes() -> axum::Router<SiteState> {
-    axum::Router::new().route("/login/password", axum::routing::post(login))
+    axum::Router::new()
+        .route("/login/password", axum::routing::post(login))
+        .route("/logout", axum::routing::get(logout))
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, ToSchema)]
@@ -104,4 +110,42 @@ pub async fn login(
         .header(SET_COOKIE, cookie.encoded().to_string())
         .body(serde_json::to_string(&user_with_session)?.into())
         .unwrap());
+}
+#[utoipa::path(
+    get,
+    summary = "Logout of the current session",
+    path = "/logout",
+    responses(
+        (status = 201, description = "Logout successful"),
+        (status = 401, description = "Unauthorized"),
+    ),
+    security(
+        ("session" = []),
+    )
+)]
+#[instrument]
+pub async fn logout(
+    State(site): State<SiteState>,
+    auth: Authentication,
+) -> Result<Response, InternalError> {
+    match auth {
+        Authentication::UserViaSession { user: _, session } => {
+            debug!(?session, "Logging out user");
+            site.session.delete_session(&session.session_key)?;
+        }
+        _ => {
+            return Ok(ResponseBuilder::unauthorized().empty());
+        }
+    }
+    let cookie = Cookie::build(("session", ""))
+        .secure(true)
+        .path("/")
+        .expires(Expiration::Session)
+        .build();
+
+    Ok(Response::builder()
+        .status(StatusCode::NO_CONTENT)
+        .header(SET_COOKIE, cookie.encoded().to_string())
+        .body("".into())
+        .unwrap())
 }

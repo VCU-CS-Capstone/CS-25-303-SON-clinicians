@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use derive_more::derive::From;
 use sqlx::{Encode, Postgres, Type};
 
 use super::{AndOr, ColumnType, DynColumn, HasArguments, SQLComparison};
@@ -56,7 +57,7 @@ pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
     /// Each are concatenated with an AND
     fn push_where_comparison(&mut self, comparison: WhereComparison);
 }
-
+#[derive(Debug)]
 pub enum WhereValue {
     CompareValue {
         comparison: SQLComparison,
@@ -186,12 +187,13 @@ where
         self.then(AndOr::Or, column, f)
     }
 }
-
+#[derive(Debug)]
 pub struct WhereComparison {
     column: DynColumn,
     value: WhereValue,
     then: Option<(AndOr, Box<WhereComparison>)>,
 }
+
 impl<'query, 'args, A> From<WhereBuilder<'query, 'args, A>> for WhereComparison
 where
     A: HasArguments<'args>,
@@ -204,44 +206,57 @@ where
         }
     }
 }
+#[derive(Debug, From)]
+pub struct MultipleWhereFormatter<'w>(&'w WhereComparison);
+impl Display for MultipleWhereFormatter<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({})", self.0)
+    }
+}
 impl Display for WhereComparison {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.value {
             WhereValue::CompareValue { comparison, value } => write!(
                 f,
-                "({} {} ${}",
+                "{} {} ${}",
                 self.column.formatted_column(),
                 comparison,
                 value
             )?,
             WhereValue::Column { comparison, column } => write!(
                 f,
-                "({} {} {}",
+                "{} {} {}",
                 self.column.formatted_column(),
                 comparison,
                 column.formatted_column()
             )?,
             WhereValue::NotNull => {
-                write!(f, "({} IS NOT NULL", self.column.formatted_column())?;
+                write!(f, "{} IS NOT NULL", self.column.formatted_column())?;
             }
 
             WhereValue::Null => {
-                write!(f, "({} IS NULL", self.column.formatted_column())?;
+                write!(f, "{} IS NULL", self.column.formatted_column())?;
             }
         }
         if let Some((and_or, then)) = &self.then {
             write!(f, " {} {}", and_or.as_ref(), then)?;
         }
-        write!(f, ")")
+        Ok(())
     }
 }
 pub fn format_where(comparison: &[WhereComparison]) -> String {
-    let result = comparison
+    if comparison.is_empty() {
+        return String::new();
+    }
+    if comparison.len() == 1 {
+        // TODO: Remove the extra parentheses
+        return comparison[0].to_string();
+    }
+    comparison
         .iter()
-        .map(|comparison| comparison.to_string())
+        .map(|comparison| MultipleWhereFormatter(comparison).to_string())
         .collect::<Vec<_>>()
-        .join(" AND ");
-    result
+        .join(" AND ")
 }
 
 #[cfg(test)]
@@ -249,24 +264,14 @@ mod tests {
     #![allow(dead_code)]
     use crate::database::{
         prelude::*,
-        tools::where_sql::{format_where, WhereBuilder},
+        tools::{
+            testing::TestTableColumn,
+            where_sql::{format_where, WhereBuilder},
+        },
     };
 
     use super::WhereComparison;
 
-    #[derive(Columns)]
-    pub struct TestTable {
-        pub id: i32,
-        pub name: String,
-        pub age: i32,
-        pub email: String,
-    }
-    impl TableType for TestTable {
-        type Columns = TestTableColumn;
-        fn table_name() -> &'static str {
-            "test_table"
-        }
-    }
     pub struct TestParentQuery<'args> {
         arguments: Option<<Postgres as sqlx::Database>::Arguments<'args>>,
     }

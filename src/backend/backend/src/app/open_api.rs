@@ -23,14 +23,14 @@ use cs25_303_core::{
     },
 };
 use utoipa::{
-    openapi::security::{ApiKey, ApiKeyValue, Http, HttpAuthScheme, SecurityScheme},
+    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
     Modify, OpenApi,
 };
 #[derive(OpenApi)]
 #[openapi(
     modifiers(&SecurityAddon),
     nest(
-        (path = "/api/auth", api = AuthApi, tags=["auth", "user"]),
+        (path = "/api/auth", api = AuthApi, tags=["Authentication", "user"]),
         (path = "/api/participant", api = ParticipantAPI, tags=["participant"]),
         (path = "/api/location", api = LocationsAPI, tags=["location"]),
         (path = "/api/admin", api = AdminAPI, tags=["admin"])
@@ -53,10 +53,10 @@ use utoipa::{
         FloatSettings
     )),
     tags(
-        (name = "auth", description = "User Authentication"),
+        (name = "Authentication", description = "Authentication API. Used for logging in and out"),
         (name = "participant", description = "Participant Information"),
         (name = "location", description = "Location Information"),
-        (name = "admin", description = "Admin Information")
+        (name = "admin", description = "Admin Information"),
     )
 )]
 pub struct ApiDoc;
@@ -72,16 +72,6 @@ impl Modify for SecurityAddon {
             components.add_security_scheme(
                 "session",
                 SecurityScheme::ApiKey(ApiKey::Cookie(session_value)),
-            );
-
-            components.add_security_scheme(
-                "api_token",
-                SecurityScheme::Http(
-                    Http::builder()
-                        .scheme(HttpAuthScheme::Bearer)
-                        .description(Some("API Token"))
-                        .build(),
-                ),
             );
         }
     }

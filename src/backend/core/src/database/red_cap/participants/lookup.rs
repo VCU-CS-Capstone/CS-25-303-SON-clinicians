@@ -4,7 +4,6 @@ use crate::database::{
     prelude::*,
     red_cap::case_notes::{CaseNote, CaseNoteColumn},
 };
-use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use tabled::Tabled;
 use tracing::instrument;
@@ -30,12 +29,8 @@ pub struct ParticipantLookup {
     #[sqlx(default)]
     pub last_visited: Option<NaiveDate>,
 }
-
-impl ParticipantType for ParticipantLookup {
-    fn get_id(&self) -> i32 {
-        self.id
-    }
-
+impl TableQuery for ParticipantLookup {
+    type Table = Participants;
     fn columns() -> Vec<ParticipantsColumn> {
         vec![
             ParticipantsColumn::Id,
@@ -46,6 +41,12 @@ impl ParticipantType for ParticipantLookup {
             ParticipantsColumn::Program,
             ParticipantsColumn::Location,
         ]
+    }
+}
+
+impl ParticipantType for ParticipantLookup {
+    fn get_id(&self) -> i32 {
+        self.id
     }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, ToSchema)]
@@ -105,10 +106,8 @@ impl ParticipantLookupQuery {
         database: &PgPool,
     ) -> DBResult<PaginatedResponse<ParticipantLookup>> {
         let page_params: PageParams = page_and_size.into();
-        let mut query = SimpleSelectQueryBuilderV2::new(
-            Participants::table_name(),
-            ParticipantLookup::columns(),
-        );
+        let mut query =
+            SelectQueryBuilder::new(Participants::table_name(), ParticipantLookup::columns());
 
         self.apply_arguments(&mut query);
         if self.get_last_visited {

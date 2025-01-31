@@ -10,15 +10,15 @@ use cs25_303_core::database::red_cap::participants::{
 use tracing::instrument;
 use utoipa::OpenApi;
 
-use crate::{
-    app::{authentication::Authentication, error::InternalError, SiteState},
-    utils::{not_found_response, ok_json_response},
+use crate::app::{
+    authentication::Authentication, error::InternalError,
+    utils::response::builder::ResponseBuilder, SiteState,
 };
 
 #[derive(OpenApi)]
 #[openapi(
     paths(get_participants_goals, get_steps_for_goal, get_steps_without_goal),
-    components(schemas())
+    components(schemas(ParticipantGoals))
 )]
 pub struct ParticipantGoalsAPI;
 
@@ -44,7 +44,7 @@ pub fn participant_goals() -> axum::Router<SiteState> {
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
+
     )
 )]
 #[instrument]
@@ -56,10 +56,10 @@ pub async fn get_participants_goals(
     let goals = ParticipantGoals::get_all_participant_goals(id, &site.database).await?;
 
     if goals.is_empty() && !Participants::does_participant_id_exist(id, &site.database).await? {
-        return not_found_response();
+        return Ok(ResponseBuilder::not_found().empty());
     }
 
-    ok_json_response(goals)
+    Ok(ResponseBuilder::ok().json(&goals))
 }
 
 /// Returns all steps for a goal
@@ -75,7 +75,7 @@ pub async fn get_participants_goals(
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
+
     )
 )]
 #[instrument]
@@ -87,10 +87,10 @@ pub async fn get_steps_for_goal(
     let goals = ParticipantGoalsSteps::get_all_steps_for_goal(id, &site.database).await?;
 
     if goals.is_empty() && !Participants::does_participant_id_exist(id, &site.database).await? {
-        return not_found_response();
+        return Ok(ResponseBuilder::not_found().empty());
     }
 
-    ok_json_response(goals)
+    Ok(ResponseBuilder::ok().json(&goals))
 }
 /// Returns Steps that do not have a goal
 ///
@@ -107,7 +107,7 @@ pub async fn get_steps_for_goal(
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
+
     )
 )]
 #[instrument]
@@ -120,8 +120,8 @@ pub async fn get_steps_without_goal(
         ParticipantGoalsSteps::get_goaless_steps_for_participant(id, &site.database).await?;
 
     if goals.is_empty() && !Participants::does_participant_id_exist(id, &site.database).await? {
-        return not_found_response();
+        return Ok(ResponseBuilder::not_found().empty());
     }
 
-    ok_json_response(goals)
+    Ok(ResponseBuilder::ok().json(&goals))
 }

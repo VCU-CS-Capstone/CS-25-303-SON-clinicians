@@ -13,11 +13,8 @@ pub mod roles;
 mod tools;
 pub use tools::*;
 pub mod login;
-pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Debug {
+pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Debug + TableQuery {
     fn get_id(&self) -> i32;
-    fn columns() -> Vec<UserColumn> {
-        UserColumn::all()
-    }
     async fn does_user_have_scope_or_admin(
         &self,
         scope: Permissions,
@@ -30,7 +27,7 @@ pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Debug {
     where
         Self: Sized,
     {
-        let result = SimpleSelectQueryBuilderV2::new(User::table_name(), Self::columns())
+        let result = SelectQueryBuilder::new(User::table_name(), Self::columns())
             .where_equals(UserColumn::Id, id)
             .query_as()
             .fetch_optional(database)
@@ -100,7 +97,7 @@ impl User {
         page: i32,
     ) -> DBResult<PaginatedResponse<User>> {
         let page = page - 1;
-        let mut query = SimpleSelectQueryBuilderV2::new(User::table_name(), User::columns());
+        let mut query = SelectQueryBuilder::new(User::table_name(), User::columns());
         if page_size > 0 {
             query.limit(page_size);
         }

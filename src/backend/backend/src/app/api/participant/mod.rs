@@ -32,10 +32,16 @@ use crate::app::{error::InternalError, SiteState};
     paths(look_up_participant, get_participants,get_health_overview, get_demographics),
     components(schemas(PageParams, ParticipantLookup, ParticipantLookupQuery, PaginatedResponse<ParticipantLookup>, Participants, HealthOverview, ParticipantDemograhics, ParticipantPartNotFound)),
     nest(
-        (path = "/case_notes", api = case_note::CaseNoteAPI, tags=["case_note"]),
-        (path = "/stats", api = stats::ParticipantStatAPI, tags=["stats"]),
+        (path = "/case_notes", api = case_note::CaseNoteAPI, tags=["Participant Case Notes"]),
+        (path = "/stats", api = stats::ParticipantStatAPI, tags=["Participant Statistics"]),
         (path = "/goals", api = goals::ParticipantGoalsAPI, tags=[ "goals"]),
         (path = "/medications", api = medications::ParticipantMedicationsAPI, tags=["medications"])
+    ),
+    tags(
+        (name = "medications", description = "Medications API"),
+        (name = "goals", description = "Goals API"),
+        (name = "Participant Statistics", description = "Statisitcal Information on Participants and their health"),
+        (name = "Participant Case Notes", description = "Case Notes for Participants"),
     )
 )]
 pub struct ParticipantAPI;
@@ -64,7 +70,6 @@ pub fn participant_routes() -> axum::Router<SiteState> {
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
     )
 )]
 #[instrument]
@@ -91,7 +96,7 @@ pub async fn look_up_participant(
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
+
     )
 )]
 #[instrument]
@@ -126,7 +131,7 @@ pub struct ParticipantPartNotFound {
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
+
     )
 )]
 #[instrument]
@@ -160,7 +165,7 @@ pub async fn get_health_overview(
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
+
     )
 )]
 #[instrument]

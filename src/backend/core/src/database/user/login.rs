@@ -64,7 +64,7 @@ mod tests {
         crate::test_utils::init_logger();
         let database = crate::database::tests::connect_to_db().await?;
 
-        let id = add_login_attempt(
+        let _id = add_login_attempt(
             Some(1),
             "127.0.0.1:55420",
             true,

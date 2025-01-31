@@ -41,7 +41,6 @@ pub fn case_note_routes() -> axum::Router<SiteState> {
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
     )
 )]
 #[instrument]

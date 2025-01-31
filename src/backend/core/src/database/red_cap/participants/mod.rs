@@ -22,16 +22,12 @@ pub use new::*;
 use sqlx::{postgres::PgRow, prelude::FromRow};
 use tracing::error;
 use utoipa::ToSchema;
-pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
+pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + TableQuery {
     fn get_id(&self) -> i32;
 
-    /// Leaving this to the default implementation is not recommended. As it will return all columns
-    fn columns() -> Vec<ParticipantsColumn> {
-        ParticipantsColumn::all()
-    }
     #[tracing::instrument(level = "trace", fields(result))]
     async fn find_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
-        let result = SimpleSelectQueryBuilder::new(Participants::table_name(), &Self::columns())
+        let result = SelectQueryBuilder::new(Participants::table_name(), Self::columns())
             .where_equals(ParticipantsColumn::Id, id)
             .query_as()
             .fetch_optional(database)
@@ -43,7 +39,7 @@ pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
         red_cap_id: i32,
         database: &sqlx::PgPool,
     ) -> DBResult<Option<Self>> {
-        let result = SimpleSelectQueryBuilder::new(Participants::table_name(), &Self::columns())
+        let result = SelectQueryBuilder::new(Participants::table_name(), Self::columns())
             .where_equals(ParticipantsColumn::RedCapId, red_cap_id)
             .query_as()
             .fetch_optional(database)
@@ -143,7 +139,7 @@ pub trait ParticipantDemograhicsType:
     }
 
     async fn find_by_participant(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
-        let result = SimpleSelectQueryBuilder::new(Self::table_name(), &Self::columns())
+        let result = SelectQueryBuilder::new(Self::table_name(), Self::columns())
             .where_equals(ParticipantDemograhicsColumn::ParticipantId, id)
             .query_as()
             .fetch_optional(database)

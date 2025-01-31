@@ -40,7 +40,7 @@ impl CaseNoteQuestionAnswers {
         case_note_id: i32,
         database: &sqlx::PgPool,
     ) -> sqlx::Result<Vec<Self>> {
-        SimpleSelectQueryBuilder::new(Self::table_name(), &CaseNoteQuestionAnswersColumn::all())
+        SelectQueryBuilder::new(Self::table_name(), CaseNoteQuestionAnswersColumn::all())
             .where_equals(CaseNoteQuestionAnswersColumn::CaseNoteId, case_note_id)
             .query_as()
             .fetch_all(database)

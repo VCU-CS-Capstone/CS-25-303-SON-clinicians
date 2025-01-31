@@ -1,4 +1,4 @@
-use ahash::{HashMap, HashMapExt};
+use ahash::HashMap;
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use sqlx::{
@@ -7,7 +7,7 @@ use sqlx::{
 };
 use utoipa::ToSchema;
 
-use crate::red_cap::VisitType;
+use crate::{database::tools::TableQuery, red_cap::VisitType};
 
 use super::{BloodPressureType, CaseNoteType, DBResult, PageParams, PaginatedResponse};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema, FromRow)]
@@ -17,16 +17,20 @@ pub struct CaseNoteIDAndDate {
     /// Date of the visit
     pub date_of_visit: NaiveDate,
 }
+impl TableQuery for CaseNoteIDAndDate {
+    type Table = super::CaseNote;
 
-impl CaseNoteType for CaseNoteIDAndDate {
-    fn get_id(&self) -> i32 {
-        self.id
-    }
     fn columns() -> Vec<super::CaseNoteColumn> {
         vec![
             super::CaseNoteColumn::Id,
             super::CaseNoteColumn::DateOfVisit,
         ]
+    }
+}
+
+impl CaseNoteType for CaseNoteIDAndDate {
+    fn get_id(&self) -> i32 {
+        self.id
     }
 }
 /// A small struct to represent a case note for listing visits
@@ -43,6 +47,19 @@ pub struct CaseNoteListItem {
     /// Date of the visit
     pub date_of_visit: NaiveDate,
 }
+impl TableQuery for CaseNoteListItem {
+    type Table = super::CaseNote;
+    fn columns() -> Vec<super::CaseNoteColumn> {
+        vec![
+            super::CaseNoteColumn::Id,
+            super::CaseNoteColumn::ParticipantId,
+            super::CaseNoteColumn::Location,
+            super::CaseNoteColumn::VisitType,
+            super::CaseNoteColumn::DateOfVisit,
+        ]
+    }
+}
+
 impl CaseNoteType for CaseNoteListItem {
     fn get_id(&self) -> i32 {
         self.id
@@ -98,14 +115,53 @@ impl WeightHistory {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema, Default)]
+pub struct BloodPressureReadings {
+    pub sit: Option<BloodPressureReading>,
+    pub stand: Option<BloodPressureReading>,
+    pub personal: Option<BloodPressureReading>,
+}
+impl From<HashMap<BloodPressureType, BloodPressureReading>> for BloodPressureReadings {
+    fn from(mut map: HashMap<BloodPressureType, BloodPressureReading>) -> Self {
+        BloodPressureReadings {
+            sit: map.remove(&BloodPressureType::Sit),
+            stand: map.remove(&BloodPressureType::Stand),
+            personal: map.remove(&BloodPressureType::Personal),
+        }
+    }
+}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
+#[schema(examples(BloodPressureHistory::example))]
 pub struct BloodPressureHistory {
     /// Case Note It belongs to
     pub case_note_id: i32,
+    /// Date of the visit
     pub date_of_visit: NaiveDate,
-    pub blood_pressure: HashMap<BloodPressureType, BloodPressureReading>,
+    /// Blood Pressure readings
+    pub readings: BloodPressureReadings,
 }
-
+impl BloodPressureHistory {
+    pub fn example() -> Self {
+        BloodPressureHistory {
+            case_note_id: 1,
+            date_of_visit: NaiveDate::from_ymd_opt(2024, 9, 1).unwrap(),
+            readings: BloodPressureReadings {
+                sit: Some(BloodPressureReading {
+                    systolic: 120,
+                    diastolic: 80,
+                }),
+                stand: Some(BloodPressureReading {
+                    systolic: 130,
+                    diastolic: 90,
+                }),
+                personal: Some(BloodPressureReading {
+                    systolic: 140,
+                    diastolic: 100,
+                }),
+            },
+        }
+    }
+}
 impl<'a, R: sqlx::Row> sqlx::FromRow<'a, R> for BloodPressureHistory
 where
     &'a str: sqlx::ColumnIndex<R>,
@@ -117,22 +173,30 @@ where
         let case_note_id: i32 = row.try_get("case_note_id")?;
         let date_of_visit: NaiveDate = row.try_get("date_of_visit")?;
         let blood_pressure: Vec<BloodPressureHistoryItem> = row.try_get("blood_pressure")?;
-        let mut readings = HashMap::with_capacity(blood_pressure.len());
+        let mut readings = BloodPressureReadings::default();
 
         for bp in blood_pressure {
-            readings.insert(
-                bp.blood_pressure_type,
-                BloodPressureReading {
-                    systolic: bp.systolic,
-                    diastolic: bp.diastolic,
-                },
-            );
+            let reading = Some(BloodPressureReading {
+                systolic: bp.systolic,
+                diastolic: bp.diastolic,
+            });
+            match bp.blood_pressure_type {
+                BloodPressureType::Sit => {
+                    readings.sit = reading;
+                }
+                BloodPressureType::Stand => {
+                    readings.stand = reading;
+                }
+                BloodPressureType::Personal => {
+                    readings.personal = reading;
+                }
+            }
         }
 
         Ok(BloodPressureHistory {
             case_note_id,
             date_of_visit,
-            blood_pressure: readings,
+            readings: readings,
         })
     }
 }

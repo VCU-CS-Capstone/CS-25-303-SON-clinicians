@@ -11,9 +11,9 @@ use std::str::FromStr;
 /// ```
 /// use cs25_303_core::red_cap::api::utils::FieldNameAndIndex;
 /// use std::str::FromStr;
-/// let value = FieldNameAndIndex::from_str("health_ed___1").unwrap();
+/// let value = FieldNameAndIndex::try_from("health_ed___1").unwrap();
 /// assert_eq!(value.field_name, "health_ed");
-/// assert_eq!(value.index, Some(1));
+/// assert_eq!(value.index, 1);
 /// ```
 
 #[derive(Debug, Clone, PartialEq, Eq)]

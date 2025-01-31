@@ -6,29 +6,25 @@ use crate::database::prelude::*;
 use crate::red_cap::converter::case_notes::{
     OtherCaseNoteData, RedCapCaseNoteBase, RedCapHealthMeasures,
 };
-use crate::{
-    database::tools::{SimpleSelectQueryBuilder, TableType},
-    red_cap::VisitType,
-};
+use crate::{database::tools::TableType, red_cap::VisitType};
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use new::NewBloodPressure;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use strum::EnumIter;
-use tracing::error;
+use tracing::{debug, error, instrument};
 use utoipa::ToSchema;
+
 pub mod questions;
 
-pub trait CaseNoteType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
+pub trait CaseNoteType:
+    for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + TableQuery<Table = CaseNote>
+{
     fn get_id(&self) -> i32;
 
-    /// Leaving this to the default implementation is not recommended. As it will return all columns
-    fn columns() -> Vec<CaseNoteColumn> {
-        CaseNoteColumn::all()
-    }
     /// Find a case note by its ID
     async fn find_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
-        let result = SimpleSelectQueryBuilder::new(CaseNote::table_name(), &Self::columns())
+        let result = SelectQueryBuilder::new(CaseNote::table_name(), Self::columns())
             .where_equals(CaseNoteColumn::Id, id)
             .query_as()
             .fetch_optional(database)
@@ -40,7 +36,7 @@ pub trait CaseNoteType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
         participant_id: i32,
         database: &sqlx::PgPool,
     ) -> DBResult<Vec<Self>> {
-        let result = SimpleSelectQueryBuilderV2::new(CaseNote::table_name(), Self::columns())
+        let result = SelectQueryBuilder::new(CaseNote::table_name(), Self::columns())
             .where_column(CaseNoteColumn::ParticipantId, |c| {
                 c.equals(participant_id).build()
             })
@@ -49,6 +45,38 @@ pub trait CaseNoteType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
             .fetch_all(database)
             .await?;
         Ok(result)
+    }
+    #[instrument]
+    async fn fetch_paginated_by_participant_id(
+        participant_id: i32,
+        page_params: PageParams,
+        database: &sqlx::PgPool,
+    ) -> DBResult<PaginatedResponse<Self>> {
+        let count = {
+            SelectCount::new(CaseNote::table_name())
+                .where_equals(CaseNoteColumn::ParticipantId, participant_id)
+                .execute(database)
+                .await?
+        };
+        if count == 0 {
+            debug!(?page_params, "No case notes found found");
+            return Ok(PaginatedResponse::default());
+        }
+
+        if count < page_params.offset() as i64 {
+            debug!(?page_params, ?count, "The offset os greater than the count");
+            return Ok(PaginatedResponse::default());
+        }
+        let query_result = SelectQueryBuilder::new(CaseNote::table_name(), Self::columns())
+            .where_column(CaseNoteColumn::ParticipantId, |c| {
+                c.equals(participant_id).build()
+            })
+            .page_params(page_params)
+            .order_by(CaseNoteColumn::DateOfVisit, SQLOrder::Descending)
+            .query_as()
+            .fetch_all(database)
+            .await?;
+        Ok(page_params.create_result(count, query_result))
     }
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
@@ -223,7 +251,7 @@ impl CaseNoteHealthMeasures {
         case_note_id: i32,
         database: &sqlx::PgPool,
     ) -> DBResult<Option<Self>> {
-        SimpleSelectQueryBuilder::new(Self::table_name(), &CaseNoteHealthMeasuresColumn::all())
+        SelectQueryBuilder::new(Self::table_name(), CaseNoteHealthMeasuresColumn::all())
             .where_equals(CaseNoteHealthMeasuresColumn::CaseNoteId, case_note_id)
             .query_as()
             .fetch_optional(database)

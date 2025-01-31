@@ -133,7 +133,7 @@ pub struct Question {
 }
 impl Question {
     pub async fn find_by_string_id(red_cap_id: &str, conn: &PgPool) -> DBResult<Option<Self>> {
-        let question = SimpleSelectQueryBuilder::new(Self::table_name(), &QuestionColumn::all())
+        let question = SelectQueryBuilder::new(Self::table_name(), QuestionColumn::all())
             .where_equals(QuestionColumn::StringId, red_cap_id)
             .limit(1)
             .query_as::<Self>()
@@ -146,7 +146,7 @@ impl Question {
         other_id: &str,
         conn: &PgPool,
     ) -> DBResult<Option<Self>> {
-        let question = SimpleSelectQueryBuilderV2::new(Self::table_name(), QuestionColumn::all())
+        let question = SelectQueryBuilder::new(Self::table_name(), QuestionColumn::all())
             .where_column(QuestionColumn::StringId, |builder| {
                 builder
                     .equals(red_cap_id)
@@ -161,7 +161,7 @@ impl Question {
         Ok(question)
     }
     pub async fn get_all_in_category(category_id: i32, conn: &PgPool) -> DBResult<Vec<Self>> {
-        let questions = SimpleSelectQueryBuilder::new(Self::table_name(), &QuestionColumn::all())
+        let questions = SelectQueryBuilder::new(Self::table_name(), QuestionColumn::all())
             .where_equals(QuestionColumn::CategoryId, category_id)
             .query_as::<Self>()
             .fetch_all(conn)
@@ -205,14 +205,13 @@ impl QuestionOptions {
         question_id: i32,
         conn: &PgPool,
     ) -> DBResult<Option<Self>> {
-        let option =
-            SimpleSelectQueryBuilderV2::new(Self::table_name(), QuestionOptionsColumn::all())
-                .where_equals(QuestionOptionsColumn::StringId, string_id)
-                .where_equals(QuestionOptionsColumn::QuestionId, question_id)
-                .limit(1)
-                .query_as::<Self>()
-                .fetch_optional(conn)
-                .await?;
+        let option = SelectQueryBuilder::new(Self::table_name(), QuestionOptionsColumn::all())
+            .where_equals(QuestionOptionsColumn::StringId, string_id)
+            .where_equals(QuestionOptionsColumn::QuestionId, question_id)
+            .limit(1)
+            .query_as::<Self>()
+            .fetch_optional(conn)
+            .await?;
         Ok(option)
     }
     pub async fn find_option_with_red_cap_index_and_in_question(
@@ -220,14 +219,13 @@ impl QuestionOptions {
         question_id: i32,
         conn: &PgPool,
     ) -> DBResult<Option<Self>> {
-        let option =
-            SimpleSelectQueryBuilderV2::new(Self::table_name(), QuestionOptionsColumn::all())
-                .where_equals(QuestionOptionsColumn::RedCapOptionIndex, red_cap_index)
-                .where_equals(QuestionOptionsColumn::QuestionId, question_id)
-                .limit(1)
-                .query_as::<Self>()
-                .fetch_optional(conn)
-                .await?;
+        let option = SelectQueryBuilder::new(Self::table_name(), QuestionOptionsColumn::all())
+            .where_equals(QuestionOptionsColumn::RedCapOptionIndex, red_cap_index)
+            .where_equals(QuestionOptionsColumn::QuestionId, question_id)
+            .limit(1)
+            .query_as::<Self>()
+            .fetch_optional(conn)
+            .await?;
         Ok(option)
     }
 }

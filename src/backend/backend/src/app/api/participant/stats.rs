@@ -5,10 +5,10 @@ use axum::{
 };
 use cs25_303_core::database::{
     red_cap::{
-        case_notes::queries::{BloodPressureHistory, WeightHistory},
+        case_notes::queries::{BloodPressureHistory, BloodPressureReadings, WeightHistory},
         participants::Participants,
     },
-    tools::PageParams,
+    tools::{PageParams, PaginatedResponse},
 };
 use tracing::instrument;
 use utoipa::OpenApi;
@@ -21,7 +21,7 @@ use crate::{
 #[derive(OpenApi)]
 #[openapi(
     paths(participant_weight_history, bp_history),
-    components(schemas(WeightHistory, BloodPressureHistory))
+    components(schemas(WeightHistory, BloodPressureHistory, BloodPressureReadings))
 )]
 pub struct ParticipantStatAPI;
 
@@ -43,12 +43,11 @@ pub fn stat_routes() -> axum::Router<SiteState> {
         PageParams,
     ),
     responses(
-        (status = 200, description = "Participant Weight History", body = Vec<WeightHistory>),
+        (status = 200, description = "Participant Weight History", body = PaginatedResponse<WeightHistory>),
         (status = 404, description = "Participant Not Found"),
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
     )
 )]
 #[instrument]
@@ -78,12 +77,11 @@ pub async fn participant_weight_history(
     ),
     summary="Fetch the blood pressure history for a participant",
     responses(
-        (status = 200, description = "Blood Pressure History", body = Vec<BloodPressureHistory>),
+        (status = 200, description = "Blood Pressure History", body = PaginatedResponse<BloodPressureHistory>),
         (status = 404, description = "Participant Not Found"),
     ),
     security(
         ("session" = []),
-        ("api_token" = []),
     )
 )]
 #[instrument]

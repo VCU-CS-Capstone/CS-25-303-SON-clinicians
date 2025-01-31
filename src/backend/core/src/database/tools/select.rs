@@ -1,175 +1,302 @@
-use std::fmt::Display;
+use super::{
+    where_sql::{format_where, WhereBuilder, WhereComparison},
+    ColumnType, DynColumn, FormatSql, FormatSqlQuery, HasArguments, PaginationSupportingTool,
+    QueryTool, SQLOrder, WhereableTool,
+};
+use sqlx::{Database, Postgres};
+mod sub;
 
-use sqlx::{Arguments, Database, Encode, Postgres, Type};
+mod count;
+mod exists;
+pub use count::*;
+pub use exists::*;
+pub use sub::*;
 
-use super::{concat_columns, AndOr, ColumnType, DynColumn, HasArguments, QueryTool, SQLComparison};
-
-pub struct SimpleSelectQueryBuilder<'args> {
-    query: String,
-    arguments: Option<<Postgres as Database>::Arguments<'args>>,
-    created_where: bool,
-    added_limit: bool,
+pub enum SubQueryOrColumn<C> {
+    SelectSubQuery(SelectSubQuery),
+    Column(C),
 }
-impl<'args> SimpleSelectQueryBuilder<'args> {
-    pub fn new<C>(table: &str, columns: &[C]) -> Self
-    where
-        C: ColumnType,
-    {
-        let columns = concat_columns(columns, Some(table));
-        let query = format!("SELECT {columns} FROM {table}");
-        Self {
-            query: query.to_string(),
-            arguments: Some(Default::default()),
-            created_where: false,
-            added_limit: false,
+impl<C: FormatSql> FormatSql for SubQueryOrColumn<C> {
+    fn format_sql(&self) -> std::borrow::Cow<'_, str> {
+        match self {
+            SubQueryOrColumn::SelectSubQuery(query) => query.format_sql(),
+            SubQueryOrColumn::Column(column) => column.format_sql(),
         }
     }
-
-    pub fn push(&mut self, value: impl Display) -> &mut Self {
-        self.query.push_str(&value.to_string());
-        self
+}
+impl<C> SubQueryOrColumn<C> {
+    pub fn as_column(&self) -> Option<&C> {
+        match self {
+            SubQueryOrColumn::SelectSubQuery(_) => None,
+            SubQueryOrColumn::Column(column) => Some(column),
+        }
     }
-    pub fn push_bind<T>(&mut self, value: T) -> &mut Self
+    pub fn map_to_dyn_column(self) -> SubQueryOrColumn<DynColumn>
     where
-        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
+        C: ColumnType + 'static,
     {
-        let arguments = self
-            .arguments
-            .as_mut()
-            .expect("BUG: Arguments taken already");
-        arguments.add(value).expect("Failed to add argument");
-
-        arguments
-            .format_placeholder(&mut self.query)
-            .expect("error in format_placeholder");
-        self
+        self.map_column_type(|column| column.dyn_column())
     }
-    /// Adds a WHERE clause to the query with the given column and value.
-    ///
-    /// # Example
-    /// ```rust
-    /// use cs25_303_core::database::prelude::*;
-    /// use cs25_303_core::database::red_cap::participants::health_overview::HealthOverviewColumn;
-    /// let mut result =
-    ///     SimpleSelectQueryBuilder::new("participant_health_overview", &HealthOverviewColumn::all());
-    /// result.where_equals(HealthOverviewColumn::ParticipantId, 1);
-    ///
-    /// println!("{}", result.sql());
-    /// ```
-    pub fn where_equals<C, T>(&mut self, column: C, value: T) -> &mut Self
+    pub fn map_column_type<F, O>(self, map: F) -> SubQueryOrColumn<O>
     where
         C: ColumnType,
-        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
+        O: ColumnType,
+        F: FnOnce(C) -> O,
     {
-        self.where_inner::<C, T>(column, SQLComparison::Equals, value);
-        self
-    }
-    pub fn where_equals_then<C, T, F>(&mut self, column: C, value: T, then: F) -> &mut Self
-    where
-        C: ColumnType,
-        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
-        F: FnOnce(&mut SimpleSelectWhereQueryBuilder<'_, 'args>),
-    {
-        let mut this = self.where_inner::<C, T>(column, SQLComparison::Equals, value);
-        then(&mut this);
-        self
-    }
-    pub fn where_like_then<C, T, F>(&mut self, column: C, value: T, then: F) -> &mut Self
-    where
-        C: ColumnType,
-        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
-        F: FnOnce(&mut SimpleSelectWhereQueryBuilder<'_, 'args>),
-    {
-        let mut this = self.where_inner::<C, T>(column, SQLComparison::Like, value);
-        then(&mut this);
-        self
-    }
-    pub fn limit(&mut self, limit: i64) -> &mut Self {
-        assert!(!self.added_limit, "LIMIT already added");
-        self.push(format!(" LIMIT {}", limit));
-        self.added_limit = true;
-        self
-    }
-    fn where_inner<C, T>(
-        &mut self,
-        column: C,
-        comparison: SQLComparison,
-        value: T,
-    ) -> SimpleSelectWhereQueryBuilder<'_, 'args>
-    where
-        C: ColumnType,
-        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
-    {
-        assert!(!self.created_where, "WHERE clause already created");
-        self.push(format!(
-            " WHERE {} {} ",
-            column.formatted_column(),
-            comparison
-        ));
-        self.push_bind(value);
-        SimpleSelectWhereQueryBuilder { query: self }
+        match self {
+            SubQueryOrColumn::SelectSubQuery(query) => SubQueryOrColumn::SelectSubQuery(query),
+            SubQueryOrColumn::Column(column) => SubQueryOrColumn::Column(map(column)),
+        }
     }
 }
-impl<'args> HasArguments<'args> for SimpleSelectQueryBuilder<'args> {
+
+pub struct SelectQueryBuilder<'args, C: ColumnType> {
+    table: &'static str,
+    columns_to_select: Vec<SubQueryOrColumn<C>>,
+    where_comparisons: Vec<WhereComparison>,
+    sql: Option<String>,
+    arguments: Option<<Postgres as Database>::Arguments<'args>>,
+    limit: Option<i32>,
+    offset: Option<i32>,
+    order_by: Option<(C, SQLOrder)>,
+}
+impl<C: ColumnType> PaginationSupportingTool for SelectQueryBuilder<'_, C> {
+    fn limit(&mut self, limit: i32) -> &mut Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    fn offset(&mut self, offset: i32) -> &mut Self {
+        self.offset = Some(offset);
+        self
+    }
+}
+impl<'args, C> SelectQueryBuilder<'args, C>
+where
+    C: ColumnType,
+{
+    pub fn new(table: &'static str, columns: impl Into<Vec<C>>) -> Self {
+        let columns = columns
+            .into()
+            .into_iter()
+            .map(SubQueryOrColumn::Column)
+            .collect();
+        Self {
+            table,
+            columns_to_select: columns,
+            where_comparisons: Vec::new(),
+            sql: None,
+            arguments: Some(Default::default()),
+            limit: None,
+            offset: None,
+            order_by: None,
+        }
+    }
+    pub fn map_to_dyn_column(self) -> SelectQueryBuilder<'args, DynColumn>
+    where
+        C: Send + Sync + 'static,
+    {
+        let Self {
+            table,
+            columns_to_select,
+            where_comparisons,
+            sql,
+            arguments,
+            limit,
+            offset,
+            order_by,
+        } = self;
+
+        let columns_to_select = columns_to_select
+            .into_iter()
+            .map(|column| column.map_to_dyn_column())
+            .collect();
+        let order_by = order_by.map(|(column, order)| (DynColumn::new(column), order));
+        SelectQueryBuilder {
+            table,
+            columns_to_select,
+            where_comparisons,
+            sql,
+            arguments,
+            limit,
+            offset,
+            order_by,
+        }
+    }
+    pub fn order_by(&mut self, column: C, order: SQLOrder) -> &mut Self {
+        self.order_by = Some((column, order));
+        self
+    }
+
+    pub fn where_column<SC, F>(&mut self, column: SC, where_: F) -> &mut Self
+    where
+        SC: ColumnType + 'static,
+        F: FnOnce(WhereBuilder<'_, 'args, Self>) -> WhereComparison,
+    {
+        let builder = WhereBuilder::new(self, column);
+        let where_comparison = where_(builder);
+
+        self.where_comparisons.push(where_comparison);
+
+        self
+    }
+
+    pub fn select_also<F>(&mut self, table: &'static str, select: F) -> &mut Self
+    where
+        F: FnOnce(SelectSubQueryBuilder<'_, 'args, Self>) -> SelectSubQuery,
+    {
+        let builder = SelectSubQueryBuilder::new(table, self);
+        let select_query = select(builder);
+
+        self.columns_to_select
+            .push(SubQueryOrColumn::SelectSubQuery(select_query));
+
+        self
+    }
+}
+
+impl<'args, C> QueryTool<'args> for SelectQueryBuilder<'args, C>
+where
+    C: ColumnType,
+{
+    fn sql(&mut self) -> &str {
+        let concat_columns = self
+            .columns_to_select
+            .iter_mut()
+            .map(|item| match item {
+                SubQueryOrColumn::SelectSubQuery(select_sub_query) => {
+                    select_sub_query.format_sql_query().to_owned()
+                }
+                SubQueryOrColumn::Column(column) => column
+                    .format_column_with_prefix(Some(&self.table))
+                    .into_owned(),
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let mut sql = format!(
+            "SELECT {columns} FROM {table}",
+            columns = concat_columns,
+            table = self.table
+        );
+
+        if !self.where_comparisons.is_empty() {
+            let where_sql = format_where(&self.where_comparisons);
+            sql.push_str(" WHERE ");
+            sql.push_str(&where_sql);
+        }
+
+        if let Some((column, order)) = &self.order_by {
+            sql.push_str(" ORDER BY ");
+            sql.push_str(column.column_name());
+            sql.push(' ');
+            sql.push_str(order.as_ref());
+        }
+
+        if let Some(limit) = self.limit {
+            sql.push_str(" LIMIT ");
+            sql.push_str(&limit.to_string());
+        }
+        if let Some(offset) = self.offset {
+            sql.push_str(" OFFSET ");
+            sql.push_str(&offset.to_string());
+        }
+        self.sql = Some(sql);
+
+        self.sql.as_ref().expect("SQL not set")
+    }
+}
+impl<'args, C> HasArguments<'args> for SelectQueryBuilder<'args, C>
+where
+    C: ColumnType,
+{
     fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
         self.arguments.take().expect("Arguments already taken")
     }
-
     fn borrow_arguments_or_error(&mut self) -> &mut <Postgres as Database>::Arguments<'args> {
         self.arguments.as_mut().expect("Arguments already taken")
     }
 }
-
-impl<'args> QueryTool<'args> for SimpleSelectQueryBuilder<'args> {
-    fn sql(&mut self) -> &str {
-        &self.query
+impl<'args, C> WhereableTool<'args> for SelectQueryBuilder<'args, C>
+where
+    C: ColumnType,
+{
+    #[inline]
+    fn push_where_comparison(&mut self, comparison: WhereComparison) {
+        self.where_comparisons.push(comparison);
     }
 }
-pub struct SimpleSelectWhereQueryBuilder<'query, 'args> {
-    query: &'query mut SimpleSelectQueryBuilder<'args>,
-}
+#[cfg(test)]
+mod tests {
 
-impl<'args> SimpleSelectWhereQueryBuilder<'_, 'args> {
-    pub fn and_equals<C, T>(&mut self, column: C, value: T) -> &mut Self
-    where
-        C: ColumnType + 'static,
-        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
-    {
-        self.and_or_inner::<C, T>(AndOr::And, column, SQLComparison::Equals, value)
-    }
-    pub fn and_like<C, T>(&mut self, column: C, value: T) -> &mut Self
-    where
-        C: ColumnType + 'static,
-        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
-    {
-        self.and_or_inner::<C, T>(AndOr::And, column, SQLComparison::Like, value)
-    }
-    pub fn or_equals<C, T>(&mut self, column: C, value: T) -> &mut Self
-    where
-        C: ColumnType + 'static,
-        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
-    {
-        self.and_or_inner::<C, T>(AndOr::Or, column, SQLComparison::Equals, value)
+    use sqlformat::{FormatOptions, QueryParams};
+
+    use crate::database::{
+        prelude::*,
+        tools::{
+            select::SelectQueryBuilder,
+            testing::{AnotherTable, AnotherTableColumn, TestTableColumn},
+        },
+    };
+
+    #[test]
+    pub fn test_builder() {
+        let mut query = SelectQueryBuilder::new("test_table", TestTableColumn::all());
+
+        query.where_column(TestTableColumn::Id, |builder| builder.equals(1).build());
+
+        query.where_column(TestTableColumn::Name, |builder| {
+            builder
+                .equals("test")
+                .or(TestTableColumn::Age, |builder| builder.equals(2).build())
+        });
+        query.limit(10);
+
+        query.order_by(TestTableColumn::Id, SQLOrder::Ascending);
+
+        let sql = query.sql();
+
+        assert_eq!(
+            sql,
+            "SELECT test_table.id, test_table.name, test_table.age, test_table.email FROM test_table WHERE (test_table.id = $1) AND (test_table.name = $2 OR test_table.age = $3) ORDER BY id ASC LIMIT 10"
+        );
+
+        let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
+
+        println!("{}", sql);
     }
 
-    fn and_or_inner<C, T>(
-        &mut self,
-        and_or: AndOr,
-        column: C,
-        comparison: SQLComparison,
-        value: T,
-    ) -> &mut Self
-    where
-        C: ColumnType + 'static,
-        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
-    {
-        self.query.push(format!(
-            " {} {} {} ",
-            and_or,
-            column.formatted_column(),
-            comparison,
-        ));
-        self.query.push_bind(value);
-        self
+    #[test]
+    pub fn test_sub_query() {
+        let mut query = SelectQueryBuilder::new("test_table", TestTableColumn::all());
+
+        query.where_column(TestTableColumn::Id, |builder| builder.equals(1).build());
+
+        query.where_column(TestTableColumn::Name, |builder| {
+            builder
+                .equals("test")
+                .or(TestTableColumn::Age, |builder| builder.equals(2).build())
+        });
+        query.limit(10);
+
+        query.order_by(TestTableColumn::Id, SQLOrder::Ascending);
+
+        query.select_also(AnotherTable::table_name(), |mut builder| {
+            builder
+                .column(AnotherTableColumn::Id)
+                .where_column(AnotherTableColumn::Age, |value| {
+                    value.equals_column(TestTableColumn::Age).build()
+                })
+                .build_as("another_table_id")
+        });
+        let sql = query.sql();
+
+        let formatted_sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
+
+        println!("{}", formatted_sql);
+        assert_eq!(
+            sql,
+            "SELECT test_table.id, test_table.name, test_table.age, test_table.email, (SELECT another_table.id FROM another_table WHERE another_table.age = test_table.age LIMIT 1) AS another_table_id FROM test_table WHERE (test_table.id = $1) AND (test_table.name = $2 OR test_table.age = $3) ORDER BY id ASC LIMIT 10"
+        );
     }
 }
