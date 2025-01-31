@@ -8,20 +8,21 @@ export default function RecentVisits({ participantId }: { participantId: number 
   const [visits, setVisits] = useState<RecentVisit[] | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
-  const fetchVisits = async () => {
-    try {
-      const patient = await api.participants.getRecentVisits(participantId);
-      setVisits(patient);
-      setError(undefined);
-      setLoading(false);
-    } catch (e: any) {
-      setError(e.message as string);
-      setLoading(false);
-    }
-  };
+
   useEffect(() => {
+    const fetchVisits = async () => {
+      try {
+        const patient = await api.participants.getRecentVisits(participantId);
+        setVisits(patient);
+        setError(undefined);
+        setLoading(false);
+      } catch (e: any) {
+        setError(e.message as string);
+        setLoading(false);
+      }
+    };
     fetchVisits();
-  }, []);
+  }, [participantId]);
 
   return (
     <FlatList

@@ -1,12 +1,12 @@
 {
-    "build": {
-        "preview": {
-            "android": {
-                "buildType": "apk"
-            },
-            "env": {
-                "EXPO_PUBLIC_API_URL": "https://cs-25-303.wyatt-herkamp.dev/api"
-            }
-        }
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://cs-25-303.wyatt-herkamp.dev/api"
+      }
     }
+  }
 }

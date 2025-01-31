@@ -153,7 +153,7 @@ function HealthOverviewBox({
 function YesOrNo({ label, value }: { label: string; value?: boolean }) {
   return (
     <View className="mb-4">
-      <Text className="text-2xl  font-bold ">
+      <Text className="text-2xl font-bold">
         {label}: {value ? 'Yes' : 'No'}
       </Text>
     </View>

@@ -7,7 +7,8 @@
     "ios": "expo run:ios",
     "start": "expo start",
     "prebuild": "expo prebuild",
-    "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
+    "lint": "eslint \"**/*.{js,jsx,ts,tsx}\"",
+    "lint-fix": "eslint --fix \"**/*.{js,jsx,ts,tsx}\"",
     "format": "prettier \"**/*.{js,jsx,ts,tsx,json}\" --write",
     "web": "expo start --web"
   },
@@ -46,7 +47,6 @@
     "eslint": "^8.57.0",
     "eslint-config-expo": "^8.0.1",
     "eslint-config-prettier": "^10.0.1",
-    "eslint-config-universe": "^12.0.1",
     "eslint-plugin-prettier": "^5.2.3",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.11",

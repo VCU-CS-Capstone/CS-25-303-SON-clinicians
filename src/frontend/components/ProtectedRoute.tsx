@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { View, Text } from 'react-native';
 
-import LogOutButton from '~/components/LogOutButton';
 import { useSession } from '~/contexts/SessionContext';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {

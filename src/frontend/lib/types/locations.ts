@@ -9,6 +9,7 @@ export enum Program {
   MHWP = 'MHWP',
 }
 export namespace Program {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function fullName(program: Program): string {
     switch (program) {
       case Program.RHWP:
