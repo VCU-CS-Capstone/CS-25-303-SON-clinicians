@@ -1,18 +1,27 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Link, useLocalSearchParams } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 
 import { Button } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 const DrawerLayout = () => {
-  const navigation = useNavigation();
   // TODO: Add a back button to go up the stack by one
   const { participant_id } = useLocalSearchParams<{ participant_id: string }>();
 
   return (
     <>
       <Drawer>
+        <Drawer.Screen
+          name="go-back"
+          options={{
+            headerTitle: 'Go Back',
+            drawerLabel: 'Back',
+            drawerIcon: ({ size, color }) => (
+              <Ionicons name="home-outline" size={size} color={color} />
+            ),
+          }}
+        />
         <Drawer.Screen
           name="overview"
           //This is required to make sure when the user navigates to the overview page, the participant_id is passed as a parameter
