@@ -1,8 +1,10 @@
 import { AntDesign } from '@expo/vector-icons';
 import { Link, router, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LocationName } from '~/components/LocationName';
 import { ProgramSelector } from '~/components/ProgramSelector';
 import ProtectedRoute from '~/components/ProtectedRoute';
 import api from '~/lib/api';
@@ -26,7 +28,6 @@ export default function SearchParticipant() {
         first_name: firstName,
         last_name: lastName,
       });
-      console.log('Got Response', participantsResponse.data);
 
       setParticipants(participantsResponse.data);
     } catch (e: any) {
@@ -64,11 +65,13 @@ export default function SearchParticipant() {
           />
         </View>
       </View>
-      <FlatList
-        data={participants}
-        renderItem={({ item }) => <ParticipantLookupItem participant={item} />}
-        keyExtractor={(item) => item.id.toString()}
-      />
+      <SafeAreaView style={{ flex: 1 }}>
+        <FlatList
+          data={participants}
+          renderItem={({ item }) => <ParticipantLookupItem participant={item} />}
+          keyExtractor={(item) => item.id.toString()}
+        />
+      </SafeAreaView>
     </ProtectedRoute>
   );
 }
@@ -92,12 +95,12 @@ function ParticipantLookupItem({ participant }: { participant: ParticipantLookup
         params: { participant_id: participant.id },
       }}
     >
-      <View className="mb-4 border-2 border-solid border-red-100">
-        <Text>
+      <View className="mb-4 w-1/4 border-2 border-solid border-red-100">
+        <Text className="text-xl font-bold">
           {participant.first_name} {participant.last_name}
         </Text>
         <Text>{participant.program}</Text>
-        <Text>{participant.location}</Text>
+        <LocationName locationId={participant.location} />
       </View>
     </Link>
   );

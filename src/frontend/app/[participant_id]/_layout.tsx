@@ -18,7 +18,7 @@ const DrawerLayout = () => {
             headerTitle: 'Go Back',
             drawerLabel: 'Back',
             drawerIcon: ({ size, color }) => (
-              <Ionicons name="home-outline" size={size} color={color} />
+              <Ionicons name="return-up-back-outline" size={size} color={color} />
             ),
           }}
         />
@@ -63,6 +63,17 @@ const DrawerLayout = () => {
           options={{
             headerTitle: 'Weight Trends',
             drawerLabel: 'Weight Trends',
+            drawerIcon: ({ size, color }) => (
+              <Ionicons name="home-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="medications"
+          initialParams={{ participant_id: participant_id }}
+          options={{
+            headerTitle: 'Medications',
+            drawerLabel: 'Medications',
             drawerIcon: ({ size, color }) => (
               <Ionicons name="home-outline" size={size} color={color} />
             ),

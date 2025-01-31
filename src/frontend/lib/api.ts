@@ -10,6 +10,7 @@ import {
 } from './types/participant';
 import * as SecureStore from 'expo-secure-store';
 import { Location } from './types/locations';
+import { MedicationEntry } from './types/medications';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -129,9 +130,7 @@ const api = {
         throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
       }
     },
-    fetchWeightHistory: async (id: number, page_size?: number, page?: number) => {
-      const pageNumber = page || 1;
-      const pageSize = page_size || 10;
+    fetchWeightHistory: async (id: number, pageSize: number = 15, pageNumber: number = 1) => {
       const response = await api.getSecure(
         `/participant/stats/weight/history/${id}?page_size=${pageSize}&page=${pageNumber}`
       );
@@ -143,10 +142,25 @@ const api = {
         throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
       }
     },
+    fetchParticipantMedications: async (id: number, page_size: number = 10, page: number = 1) => {
+      const response = await api.getSecure(`/participant/medications/${id}/all`);
+      if (response.ok) {
+        return (await response.json()) as MedicationEntry[];
+      } else if (response.status === 404) {
+        return undefined;
+      } else {
+        throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
+      }
+    },
     lookup: async (
-      lookup: ParticipantLookupRequest
+      lookup: ParticipantLookupRequest,
+      page_size: number = 15,
+      page: number = 1
     ): Promise<PaginatedResponse<ParticipantLookupResponse>> => {
-      const response = await api.postSecure('/participant/lookup', lookup);
+      const response = await api.postSecure(
+        `/participant/lookup?page_size=${page_size}&page=${page}`,
+        lookup
+      );
       if (!response.ok) {
         throw new Error(`Failed to fetch participant lookup, Error: ${response.status}`);
       }

@@ -37,13 +37,20 @@ const DrawerLayout = () => (
         drawerIcon: ({ size, color }) => <Ionicons name="home-outline" size={size} color={color} />,
       }}
     />
-
     <Drawer.Screen
       name="logout"
       options={{
         headerTitle: 'Logout',
         drawerLabel: 'Logout',
         drawerIcon: ({ size, color }) => <Ionicons name="home-outline" size={size} color={color} />,
+      }}
+    />{' '}
+    <Drawer.Screen
+      name="locations"
+      options={{
+        headerTitle: 'Locations',
+        drawerLabel: 'Locations',
+        drawerIcon: ({ size, color }) => <Ionicons name="map-outline" size={size} color={color} />,
       }}
     />
   </Drawer>

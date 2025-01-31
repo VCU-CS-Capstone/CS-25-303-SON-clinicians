@@ -34,6 +34,9 @@ const LoginScreen = () => {
           className="mb-4 rounded border p-2"
           placeholder="Username"
           value={username}
+          autoCorrect={false}
+          autoFocus={true}
+          autoComplete="username"
           onChangeText={setUsername}
           autoCapitalize="none"
         />
@@ -41,8 +44,11 @@ const LoginScreen = () => {
           className="mb-4 rounded border p-2"
           placeholder="Password"
           value={password}
+          autoCorrect={false}
+          autoComplete="password"
           onChangeText={setPassword}
           secureTextEntry
+          autoCapitalize="none"
         />
         <Button title="Login" onPress={handleLogin} />
       </View>

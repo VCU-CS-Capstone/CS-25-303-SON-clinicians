@@ -2,24 +2,22 @@ import { useEffect, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import ProtectedRoute from '~/components/ProtectedRoute';
 import api from '~/lib/api';
-import { Location, Program } from '~/lib/types/locations';
+import {
+  Location,
+  LocationWithParentItem,
+  organizeLocationsToWithParents,
+  Program,
+} from '~/lib/types/locations';
 
 export default function ShowLocations() {
-  const [locations, setLocations] = useState<Map<Program, Location[]>>(new Map());
+  const [locations, setLocations] = useState<LocationWithParentItem[]>([]);
   const [error, setError] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const fetchLocations = async () => {
     try {
       const locationsResponse = await api.locations.fetchAll();
 
-      for (const location of locationsResponse) {
-        console.log(location);
-
-        if (!locations.has(location.program)) {
-          locations.set(location.program, []);
-        }
-        locations.get(location.program)?.push(location);
-      }
+      setLocations(organizeLocationsToWithParents(locationsResponse));
       setError(undefined);
       setLoading(false);
     } catch (e: any) {
@@ -33,19 +31,12 @@ export default function ShowLocations() {
 
   return (
     <ProtectedRoute>
-      <View>
-        <Text>Mobile Health and Wellness Location </Text>
+      <View className="px-2">
+        <View className="mb-4 border-b px-2">
+          <Text className="text-lg">Lists all the locations in the system. </Text>
+        </View>
         <FlatList
-          data={locations.get(Program.MHWP) || []}
-          renderItem={({ item }) => <LocationSummary location={item} />}
-          keyExtractor={(item) => item.id.toString()}
-        />
-      </View>
-      <View>
-        <Text>Mobile Health and Wellness Location </Text>
-
-        <FlatList
-          data={locations.get(Program.RHWP) || []}
+          data={locations || []}
           renderItem={({ item }) => <LocationSummary location={item} />}
           keyExtractor={(item) => item.id.toString()}
         />
@@ -54,12 +45,16 @@ export default function ShowLocations() {
   );
 }
 
-function LocationSummary({ location }: { location: Location }) {
+function LocationSummary({ location }: { location: LocationWithParentItem }) {
   return (
     <View className="mb-4 border-2 border-solid border-red-100">
-      <Text>{location.id}</Text>
-      <Text>{location.name}</Text>
-      <Text>{location.parent_location}</Text>
+      <Text className="text-xl">
+        {location.name} - ID# {location.id}
+      </Text>
+      <Text>Program: {Program.fullName(location.program)}</Text>
+      {location.parent_location ? (
+        <Text className="text-lg">Parent Location: {location.parent_location.name}</Text>
+      ) : null}
     </View>
   );
 }
