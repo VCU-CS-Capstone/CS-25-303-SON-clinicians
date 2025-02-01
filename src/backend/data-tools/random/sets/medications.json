@@ -290,17 +290,5 @@
             ]
         },
         "frequency": "Daily"
-    },
-    {
-        "name": "Warfarin",
-        "dosage": {
-            "random": "Array",
-            "options": [
-                "10mg",
-                "20mg",
-                "30mg"
-            ]
-        },
-        "frequency": "Daily"
     }
 ]

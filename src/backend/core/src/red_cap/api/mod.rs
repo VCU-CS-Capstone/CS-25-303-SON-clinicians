@@ -181,27 +181,32 @@ mod tests {
     use anyhow::Context;
     use tracing::warn;
 
-    use crate::red_cap::{
-        api::{ExportOptions, Fields, Forms, RedcapClient},
-        converter::{
-            case_notes::{OtherCaseNoteData, RedCapCaseNoteBase, RedCapHealthMeasures},
-            goals::RedCapCompleteGoals,
-            medications::RedCapMedication,
-            participants::{
-                RedCapHealthOverview, RedCapParticipant, RedCapParticipantDemographics,
+    use crate::{
+        red_cap::{
+            api::{ExportOptions, Fields, Forms, RedcapClient},
+            converter::{
+                case_notes::{OtherCaseNoteData, RedCapCaseNoteBase, RedCapHealthMeasures},
+                goals::RedCapCompleteGoals,
+                medications::RedCapMedication,
+                participants::{
+                    RedCapHealthOverview, RedCapParticipant, RedCapParticipantDemographics,
+                },
+                RedCapConverter,
             },
-            RedCapConverter,
+            processing::process_flat_json,
         },
-        processing::process_flat_json,
+        utils::testing::config::testing::{get_testing_config, no_testing_config},
     };
 
     #[tokio::test]
     #[ignore]
     pub async fn test_next_record_id() -> anyhow::Result<()> {
-        let env = crate::env_utils::read_env_file_in_core("test.env").unwrap();
-        crate::test_utils::init_logger();
-        let client =
-            RedcapClient::new(env.get("RED_CAP_TOKEN").context("No RED_CAP_TOKEN")?).await?;
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
+        let client = RedcapClient::new(config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
         let next_id = client.get_next_record_id().await.unwrap();
 
         println!("Next ID: {}", next_id);
@@ -212,10 +217,12 @@ mod tests {
     #[tokio::test]
     #[ignore]
     pub async fn get_all_record_ids() -> anyhow::Result<()> {
-        let env = crate::env_utils::read_env_file_in_core("test.env").unwrap();
-        crate::test_utils::init_logger();
-        let client =
-            RedcapClient::new(env.get("RED_CAP_TOKEN").context("No RED_CAP_TOKEN")?).await?;
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
+        let client = RedcapClient::new(config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
         let records = client
             .get_flat_json_forms(ExportOptions {
                 fields: Some(vec![Fields::RecordID].into()),
@@ -231,13 +238,15 @@ mod tests {
     #[tokio::test]
     #[ignore]
     pub async fn get_base_forms_for_id_1() -> anyhow::Result<()> {
-        let env = crate::env_utils::read_env_file_in_core("test.env").unwrap();
-        crate::test_utils::init_logger();
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
 
-        let database = crate::database::tests::connect_to_db_with(&env).await?;
+        let database = config.database.connect().await?;
         let mut converter = RedCapConverter::new(database).await?;
-        let client =
-            RedcapClient::new(env.get("RED_CAP_TOKEN").context("No RED_CAP_TOKEN")?).await?;
+        let client = RedcapClient::new(config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
 
         let records = client
             .get_flat_json_forms(ExportOptions {
@@ -267,13 +276,14 @@ mod tests {
     #[tokio::test]
     #[ignore]
     pub async fn get_case_notes_for_id_1() -> anyhow::Result<()> {
-        let env = crate::env_utils::read_env_file_in_core("test.env").unwrap();
-        crate::test_utils::init_logger();
-
-        let database = crate::database::tests::connect_to_db_with(&env).await?;
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
+        let database = config.database.connect().await?;
         let mut converter = RedCapConverter::new(database).await?;
-        let client =
-            RedcapClient::new(env.get("RED_CAP_TOKEN").context("No RED_CAP_TOKEN")?).await?;
+        let client = RedcapClient::new(config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
         let records = client
             .get_flat_json_forms(ExportOptions {
                 forms: Some(vec![Forms::CaseNotes].into()),
@@ -303,10 +313,12 @@ mod tests {
     #[tokio::test]
     #[ignore]
     pub async fn get_goals_for_id_1() -> anyhow::Result<()> {
-        let env = crate::env_utils::read_env_file_in_core("test.env").unwrap();
-        crate::test_utils::init_logger();
-        let client =
-            RedcapClient::new(env.get("RED_CAP_TOKEN").context("No RED_CAP_TOKEN")?).await?;
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
+        let client = RedcapClient::new(config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
         let records = client
             .get_flat_json_forms(ExportOptions {
                 forms: Some(vec![Forms::WellnessGoals].into()),
@@ -328,10 +340,12 @@ mod tests {
     #[tokio::test]
     #[ignore]
     pub async fn get_medications_for_id_1() -> anyhow::Result<()> {
-        let env = crate::env_utils::read_env_file_in_core("test.env").unwrap();
-        crate::test_utils::init_logger();
-        let client =
-            RedcapClient::new(env.get("RED_CAP_TOKEN").context("No RED_CAP_TOKEN")?).await?;
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
+        let client = RedcapClient::new(config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
         let records = client
             .get_flat_json_forms(ExportOptions {
                 forms: Some(vec![Forms::Medications].into()),

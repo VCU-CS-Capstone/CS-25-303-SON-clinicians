@@ -1,4 +1,5 @@
 use ahash::HashMap;
+use chrono::{Local, NaiveDate};
 use cs25_303_core::{
     database::red_cap::{
         case_notes::{new::NewBloodPressure, BloodPressureType},
@@ -8,19 +9,50 @@ use cs25_303_core::{
             NewDemographics, NewHealthOverview, NewMedication,
         },
     },
-    red_cap::{Gender, HealthInsurance, Programs, Race, Status, VisitType},
+    red_cap::{
+        Ethnicity, Gender, HealthInsurance, PreferredLanguage, Programs, Race, Status, VisitType,
+    },
 };
 use rand::{seq::IndexedRandom, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use sqlx::PgPool;
+use tracing::{info, warn};
 
-use super::{RandomCompleteGoal, RandomMedication, RandomParticipant};
+use super::{utils::RandDate, RandomCompleteGoal, RandomMedication, RandomParticipant};
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 
 pub enum WeightCategory {
     Underweight,
     Overweight,
     Normal,
+}
+impl Default for WeightCategory {
+    fn default() -> Self {
+        WeightCategory::Normal
+    }
+}
+impl WeightCategory {
+    pub fn weight_for_female_in_class(&self, random: &mut impl Rng) -> f32 {
+        match self {
+            WeightCategory::Underweight => random.random_range(90..120) as f32,
+            WeightCategory::Overweight => random.random_range(160..200) as f32,
+            WeightCategory::Normal => random.random_range(120..160) as f32,
+        }
+    }
+    pub fn weight_for_male_in_class(&self, random: &mut impl Rng) -> f32 {
+        match self {
+            WeightCategory::Underweight => random.random_range(100..140) as f32,
+            WeightCategory::Overweight => random.random_range(180..220) as f32,
+            WeightCategory::Normal => random.random_range(140..180) as f32,
+        }
+    }
+    pub fn generic_weight_class(&self, random: &mut impl Rng) -> f32 {
+        match self {
+            WeightCategory::Underweight => random.random_range(90..140) as f32,
+            WeightCategory::Overweight => random.random_range(160..220) as f32,
+            WeightCategory::Normal => random.random_range(120..180) as f32,
+        }
+    }
 }
 /// Notes we will use for data generation
 ///
@@ -30,15 +62,30 @@ pub enum WeightCategory {
 /// and some people get marked as having diabetes
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ParticipantExtendedInfo {
+    /// If the participant has high blood pressure
     pub has_high_blood_pressure: bool,
+    /// If the participant has a blood pressure cuff
+    pub has_blood_pressure_cuff: bool,
+    /// If the participant has diabetes
     pub has_diabetes: bool,
+    /// The age of the participant
+    pub age: i16,
     pub gender: Gender,
     pub weight_category: WeightCategory,
+}
+
+impl ParticipantExtendedInfo {
+    pub fn weight_entry(&self, random: &mut impl Rng) -> f32 {
+        match self.gender {
+            Gender::Female => self.weight_category.weight_for_female_in_class(random),
+            Gender::Male => self.weight_category.weight_for_male_in_class(random),
+            _ => self.weight_category.generic_weight_class(random),
+        }
+    }
 }
 #[derive(Debug, Clone)]
 pub struct RandomSets {
     pub rand: rand::rngs::StdRng,
-    // TODO: Share a random generator
     pub participants: Vec<RandomParticipant>,
     pub goals: Vec<RandomCompleteGoal>,
     pub medications: Vec<RandomMedication>,
@@ -47,6 +94,7 @@ pub struct RandomSets {
     pub m_locations: Vec<Locations>,
     pub reasons_for_visit: Vec<String>,
     pub info_provided_by_caregiver: Vec<String>,
+    pub case_note_other_health_measures: Vec<String>,
     pub extended_patient_info: HashMap<i32, ParticipantExtendedInfo>,
 }
 impl Default for RandomSets {
@@ -62,17 +110,90 @@ impl Default for RandomSets {
             reasons_for_visit: Default::default(),
             info_provided_by_caregiver: Default::default(),
             extended_patient_info: Default::default(),
+            case_note_other_health_measures: Default::default(),
         }
     }
 }
 impl RandomSets {
-    pub fn randon_behavioral_risks_identified(&mut self) -> Option<String> {
+    /// Loads all the locations for the programs
+    #[tracing::instrument]
+    pub async fn load_locations(&mut self, db: &PgPool) -> anyhow::Result<()> {
+        self.r_locations = Locations::find_all_in_program(Programs::RHWP, db).await?;
+        self.m_locations = Locations::find_all_in_program(Programs::MHWP, db).await?;
+
+        Ok(())
+    }
+    pub fn random_behavioral_risks_identified(&mut self) -> Option<String> {
         Some(
             self.behbehavioral_risks_identified
                 .choose(&mut self.rand)
                 .unwrap()
                 .clone(),
         )
+    }
+    pub fn random_glucose_test(&mut self, participant: i32) -> (bool, Option<f32>, Option<bool>) {
+        if !self.rand_bool(0.80) {
+            return (false, None, None);
+        }
+        let fasted = self.rand_bool(0.5);
+
+        let glucose_level = if self.extended_patient_info[&participant].has_diabetes {
+            if fasted {
+                if self.rand_bool(0.5) {
+                    // They fasted for 8+ hours
+                    Some(self.rand.random_range(120..300) as f32)
+                } else {
+                    Some(self.rand.random_range(200..300) as f32)
+                }
+            } else {
+                // Just ate
+                Some(self.rand.random_range(220..300) as f32)
+            }
+        } else {
+            if fasted {
+                if self.rand_bool(0.5) {
+                    // They fasted for 8+ hours
+                    Some(self.rand.random_range(80..100) as f32)
+                } else {
+                    Some(self.rand.random_range(120..140) as f32)
+                }
+            } else {
+                // Just ate
+                Some(self.rand.random_range(170..200) as f32)
+            }
+        };
+        (true, glucose_level, Some(fasted))
+    }
+    pub fn first_week_and_numer_of_case_notes(&mut self) -> (NaiveDate, i64) {
+        let number_of_case_notes = self.rand.random_range(2..15);
+
+        let start_date = match self.rand.random_range(0..100) {
+            0..50 => {
+                // 50% change of being months ago
+                let first_visit = Local::now().date_naive()
+                    - chrono::Duration::weeks(self.rand.random_range(1..12) * 4);
+                first_visit
+            }
+            50..75 => {
+                // 25% of being weeks ago
+                Local::now().date_naive() - chrono::Duration::weeks(number_of_case_notes)
+            }
+            _ => self.rand.random_date_in_year(2024),
+        };
+
+        let earliest_possible_date =
+            Local::now().date_naive() - chrono::Duration::weeks(number_of_case_notes);
+
+        if start_date < earliest_possible_date {
+            warn!(
+                ?start_date,
+                ?earliest_possible_date,
+                "Start date is before the earliest possible date. Trying again"
+            );
+            self.first_week_and_numer_of_case_notes()
+        } else {
+            (start_date, number_of_case_notes)
+        }
     }
     pub fn random_health_overview(&mut self) -> NewHealthOverview {
         let height = match self.rand.random_range(0..100) {
@@ -89,21 +210,33 @@ impl RandomSets {
             ..Default::default()
         }
     }
-    pub fn random_demographics(&mut self, gender: Gender) -> NewDemographics {
-        let is_veteran = !matches!(self.rand.random_range(0..100), 0..90);
-        let (race, race_other, race_multiple) = match self.rand.random_range(0..100) {
-            0..50 => (Some(vec![Race::White]), None, None),
-            50..65 => (Some(vec![Race::Black]), None, None),
-            65..70 => (Some(vec![Race::Hispanic]), None, None),
+    pub fn random_demographics(&mut self, participant_id: i32) -> NewDemographics {
+        let extended_info = &self.extended_patient_info[&participant_id];
+        let is_veteran = self.rand.random_bool(0.1);
+        let ethnicity_none_or_not = match self.rand.random_range(0..100) {
+            0..50 => None,
+            _ => Some(Ethnicity::NotHispanicOrLatino),
+        };
+        let (race, race_other, race_multiple, ethnicity) = match self.rand.random_range(0..100) {
+            0..50 => (Some(vec![Race::White]), None, None, ethnicity_none_or_not),
+            50..65 => (Some(vec![Race::Black]), None, None, ethnicity_none_or_not),
+            65..70 => (
+                Some(vec![Race::Hispanic]),
+                None,
+                None,
+                Some(Ethnicity::HispanicOrLatino),
+            ),
             70..90 => (
                 Some(vec![Race::IdentifyOther]),
                 Some("Other".to_string()),
                 None,
+                ethnicity_none_or_not,
             ),
             _ => (
                 Some(vec![Race::Multiracial]),
                 None,
                 Some("White, Black".to_string()),
+                ethnicity_none_or_not,
             ),
         };
         let health_insurance = match self.rand.random_range(0..100) {
@@ -119,16 +252,35 @@ impl RandomSets {
             75..90 => Some(cs25_303_core::red_cap::DegreeLevel::Associates),
             _ => Some(cs25_303_core::red_cap::DegreeLevel::Bachelors),
         };
+        // 10% chance of the age not being here to simulate missing data
+        let age = match self.rand.random_range(0..100) {
+            0..5 => None,
+            _ => Some(extended_info.age),
+        };
+        let language = match self.rand.random_range(0..100) {
+            0..10 => None,
+            10..15 => Some(PreferredLanguage::Asl),
+            15..20 => Some(PreferredLanguage::Other("English".to_string())),
+            _ => {
+                if ethnicity == Some(Ethnicity::HispanicOrLatino) {
+                    Some(PreferredLanguage::Spanish)
+                } else {
+                    Some(PreferredLanguage::EnUs)
+                }
+            }
+        };
+
         NewDemographics {
-            age: Some(self.rand.random_range(18..85) as i16),
-            gender: Some(gender),
+            age,
+            gender: Some(extended_info.gender.clone()),
             is_veteran: Some(is_veteran),
             race,
             race_other,
             race_multiple,
             health_insurance,
             highest_education_level,
-            ..Default::default()
+            language,
+            ethnicity,
         }
     }
     pub fn random_medications(&mut self) -> Vec<NewMedication> {
@@ -145,7 +297,7 @@ impl RandomSets {
                 }
                 break random_med;
             };
-            meds.push(random.create_new_medication());
+            meds.push(random.create_new_medication(&mut self.rand));
         }
         meds
     }
@@ -155,7 +307,7 @@ impl RandomSets {
         let mut goals = Vec::with_capacity(number_of_goals);
         for _ in 0..number_of_goals {
             let random = self.goals.choose(&mut self.rand).unwrap();
-            goals.push(random.create_new_goal());
+            goals.push(random.create_new_goal(&mut self.rand));
         }
         goals
     }
@@ -203,61 +355,50 @@ impl RandomSets {
             _ => Some(VisitType::Onsite),
         }
     }
-    // TODO: Add Standing blood pressure
     pub fn random_blood_pressure(&mut self, participant: i32) -> Vec<NewBloodPressure> {
+        let mut bps = Vec::with_capacity(3);
         let should_add_stand = self.rand_bool(0.25);
         if self.extended_patient_info[&participant].has_high_blood_pressure {
-            let mut result = vec![NewBloodPressure {
+            bps.push(NewBloodPressure {
                 blood_pressure_type: BloodPressureType::Sit,
                 systolic: self.rand.random_range(130..180) as i16,
                 diastolic: self.rand.random_range(80..120) as i16,
-            }];
+            });
             if should_add_stand {
-                result.push(NewBloodPressure {
+                bps.push(NewBloodPressure {
                     blood_pressure_type: BloodPressureType::Stand,
                     systolic: self.rand.random_range(130..180) as i16,
                     diastolic: self.rand.random_range(80..120) as i16,
                 });
             }
-            result
         } else {
-            let mut result = vec![NewBloodPressure {
+            bps.push(NewBloodPressure {
                 blood_pressure_type: BloodPressureType::Sit,
                 systolic: self.rand.random_range(90..120) as i16,
                 diastolic: self.rand.random_range(60..80) as i16,
-            }];
+            });
             if should_add_stand {
-                result.push(NewBloodPressure {
+                bps.push(NewBloodPressure {
                     blood_pressure_type: BloodPressureType::Stand,
                     systolic: self.rand.random_range(90..120) as i16,
                     diastolic: self.rand.random_range(60..80) as i16,
                 });
             }
-            result
         }
+        if self.extended_patient_info[&participant].has_blood_pressure_cuff {
+            bps.push(NewBloodPressure {
+                blood_pressure_type: BloodPressureType::Personal,
+                systolic: self.rand.random_range(130..180) as i16,
+                diastolic: self.rand.random_range(80..120) as i16,
+            });
+        }
+        bps
     }
     pub fn weight_for_participant(&mut self, participant: i32) -> Option<f32> {
-        let gender = self.extended_patient_info[&participant].gender.clone();
-        let weight_class = self.extended_patient_info[&participant].weight_category;
-        match gender {
-            Gender::Male => Some(self.weight_for_male_in_class(weight_class)),
-            Gender::Female => Some(self.weight_for_female_in_class(weight_class)),
-            _ => None,
+        if self.rand_bool(0.1) {
+            return None;
         }
-    }
-    fn weight_for_female_in_class(&mut self, class: WeightCategory) -> f32 {
-        match class {
-            WeightCategory::Underweight => self.rand.random_range(90..120) as f32,
-            WeightCategory::Overweight => self.rand.random_range(160..200) as f32,
-            WeightCategory::Normal => self.rand.random_range(120..160) as f32,
-        }
-    }
-    fn weight_for_male_in_class(&mut self, class: WeightCategory) -> f32 {
-        match class {
-            WeightCategory::Underweight => self.rand.random_range(100..140) as f32,
-            WeightCategory::Overweight => self.rand.random_range(180..220) as f32,
-            WeightCategory::Normal => self.rand.random_range(140..180) as f32,
-        }
+        Some(self.extended_patient_info[&participant].weight_entry(&mut self.rand))
     }
     fn rand_bool(&mut self, chance: f64) -> bool {
         self.rand.random_bool(chance)
@@ -278,8 +419,10 @@ impl RandomSets {
 
         let extended = ParticipantExtendedInfo {
             has_high_blood_pressure,
+            has_blood_pressure_cuff: self.rand_bool(0.5),
             has_diabetes,
             gender,
+            age: self.rand.random_range(18..85) as i16,
             weight_category: weight_class,
         };
         self.extended_patient_info

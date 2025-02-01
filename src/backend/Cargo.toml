@@ -1,5 +1,5 @@
 [workspace]
-members = ["backend", "core", "macros", "test-data"]
+members = ["backend", "core", "macros", "data-tools"]
 resolver = "2"
 [workspace.package]
 version = "0.1.0-beta"
@@ -50,6 +50,7 @@ anyhow = "1.0"
 human-panic = "2"
 
 rand = { version = "0.9", features = ["std"] }
+toml = "0.8"
 
 # Database
 [workspace.dependencies.sqlx]

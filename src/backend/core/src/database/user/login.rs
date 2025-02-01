@@ -54,6 +54,8 @@ pub async fn add_login_attempt(
 #[cfg(test)]
 mod tests {
 
+    use crate::utils::testing::config::testing::{get_testing_config, no_testing_config};
+
     use super::*;
     /// Tests the participant lookup query
     ///
@@ -61,9 +63,11 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_insert_login_attempt() -> anyhow::Result<()> {
-        crate::test_utils::init_logger();
-        let database = crate::database::tests::connect_to_db().await?;
-
+        let Some(testing_config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        let database = testing_config.database.connect().await?;
         let _id = add_login_attempt(
             Some(1),
             "127.0.0.1:55420",

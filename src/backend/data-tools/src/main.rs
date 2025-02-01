@@ -2,20 +2,25 @@ use anyhow::Context;
 use clap::Parser;
 use cs25_303_core::database::DatabaseConfig;
 use human_panic::setup_panic;
+use random::RandomParticipantsCommand;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer};
+pub mod config;
 pub mod random;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 #[derive(Debug, Clone, Parser)]
 pub struct CLI {
     #[clap(flatten)]
     pub database: DatabaseConfig,
+    #[clap(short, long)]
+    pub config_file: Option<PathBuf>,
     #[clap(subcommand)]
     pub command: Commands,
 }
 #[derive(Debug, Clone, clap::Subcommand)]
 pub enum Commands {
-    Random { count: usize },
+    /// Generate a bunch of random participants
+    RandomParticipants(RandomParticipantsCommand),
 }
 
 #[tokio::main]
@@ -26,9 +31,8 @@ async fn main() -> anyhow::Result<()> {
     load_logging()?;
     let database = cs25_303_core::database::connect(cli.database.try_into()?, true).await?;
     match cli.command {
-        Commands::Random { count } => {
-            println!("Generating {} random participants", count);
-            random::generate_participants(count, database).await?;
+        Commands::RandomParticipants(command) => {
+            command.run(database).await?;
         }
     }
     Ok(())
@@ -39,9 +43,9 @@ fn load_logging() -> anyhow::Result<()> {
         .with(
             stdout_log.with_filter(
                 filter::Targets::new()
-                    .with_target("cs25_303_test_data", LevelFilter::TRACE)
+                    .with_target("cs25_303_data_tools", LevelFilter::TRACE)
                     .with_target("cs25_303_core", LevelFilter::TRACE)
-                    .with_target("sqlx", LevelFilter::INFO),
+                    .with_target("sqlx", LevelFilter::WARN),
             ),
         )
         .init();

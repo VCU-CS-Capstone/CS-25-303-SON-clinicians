@@ -256,18 +256,31 @@ impl BloodPressureHistory {
 
 #[cfg(test)]
 mod tests {
+    use crate::utils::testing::config::testing::{get_testing_config, no_testing_config};
+
     #[tokio::test]
     pub async fn bp_test() -> anyhow::Result<()> {
-        let pool = crate::database::tests::connect_to_db().await?;
-        let bps = super::BloodPressureHistory::find_all_for_participant(1, (0, 0), &pool).await?;
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
+        let database = config.database.connect().await?;
+        let bps =
+            super::BloodPressureHistory::find_all_for_participant(1, (0, 0), &database).await?;
         println!("{:?}", bps);
         Ok(())
     }
 
     #[tokio::test]
     pub async fn weight_test() -> anyhow::Result<()> {
-        let pool = crate::database::tests::connect_to_db().await?;
-        let bps = super::WeightHistory::find_all_for_participant(1, (0, 0), &pool).await?;
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
+        let database = config.database.connect().await?;
+        let bps = super::WeightHistory::find_all_for_participant(1, (0, 0), &database).await?;
         println!("{:?}", bps);
         Ok(())
     }

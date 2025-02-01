@@ -1,3 +1,4 @@
+use super::utils::RandDate;
 use chrono::{Local, NaiveDate};
 use cs25_303_core::{
     database::red_cap::participants::{
@@ -10,20 +11,17 @@ use rand::{seq::IndexedRandom, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tracing::error;
-
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct RandomDateOptions {
     pub min: Option<NaiveDate>,
     pub max: Option<NaiveDate>,
 }
 impl RandomDateOptions {
-    pub fn random_date(&self) -> NaiveDate {
+    pub fn random_date(&self, rand: &mut impl Rng) -> NaiveDate {
         let Self { min, max } = self;
         let min = min.unwrap_or_else(|| NaiveDate::from_ymd_opt(1970, 1, 1).unwrap());
         let max = max.unwrap_or_else(|| Local::now().date_naive());
-        let days = max.signed_duration_since(min).num_days();
-        let random_days = rand::rng().random_range(0..days);
-        min + chrono::Duration::days(random_days)
+        rand.random_date_with_range(&min, &max)
     }
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -35,25 +33,25 @@ pub enum RandomValue {
     Date(Option<RandomDateOptions>),
 }
 impl RandomValue {
-    pub fn random_string_from_options(&self) -> String {
+    pub fn random_string_from_options(&self, rand: &mut impl Rng) -> String {
         match self {
             RandomValue::Array(options) => {
-                let value = options.choose(&mut rand::rng()).unwrap();
+                let value = options.choose(rand).unwrap();
                 value.as_str().unwrap_or_default().to_owned()
             }
-            RandomValue::Number { min, max } => rand::rng().random_range(*min..*max).to_string(),
-            RandomValue::Bool => rand::rng().random_bool(0.5).to_string(),
+            RandomValue::Number { min, max } => rand.random_range(*min..*max).to_string(),
+            RandomValue::Bool => rand.random_bool(0.5).to_string(),
             RandomValue::Date(value) => {
                 let value = value.clone().unwrap_or_default();
-                value.random_date().to_string()
+                value.random_date(rand).to_string()
             }
         }
     }
-    pub fn date(&self) -> NaiveDate {
+    pub fn date(&self, rand: &mut impl Rng) -> NaiveDate {
         match self {
             RandomValue::Date(value) => {
                 let value = value.clone().unwrap_or_default();
-                value.random_date()
+                value.random_date(rand)
             }
             _ => {
                 error!("Not a date");
@@ -61,12 +59,12 @@ impl RandomValue {
             }
         }
     }
-    pub fn random_i16(&self) -> i16 {
+    pub fn random_i16(&self, rand: &mut impl Rng) -> i16 {
         match self {
-            RandomValue::Number { min, max } => rand::rng().random_range(*min..*max) as i16,
+            RandomValue::Number { min, max } => rand.random_range(*min..*max) as i16,
             _ => {
                 error!("Not a number");
-                rand::rng().random_range(0..100) as i16
+                rand.random_range(0..100) as i16
             }
         }
     }
@@ -78,26 +76,26 @@ pub enum ValueOrRandom<T> {
     Random(RandomValue),
 }
 impl ValueOrRandom<i16> {
-    pub fn i16_value(&self) -> i16 {
+    pub fn i16_value(&self, rand: &mut impl Rng) -> i16 {
         match self {
             ValueOrRandom::Value(value) => *value,
-            ValueOrRandom::Random(random_value) => random_value.random_i16(),
+            ValueOrRandom::Random(random_value) => random_value.random_i16(rand),
         }
     }
 }
 impl ValueOrRandom<String> {
-    pub fn string_value(&self) -> String {
+    pub fn string_value(&self, rand: &mut impl Rng) -> String {
         match self {
             ValueOrRandom::Value(value) => value.clone(),
-            ValueOrRandom::Random(random_value) => random_value.random_string_from_options(),
+            ValueOrRandom::Random(random_value) => random_value.random_string_from_options(rand),
         }
     }
 }
 impl ValueOrRandom<NaiveDate> {
-    pub fn date_value(&self) -> NaiveDate {
+    pub fn date_value(&self, rand: &mut impl Rng) -> NaiveDate {
         match self {
             ValueOrRandom::Value(value) => *value,
-            ValueOrRandom::Random(random_value) => random_value.date(),
+            ValueOrRandom::Random(random_value) => random_value.date(rand),
         }
     }
 }
@@ -105,11 +103,11 @@ impl<T> ValueOrRandom<T>
 where
     T: From<String> + Clone,
 {
-    pub fn value_from_string(&self) -> T {
+    pub fn value_from_string(&self, rand: &mut impl Rng) -> T {
         match self {
             ValueOrRandom::Value(value) => value.clone(),
             ValueOrRandom::Random(random_value) => {
-                let string_value = random_value.random_string_from_options();
+                let string_value = random_value.random_string_from_options(rand);
                 T::from(string_value)
             }
         }
@@ -131,11 +129,14 @@ pub struct RandomCompleteGoal {
     pub steps: Vec<RandomGoalStep>,
 }
 impl RandomCompleteGoal {
-    pub fn create_new_goal(&self) -> (NewParticipantGoal, Vec<NewParticipantGoalsSteps>) {
+    pub fn create_new_goal(
+        &self,
+        rand: &mut impl Rng,
+    ) -> (NewParticipantGoal, Vec<NewParticipantGoalsSteps>) {
         let goal = self.goal.create_new_goal();
 
-        let random_step: &RandomGoalStep = self.steps.choose(&mut rand::rng()).unwrap();
-        let steps = vec![random_step.create_new_goal_step()];
+        let random_step: &RandomGoalStep = self.steps.choose(rand).unwrap();
+        let steps = vec![random_step.create_new_goal_step(rand)];
         (goal, steps)
     }
 }
@@ -164,16 +165,16 @@ pub struct RandomGoalStep {
     pub date_to_be_achieved: ValueOrRandom<NaiveDate>,
 }
 impl RandomGoalStep {
-    pub fn create_new_goal_step(&self) -> NewParticipantGoalsSteps {
+    pub fn create_new_goal_step(&self, rand: &mut impl Rng) -> NewParticipantGoalsSteps {
         let RandomGoalStep {
             step,
             confidence_in_achieving,
             date_set,
             date_to_be_achieved,
         } = self;
-        let confidence_in_achieving = confidence_in_achieving.i16_value();
-        let date_set = date_set.date_value();
-        let date_to_be_achieved = date_to_be_achieved.date_value();
+        let confidence_in_achieving = confidence_in_achieving.i16_value(rand);
+        let date_set = date_set.date_value(rand);
+        let date_to_be_achieved = date_to_be_achieved.date_value(rand);
         NewParticipantGoalsSteps {
             goal_id: None,
             step: step.clone(),
@@ -192,7 +193,7 @@ pub struct RandomMedication {
     pub start_date: Option<ValueOrRandom<NaiveDate>>,
 }
 impl RandomMedication {
-    pub fn create_new_medication(&self) -> NewMedication {
+    pub fn create_new_medication(&self, rand: &mut impl Rng) -> NewMedication {
         let RandomMedication {
             name,
             dosage,
@@ -200,9 +201,9 @@ impl RandomMedication {
             start_date,
         } = self;
 
-        let dosage = dosage.string_value();
-        let freqeuency = frequency.value_from_string();
-        let start_date = start_date.as_ref().map(|date| date.date_value());
+        let dosage = dosage.string_value(rand);
+        let freqeuency = frequency.value_from_string(rand);
+        let start_date = start_date.as_ref().map(|date| date.date_value(rand));
 
         NewMedication {
             name: name.clone(),

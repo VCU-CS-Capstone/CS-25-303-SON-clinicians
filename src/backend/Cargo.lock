@@ -859,11 +859,35 @@ dependencies = [
  "tabled",
  "thiserror 2.0.11",
  "tokio",
+ "toml",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
  "utoipa",
  "uuid",
+]
+
+[[package]]
+name = "cs25-303-data-tools"
+version = "0.1.0-beta"
+dependencies = [
+ "ahash",
+ "anyhow",
+ "chrono",
+ "clap",
+ "cs25-303-core",
+ "human-panic",
+ "rand 0.9.0",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror 2.0.11",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -876,26 +900,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.96",
-]
-
-[[package]]
-name = "cs25-303-test-data"
-version = "0.1.0-beta"
-dependencies = [
- "ahash",
- "anyhow",
- "chrono",
- "clap",
- "cs25-303-core",
- "human-panic",
- "rand 0.9.0",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
 ]
 
 [[package]]

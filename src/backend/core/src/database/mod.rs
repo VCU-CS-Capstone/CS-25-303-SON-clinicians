@@ -45,22 +45,3 @@ pub async fn connect(config: PgConnectOptions, run_migrations: bool) -> Result<P
     }
     Ok(database)
 }
-
-#[cfg(test)]
-pub mod tests {
-    use sqlx::PgPool;
-
-    use crate::database::DatabaseConfig;
-
-    pub async fn connect_to_db() -> anyhow::Result<PgPool> {
-        let test_env = crate::env_utils::read_env_file_in_core("test.env")?;
-
-        connect_to_db_with(&test_env).await
-    }
-    pub async fn connect_to_db_with(env: &crate::env_utils::EnvMap) -> anyhow::Result<PgPool> {
-        let config: DatabaseConfig = serde_env::from_iter_with_prefix(env.iter(), "DB")?;
-        let database = super::connect(config.try_into()?, true).await?;
-
-        Ok(database)
-    }
-}

@@ -298,17 +298,19 @@ impl RedCapExportDataType {
 mod tests {
     use anyhow::Context;
 
+    use crate::utils::testing::config::testing::get_testing_config;
+
     use super::api::RedcapClient;
 
     pub async fn load_red_cap_api_and_db() -> anyhow::Result<(RedcapClient, sqlx::PgPool)> {
-        crate::test_utils::init_logger();
+        let Some(testing_config) = get_testing_config() else {
+            anyhow::bail!("No testing config found");
+        };
+        testing_config.init_logger();
 
-        let env = crate::env_utils::read_env_file_in_core("test.env")
-            .context("Unable to load test.env")?;
-
-        let database = crate::database::tests::connect_to_db_with(&env).await?;
+        let database = testing_config.database.connect().await?;
         let client =
-            RedcapClient::new(env.get("RED_CAP_TOKEN").context("No RED_CAP_TOKEN")?).await?;
+            RedcapClient::new(testing_config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
 
         Ok((client, database))
     }

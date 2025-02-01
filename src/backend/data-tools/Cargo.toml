@@ -1,5 +1,5 @@
 [package]
-name = "cs25-303-test-data"
+name = "cs25-303-data-tools"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -21,3 +21,6 @@ rand.workspace = true
 chrono = { version = "0.4", features = ["serde"] }
 human-panic.workspace = true
 ahash.workspace = true
+rust-embed = { version = "8", features = ["interpolate-folder-path"] }
+thiserror.workspace = true
+toml.workspace = true
