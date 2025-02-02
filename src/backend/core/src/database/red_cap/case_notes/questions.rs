@@ -205,7 +205,7 @@ mod tests {
             return Ok(());
         };
         config.init_logger();
-        let database = config.database.connect().await?;
+        let database = config.connect_to_db().await?;
         let questions = DBQuestionResponse::get_case_note_all(&database).await?;
         let clean_questions = questions
             .into_iter()

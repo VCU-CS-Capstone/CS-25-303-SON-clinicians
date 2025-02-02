@@ -81,6 +81,7 @@ impl AppLoggerType for AppLogger {
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct ChildLoggingLevels {
     /// Rather or not to inherit from the global levels.
     pub inherit: Option<bool>,
@@ -97,14 +98,6 @@ impl Deref for ChildLoggingLevels {
 impl DerefMut for ChildLoggingLevels {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.levels
-    }
-}
-impl Default for ChildLoggingLevels {
-    fn default() -> Self {
-        Self {
-            inherit: None,
-            levels: Default::default(),
-        }
     }
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]

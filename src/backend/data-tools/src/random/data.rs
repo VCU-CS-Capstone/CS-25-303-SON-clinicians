@@ -99,8 +99,8 @@ mod tests {
 
             random_sets.load_locations(&database).await?;
 
-            assert!(random_sets.m_locations.len() > 0);
-            assert!(random_sets.r_locations.len() > 0);
+            assert!(!random_sets.m_locations.is_empty());
+            assert!(!random_sets.r_locations.is_empty());
         } else {
             no_db_connection()?;
         }
@@ -108,12 +108,12 @@ mod tests {
         Ok(())
     }
     fn validate_data_sets(random_sets: &super::RandomSets) {
-        assert!(random_sets.participants.len() > 0);
-        assert!(random_sets.goals.len() > 0);
-        assert!(random_sets.medications.len() > 0);
-        assert!(random_sets.behbehavioral_risks_identified.len() > 0);
-        assert!(random_sets.reasons_for_visit.len() > 0);
-        assert!(random_sets.info_provided_by_caregiver.len() > 0);
-        assert!(random_sets.case_note_other_health_measures.len() > 0);
+        assert!(!random_sets.participants.is_empty());
+        assert!(!random_sets.goals.is_empty());
+        assert!(!random_sets.medications.is_empty());
+        assert!(!random_sets.behbehavioral_risks_identified.is_empty());
+        assert!(!random_sets.reasons_for_visit.is_empty());
+        assert!(!random_sets.info_provided_by_caregiver.is_empty());
+        assert!(!random_sets.case_note_other_health_measures.is_empty());
     }
 }

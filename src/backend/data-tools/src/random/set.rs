@@ -21,15 +21,12 @@ use tracing::{info, warn};
 use super::{utils::RandDate, RandomCompleteGoal, RandomMedication, RandomParticipant};
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 
+#[derive(Default)]
 pub enum WeightCategory {
     Underweight,
     Overweight,
+    #[default]
     Normal,
-}
-impl Default for WeightCategory {
-    fn default() -> Self {
-        WeightCategory::Normal
-    }
 }
 impl WeightCategory {
     pub fn weight_for_female_in_class(&self, random: &mut impl Rng) -> f32 {
@@ -149,18 +146,16 @@ impl RandomSets {
                 // Just ate
                 Some(self.rand.random_range(220..300) as f32)
             }
-        } else {
-            if fasted {
-                if self.rand_bool(0.5) {
-                    // They fasted for 8+ hours
-                    Some(self.rand.random_range(80..100) as f32)
-                } else {
-                    Some(self.rand.random_range(120..140) as f32)
-                }
+        } else if fasted {
+            if self.rand_bool(0.5) {
+                // They fasted for 8+ hours
+                Some(self.rand.random_range(80..100) as f32)
             } else {
-                // Just ate
-                Some(self.rand.random_range(170..200) as f32)
+                Some(self.rand.random_range(120..140) as f32)
             }
+        } else {
+            // Just ate
+            Some(self.rand.random_range(170..200) as f32)
         };
         (true, glucose_level, Some(fasted))
     }
@@ -170,9 +165,9 @@ impl RandomSets {
         let start_date = match self.rand.random_range(0..100) {
             0..50 => {
                 // 50% change of being months ago
-                let first_visit = Local::now().date_naive()
-                    - chrono::Duration::weeks(self.rand.random_range(1..12) * 4);
-                first_visit
+                
+                Local::now().date_naive()
+                    - chrono::Duration::weeks(self.rand.random_range(1..12) * 4)
             }
             50..75 => {
                 // 25% of being weeks ago

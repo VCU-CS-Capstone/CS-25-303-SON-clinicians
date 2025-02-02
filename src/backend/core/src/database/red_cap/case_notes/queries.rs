@@ -196,7 +196,7 @@ where
         Ok(BloodPressureHistory {
             case_note_id,
             date_of_visit,
-            readings: readings,
+            readings,
         })
     }
 }
@@ -256,32 +256,108 @@ impl BloodPressureHistory {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::testing::config::testing::{get_testing_config, no_testing_config};
+    use chrono::{Duration, Local};
+    use rand::Rng;
 
+    use crate::{
+        database::{
+            red_cap::{
+                case_notes::{
+                    new::{NewBloodPressure, NewCaseNote, NewCaseNoteHealthMeasures},
+                    BloodPressureType,
+                },
+                participants::NewParticipant,
+            },
+            DBError,
+        },
+        utils::testing::config::testing::{get_testing_db, no_db_connection},
+    };
+    async fn create_participant_with_history(
+        database: &sqlx::PgPool,
+        connect_message: &str,
+    ) -> Result<i32, DBError> {
+        let mut random = rand::rng();
+        let participant = NewParticipant {
+            first_name: "Test".to_string(),
+            last_name: "User".to_string(),
+            other_contact: Some(connect_message.to_string()),
+            ..NewParticipant::default()
+        }
+        .insert_return_participant(database)
+        .await?;
+        for i in 0..15 {
+            let case_note = NewCaseNote {
+                location: Some(1),
+                date_of_visit: Local::now().date_naive() - Duration::weeks(16 - i),
+                ..NewCaseNote::default()
+            }
+            .insert_return_case_note(participant.id, database)
+            .await?;
+            let health_measure = NewCaseNoteHealthMeasures {
+                weight: Some(random.random_range(180f32..190f32)),
+                ..Default::default()
+            };
+
+            let measure = health_measure
+                .insert_return_measure(case_note.id, database)
+                .await?;
+
+            let bps = vec![
+                NewBloodPressure {
+                    blood_pressure_type: BloodPressureType::Sit,
+                    systolic: random.random_range(120..130),
+                    diastolic: random.random_range(80..90),
+                },
+                NewBloodPressure {
+                    blood_pressure_type: BloodPressureType::Stand,
+                    systolic: random.random_range(130..140),
+                    diastolic: random.random_range(90..100),
+                },
+                NewBloodPressure {
+                    blood_pressure_type: BloodPressureType::Personal,
+                    systolic: random.random_range(140..150),
+                    diastolic: random.random_range(100..110),
+                },
+            ];
+            measure.add_many_bp(bps, database).await?;
+        }
+
+        Ok(participant.id)
+    }
     #[tokio::test]
     pub async fn bp_test() -> anyhow::Result<()> {
-        let Some(config) = get_testing_config() else {
-            no_testing_config()?;
+        let Some(database) = get_testing_db().await else {
+            no_db_connection()?;
             return Ok(());
         };
-        config.init_logger();
-        let database = config.database.connect().await?;
-        let bps =
-            super::BloodPressureHistory::find_all_for_participant(1, (0, 0), &database).await?;
-        println!("{:?}", bps);
+        let participant_id =
+            create_participant_with_history(&database, "CS25-303 bp_tests").await?;
+
+        let bps = super::BloodPressureHistory::find_all_for_participant(
+            participant_id,
+            (0, 0),
+            &database,
+        )
+        .await?;
+        assert_eq!(bps.data.len(), 15);
         Ok(())
     }
 
     #[tokio::test]
     pub async fn weight_test() -> anyhow::Result<()> {
-        let Some(config) = get_testing_config() else {
-            no_testing_config()?;
+        let Some(database) = get_testing_db().await else {
+            no_db_connection()?;
             return Ok(());
         };
-        config.init_logger();
-        let database = config.database.connect().await?;
-        let bps = super::WeightHistory::find_all_for_participant(1, (0, 0), &database).await?;
-        println!("{:?}", bps);
+        let participant_id =
+            create_participant_with_history(&database, "CS25-303 weight_test").await?;
+        let weights =
+            super::WeightHistory::find_all_for_participant(participant_id, (0, 0), &database)
+                .await?;
+
+        assert_eq!(weights.data.len(), 15);
+
+        println!("{:?}", weights);
         Ok(())
     }
 }

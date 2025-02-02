@@ -15,7 +15,7 @@ use super::{
     ParticipantsColumn, SimpleInsertQueryBuilder, TableType,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct NewParticipant {
     pub red_cap_id: Option<i32>,
     pub first_name: String,

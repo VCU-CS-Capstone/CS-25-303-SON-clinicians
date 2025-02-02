@@ -1,13 +1,14 @@
 use std::path::PathBuf;
 #[cfg(test)]
 pub(crate) mod config;
+
 pub mod db;
 pub fn find_file_with_name_check_parents(
     path: PathBuf,
     name: &str,
     parents_left_to_check: usize,
 ) -> Option<PathBuf> {
-    if parents_left_to_check <= 0 {
+    if parents_left_to_check == 0 {
         return None;
     }
     let possible_path = path.join(name);

@@ -234,7 +234,7 @@ mod tests {
             return Ok(());
         };
         config.init_logger();
-        let database = config.database.connect().await?;
+        let database = config.connect_to_db().await?;
         let client = RedcapClient::new(config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
         let mut converter: RedCapConverter = RedCapConverter::new(database.clone()).await?;
 
@@ -250,7 +250,7 @@ mod tests {
             return Ok(());
         };
         config.init_logger();
-        let database = config.database.connect().await?;
+        let database = config.connect_to_db().await?;
         let client = RedcapClient::new(config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
         //let mut converter = RedCapConverter::new(database.clone()).await?;
 
@@ -266,7 +266,7 @@ mod tests {
             return Ok(());
         };
         config.init_logger();
-        let database = config.database.connect().await?;
+        let database = config.connect_to_db().await?;
         let client = RedcapClient::new(config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
         let mut converter: RedCapConverter = RedCapConverter::new(database.clone()).await?;
         super::push_participant_goals_to_red_cap(1, &database, &mut converter, &client).await?;
@@ -281,7 +281,7 @@ mod tests {
             return Ok(());
         };
         config.init_logger();
-        let database = config.database.connect().await?;
+        let database = config.connect_to_db().await?;
         let client = RedcapClient::new(config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
         let mut converter: RedCapConverter = RedCapConverter::new(database.clone()).await?;
 

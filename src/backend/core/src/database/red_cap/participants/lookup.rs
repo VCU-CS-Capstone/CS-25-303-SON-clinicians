@@ -160,7 +160,7 @@ mod tests {
             return Ok(());
         };
         config.init_logger();
-        let database = config.database.connect().await?;
+        let database = config.connect_to_db().await?;
         let query: Vec<ParticipantLookupQuery> = vec![
             ParticipantLookupQuery {
                 first_name: "John".to_string(),
@@ -182,8 +182,6 @@ mod tests {
                 program: Some(Programs::MHWP),
                 location: Some(9),
                 get_last_visited: true,
-
-                ..Default::default()
             },
         ];
 

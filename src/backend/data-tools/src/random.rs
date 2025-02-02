@@ -7,7 +7,7 @@ use cs25_303_core::database::red_cap::{
     case_notes::new::{NewCaseNote, NewCaseNoteHealthMeasures},
     participants::{
         goals::{ParticipantGoals, ParticipantGoalsSteps},
-        NewParticipant, ParticipantMedications, Participants,
+        NewMedication, NewParticipant, ParticipantMedications, Participants,
     },
 };
 use data::load_random_sets;
@@ -76,11 +76,7 @@ pub async fn generate_participants(count: usize, database: PgPool) -> anyhow::Re
 
         demographics.insert_none(part.id, &database).await?;
 
-        let medications = random_sets.random_medications();
-
-        for medication in medications {
-            medication.insert_return_none(part.id, &database).await?;
-        }
+        NewMedication::insert_many(random_sets.random_medications(), part.id, &database).await?;
 
         let goals = random_sets.random_goals();
 
@@ -146,9 +142,7 @@ async fn generate_random_case_note_on(
     let health_measure = new_health_measures
         .insert_return_measure(case_note.id, database)
         .await?;
-    for bp in bps {
-        health_measure.add_bp(bp, database).await?;
-    }
+    health_measure.add_many_bp(bps, database).await?;
     // TODO: Adding the questions
 
     Ok(())

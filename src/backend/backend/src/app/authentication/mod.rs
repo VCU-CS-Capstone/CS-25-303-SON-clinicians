@@ -203,15 +203,15 @@ where
                 if let Some(user) = user {
                     PC::check_permissions(&user, &state.database).await?;
 
-                    return Ok(Authentication::UserViaSession { user, session });
+                    Ok(Authentication::UserViaSession { user, session })
                 } else {
                     error!("User not found");
-                    return Err(AuthenticationError::Unauthorized);
+                    Err(AuthenticationError::Unauthorized)
                 }
             }
             _ => {
                 error!("No Authentication Data Extracted from Request");
-                return Err(AuthenticationError::Unauthorized);
+                Err(AuthenticationError::Unauthorized)
             }
         }
     }
@@ -342,7 +342,7 @@ pub mod utils {
         #[instrument(skip(password), fields(project_module = "Authentication"))]
         pub fn encrypt_password(password: &str) -> Option<String> {
             let mut bytes = [0u8; Salt::RECOMMENDED_LENGTH];
-            OsRng::default().try_fill_bytes(&mut bytes).unwrap();
+            OsRng.try_fill_bytes(&mut bytes).unwrap();
             let salt = SaltString::encode_b64(&bytes).expect("Failed to generate salt");
 
             let argon2 = Argon2::default();

@@ -60,7 +60,7 @@ pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Debug + T
         database: &PgPool,
     ) -> impl Future<Output = Result<bool, DBError>> + Send {
         async {
-            return Ok(true);
+            Ok(true)
         }
     }
 }

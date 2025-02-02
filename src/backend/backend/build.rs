@@ -38,7 +38,7 @@ fn set_commit_short(repository: &gix::Repository) -> anyhow::Result<()> {
     let commit_short = commit.short_id()?;
     println!(
         "cargo:rustc-env=PROJECT_COMMIT_SHORT={}",
-        commit_short.to_string()
+        commit_short
     );
     Ok(())
 }
@@ -52,10 +52,10 @@ fn set_commit_time(repository: &gix::Repository) -> anyhow::Result<()> {
         gix::date::time::Sign::Plus => FixedOffset::east_opt(time.offset.abs()),
         gix::date::time::Sign::Minus => FixedOffset::west_opt(time.offset.abs()),
     };
-    let offset = offset.unwrap_or_else(|| Local::now().offset().clone());
+    let offset = offset.unwrap_or_else(|| *Local::now().offset());
 
     let datetime = offset
-        .timestamp_millis_opt(time.seconds as i64 * 1000)
+        .timestamp_millis_opt(time.seconds * 1000)
         .single()
         .context("Failed to convert commit time to datetime")?;
 
@@ -72,7 +72,7 @@ fn set_branch(repository: &gix::Repository) -> anyhow::Result<()> {
     if let Some(head_name) = head_name {
         println!(
             "cargo:rustc-env=PROJECT_BRANCH={}",
-            head_name.shorten().to_string()
+            head_name.shorten()
         );
     }
     Ok(())

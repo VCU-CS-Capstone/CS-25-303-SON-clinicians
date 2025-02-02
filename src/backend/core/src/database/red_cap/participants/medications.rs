@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::database::prelude::*;
+use crate::database::{prelude::*, tools::many::InsertManyBuilder};
 use chrono::{Local, NaiveDate};
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
@@ -138,7 +138,7 @@ impl ParticipantMedications {
                     .build()
             });
         }
-        Ok(query.execute(database).await?)
+        query.execute(database).await
     }
     /// Returns the number of medications for a participant
     #[tracing::instrument]
@@ -258,6 +258,125 @@ impl NewMedication {
             .query()
             .execute(database)
             .await?;
+        Ok(())
+    }
+    #[instrument]
+    pub async fn insert_many(
+        medications: Vec<NewMedication>,
+        participant_id: i32,
+        database: &PgPool,
+    ) -> DBResult<()> {
+        let mut query_builder = InsertManyBuilder::new(
+            ParticipantMedications::table_name(),
+            vec![
+                ParticipantMedicationsColumn::ParticipantId,
+                ParticipantMedicationsColumn::Name,
+                ParticipantMedicationsColumn::Dosage,
+                ParticipantMedicationsColumn::Frequency,
+                ParticipantMedicationsColumn::DatePrescribed,
+                ParticipantMedicationsColumn::DateEnteredIntoSystem,
+                ParticipantMedicationsColumn::IsCurrent,
+                ParticipantMedicationsColumn::DateDiscontinued,
+                ParticipantMedicationsColumn::Comments,
+                ParticipantMedicationsColumn::RedCapIndex,
+            ],
+        );
+        let participant_id_value = query_builder.register_value(participant_id);
+        for medication in medications {
+            let Self {
+                name,
+                dosage,
+                frequency,
+                date_prescribed,
+                date_entered_into_system,
+                is_current,
+                date_discontinued,
+                comments,
+                red_cap_index,
+            } = medication;
+
+            let date_entered_into_system =
+                date_entered_into_system.unwrap_or_else(|| Local::now().date_naive());
+
+            query_builder.insert_row_ordered(|row| {
+                row.insert_value(participant_id_value)
+                    .insert(name)
+                    .insert(dosage)
+                    .insert(frequency)
+                    .insert(date_prescribed)
+                    .insert(date_entered_into_system)
+                    .insert(is_current)
+                    .insert(date_discontinued)
+                    .insert(comments)
+                    .insert(red_cap_index);
+            });
+        }
+        query_builder.query().execute(database).await?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::PgPool;
+
+    use crate::{
+        database::{
+            red_cap::participants::{NewMedication, NewParticipant, ParticipantMedications},
+            DBError,
+        },
+        utils::testing::config::testing::{get_testing_db, no_db_connection},
+    };
+
+    async fn new_participant(db: &PgPool) -> Result<i32, DBError> {
+        let participant = NewParticipant {
+            first_name: "John".to_string(),
+            last_name: "Doe".to_string(),
+            other_contact: Some("New Medictions Test".to_owned()),
+            ..Default::default()
+        };
+
+        let part = participant.insert_return_participant(db).await?;
+        Ok(part.id)
+    }
+
+    #[tokio::test]
+    async fn test_insert_new_medication() -> anyhow::Result<()> {
+        let Some(database) = get_testing_db().await else {
+            no_db_connection()?;
+            return Ok(());
+        };
+        let participant_id = new_participant(&database).await?;
+        let medications = vec![
+            NewMedication {
+                name: "Medication 1".to_string(),
+                ..Default::default()
+            },
+            NewMedication {
+                name: "Medication 2".to_string(),
+                ..Default::default()
+            },
+            NewMedication {
+                name: "Medication 3".to_string(),
+                ..Default::default()
+            },
+        ];
+        NewMedication::insert_many(medications, participant_id, &database).await?;
+
+        let count =
+            ParticipantMedications::count_medications_for_participant(participant_id, &database)
+                .await?;
+        assert_eq!(count, 3);
+
+        let medications =
+            ParticipantMedications::get_all_participant_medications(participant_id, &database)
+                .await?;
+
+        assert_eq!(medications.len(), 3);
+        assert_eq!(medications[0].name, "Medication 1");
+        assert_eq!(medications[1].name, "Medication 2");
+        assert_eq!(medications[2].name, "Medication 3");
+
         Ok(())
     }
 }

@@ -3,16 +3,19 @@ use std::fmt::{Debug, Display};
 use crate::database::prelude::*;
 use sqlx::{
     query::{Query, QueryAs},
-    Arguments, Database, Encode, FromRow, Postgres, Type,
+    Database, Encode, FromRow, Postgres, Type,
 };
-
+mod conflict;
+pub use conflict::*;
+pub mod many;
 use tracing::trace;
 #[derive(Debug, Clone)]
-enum Returning<C: ColumnType> {
+pub enum Returning<C: ColumnType> {
     None,
     All,
     Columns(Vec<C>),
 }
+
 impl<C: ColumnType> Display for Returning<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -35,6 +38,8 @@ pub struct SimpleInsertQueryBuilder<'table, 'args, C: ColumnType> {
     sql: Option<String>,
     returning: Returning<C>,
     table: &'table str,
+    on_conflict: Option<OnConflict<C>>,
+
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
 }
 impl<'args, C> HasArguments<'args> for SimpleInsertQueryBuilder<'_, 'args, C>
@@ -70,22 +75,13 @@ impl<'table, 'args, C: ColumnType> SimpleInsertQueryBuilder<'table, 'args, C> {
             arguments: Some(Default::default()),
             columns_to_insert: Vec::new(),
             sql: None,
+            on_conflict: None,
             returning: Default::default(),
         }
     }
-    fn push_value<T>(&mut self, value: T)
-    where
-        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
-    {
-        assert!(
-            self.arguments.is_some(),
-            "You called a query method already"
-        );
-        let arguments = self
-            .arguments
-            .as_mut()
-            .expect("BUG: Arguments taken already");
-        arguments.add(value).expect("Failed to add argument");
+    pub fn set_on_conflict(&mut self, on_conflict: OnConflict<C>) -> &mut Self {
+        self.on_conflict = Some(on_conflict);
+        self
     }
     /// Insert a value into the query
     pub fn insert<T>(&mut self, column: C, value: T) -> &mut Self
@@ -94,7 +90,7 @@ impl<'table, 'args, C: ColumnType> SimpleInsertQueryBuilder<'table, 'args, C> {
     {
         self.sql = None;
         self.columns_to_insert.push(column);
-        self.push_value(value);
+        self.push_argument(value);
         self
     }
     /// Will check if option is Some and insert the value if it is
@@ -125,8 +121,9 @@ impl<'table, 'args, C: ColumnType> SimpleInsertQueryBuilder<'table, 'args, C> {
         let columns = super::concat_columns_no_table_name(&self.columns_to_insert);
         let placeholders = generate_placeholder_string(self.columns_to_insert.len());
         let sql = format!(
-            "INSERT INTO {table} ({columns}) VALUES ({placeholders}){returning};",
+            "INSERT INTO {table} ({columns}) VALUES ({placeholders}){on_conflict}{returning};",
             table = self.table,
+            on_conflict = self.on_conflict.format_sql(),
             returning = self.returning,
         );
 

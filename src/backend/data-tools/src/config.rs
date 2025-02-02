@@ -16,7 +16,7 @@ pub mod testing {
     use std::{
         env,
         io::{self, Write},
-        path::PathBuf,
+        path::{Path, PathBuf},
     };
 
     use cs25_303_core::utils::testing::{db::DBTestingConfig, find_file_with_name_check_parents};
@@ -38,9 +38,9 @@ pub mod testing {
         };
         let content = std::fs::read_to_string(&file_path)?;
         let config: DataToolTestingConfig = toml::from_str(&content)?;
-        return Ok(Some(config));
+        Ok(Some(config))
     }
-    pub fn found_config_at_path(path: &PathBuf) -> Result<(), anyhow::Error> {
+    pub fn found_config_at_path(path: &Path) -> Result<(), anyhow::Error> {
         let mut stout_locked = io::stdout().lock();
         stout_locked.write_all(format!("Found config at path: {}\n", path.display()).as_bytes())?;
         Ok(())

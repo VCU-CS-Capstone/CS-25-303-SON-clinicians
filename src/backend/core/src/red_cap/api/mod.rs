@@ -244,7 +244,7 @@ mod tests {
         };
         config.init_logger();
 
-        let database = config.database.connect().await?;
+        let database = config.connect_to_db().await?;
         let mut converter = RedCapConverter::new(database).await?;
         let client = RedcapClient::new(config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
 
@@ -281,7 +281,7 @@ mod tests {
             return Ok(());
         };
         config.init_logger();
-        let database = config.database.connect().await?;
+        let database = config.connect_to_db().await?;
         let mut converter = RedCapConverter::new(database).await?;
         let client = RedcapClient::new(config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
         let records = client

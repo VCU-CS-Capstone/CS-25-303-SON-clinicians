@@ -3,6 +3,7 @@ pub mod queries;
 use std::fmt::Debug;
 
 use crate::database::prelude::*;
+use crate::database::tools::many::InsertManyBuilder;
 use crate::red_cap::converter::case_notes::{
     OtherCaseNoteData, RedCapCaseNoteBase, RedCapHealthMeasures,
 };
@@ -225,6 +226,40 @@ impl CaseNoteHealthMeasures {
             .query()
             .execute(db)
             .await?;
+        Ok(())
+    }
+    pub async fn add_many_bp(&self, bp: Vec<NewBloodPressure>, db: &PgPool) -> DBResult<()> {
+        let mut query = InsertManyBuilder::new(
+            HealthMeasureBloodPressure::table_name(),
+            vec![
+                HealthMeasureBloodPressureColumn::HealthMeasureId,
+                HealthMeasureBloodPressureColumn::BloodPressureType,
+                HealthMeasureBloodPressureColumn::Systolic,
+                HealthMeasureBloodPressureColumn::Diastolic,
+            ],
+        );
+        // On Conflict we will update the values
+        query.set_on_conflict(OnConflict {
+            columns: vec![
+                HealthMeasureBloodPressureColumn::HealthMeasureId,
+                HealthMeasureBloodPressureColumn::BloodPressureType,
+            ],
+            action: OnConflictAction::update(vec![
+                HealthMeasureBloodPressureColumn::Systolic,
+                HealthMeasureBloodPressureColumn::Diastolic,
+            ]),
+        });
+
+        for bp in bp {
+            query.insert_row_ordered(|row| {
+                row.insert(self.id)
+                    .insert(bp.blood_pressure_type)
+                    .insert(bp.systolic)
+                    .insert(bp.diastolic);
+            });
+        }
+
+        query.query().execute(db).await?;
         Ok(())
     }
 }

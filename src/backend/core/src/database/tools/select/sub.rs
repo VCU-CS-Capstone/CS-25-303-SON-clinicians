@@ -49,7 +49,7 @@ impl SelectSubQuery {
         sql.push(')');
         if let Some(query_as) = &self.query_as {
             sql.push_str(" AS ");
-            sql.push_str(&query_as);
+            sql.push_str(query_as);
         }
         sql
     }

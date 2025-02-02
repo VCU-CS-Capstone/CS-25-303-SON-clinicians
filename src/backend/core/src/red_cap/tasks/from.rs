@@ -250,10 +250,7 @@ async fn add_case_note(
         let measures = new_health_measures
             .insert_return_measure(case_note.id, database)
             .await?;
-        // TODO: Use 1 INSERT statement for all the blood pressures
-        for bp in bp_readings.readings {
-            measures.add_bp(bp, database).await?;
-        }
+        measures.add_many_bp(bp_readings.readings, database).await?;
         for (question_id, value) in other.values {
             debug!(?question_id, ?value, "Adding question");
             crate::database::red_cap::case_notes::questions::add_question(

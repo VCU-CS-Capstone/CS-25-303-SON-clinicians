@@ -120,7 +120,7 @@ where
             );
             let _auth_guard = span.enter();
             if let Err(error) = self.process_from_parts(&mut parts, &span) {
-                span.record("exception.message", &error.to_string());
+                span.record("exception.message", error.to_string());
                 span.record("otel.status_code", "ERROR");
                 return ResponseFuture {
                     inner: Kind::InvalidAuthentication {

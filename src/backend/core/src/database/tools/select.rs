@@ -168,7 +168,7 @@ where
                     select_sub_query.format_sql_query().to_owned()
                 }
                 SubQueryOrColumn::Column(column) => column
-                    .format_column_with_prefix(Some(&self.table))
+                    .format_column_with_prefix(Some(self.table))
                     .into_owned(),
             })
             .collect::<Vec<_>>()

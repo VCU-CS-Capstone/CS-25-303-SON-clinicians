@@ -112,7 +112,7 @@ where
         C: ColumnType + 'static,
     {
         self.value = Some(WhereValue::Column {
-            comparison: comparison,
+            comparison,
             column: value.dyn_column(),
         });
         self

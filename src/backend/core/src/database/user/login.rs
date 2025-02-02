@@ -67,7 +67,7 @@ mod tests {
             no_testing_config()?;
             return Ok(());
         };
-        let database = testing_config.database.connect().await?;
+        let database = testing_config.connect_to_db().await?;
         let _id = add_login_attempt(
             Some(1),
             "127.0.0.1:55420",

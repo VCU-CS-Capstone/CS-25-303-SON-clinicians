@@ -174,9 +174,10 @@ pub async fn add_default_questions(conn: &PgPool) -> DBResult<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{database::red_cap::questions::{
-        clear_questions_tables, default::DefaultQuestionsTable,
-    }, utils::testing::config::testing::{get_testing_config, no_testing_config}};
+    use crate::{
+        database::red_cap::questions::{clear_questions_tables, default::DefaultQuestionsTable},
+        utils::testing::config::testing::{get_testing_config, no_testing_config},
+    };
 
     #[tokio::test]
     #[ignore]
@@ -186,7 +187,7 @@ mod tests {
             return Ok(());
         };
         config.init_logger();
-        let database = config.database.connect().await?;
+        let database = config.connect_to_db().await?;
         DefaultQuestionsTable::clear(&database).await?;
         clear_questions_tables(&database).await?;
         super::add_default_questions(&database).await?;

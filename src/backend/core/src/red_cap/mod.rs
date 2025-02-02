@@ -308,7 +308,7 @@ mod tests {
         };
         testing_config.init_logger();
 
-        let database = testing_config.database.connect().await?;
+        let database = testing_config.connect_to_db().await?;
         let client =
             RedcapClient::new(testing_config.red_cap_token.context("No RED_CAP_TOKEN")?).await?;
 
