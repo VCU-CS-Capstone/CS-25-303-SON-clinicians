@@ -75,9 +75,10 @@ pub async fn generate_participants(count: usize, database: PgPool) -> anyhow::Re
         let demographics = random_sets.random_demographics(part.id);
 
         demographics.insert_none(part.id, &database).await?;
-
-        NewMedication::insert_many(random_sets.random_medications(), part.id, &database).await?;
-
+        let medications = random_sets.random_medications();
+        if !medications.is_empty() {
+            NewMedication::insert_many(medications, part.id, &database).await?;
+        }
         let goals = random_sets.random_goals();
 
         for (goal, steps) in goals {

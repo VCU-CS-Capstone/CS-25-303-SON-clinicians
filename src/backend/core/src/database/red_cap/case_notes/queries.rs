@@ -66,6 +66,55 @@ impl CaseNoteType for CaseNoteListItem {
     }
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema, FromRow)]
+pub struct BloodGlucoseHistory {
+    /// Case Note It belongs to
+    pub case_note_id: i32,
+    /// Date of the visit
+    pub date_of_visit: NaiveDate,
+    /// Weight of the participant
+    pub result: f32,
+    pub fasting: Option<bool>,
+}
+impl BloodGlucoseHistory {
+    pub async fn find_all_for_participant(
+        participant_id: i32,
+        page_and_size: impl Into<PageParams>,
+        database: &sqlx::PgPool,
+    ) -> DBResult<PaginatedResponse<BloodGlucoseHistory>> {
+        let page_and_size: PageParams = page_and_size.into();
+        let offset_and_limit = if page_and_size.page_size > 0 {
+            format!(
+                "LIMIT {} OFFSET {}",
+                page_and_size.page_size,
+                page_and_size.offset()
+            )
+        } else {
+            "".to_string()
+        };
+
+        let data = sqlx::query_as(
+         &format!(
+            "
+            SELECT case_notes.id as case_note_id, case_notes.date_of_visit, cnhm.glucose_result as result, cnhm.fasted_atleast_2_hours as fasting  FROM case_notes
+                FULL JOIN case_note_health_measures cnhm on case_notes.id = cnhm.case_note_id
+                WHERE case_notes.participant_id = $1 AND cnhm.glucose_result IS NOT NULL
+                ORDER BY case_notes.date_of_visit DESC
+                {offset_and_limit};
+                "
+         ),
+        )
+        .bind(participant_id)
+        .fetch_all(database)
+        .await?;
+
+        let result = PaginatedResponse {
+            data,
+            ..Default::default()
+        };
+        Ok(result)
+    }
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema, FromRow)]
 pub struct WeightHistory {
     /// Case Note It belongs to
     pub case_note_id: i32,
@@ -295,6 +344,8 @@ mod tests {
             .await?;
             let health_measure = NewCaseNoteHealthMeasures {
                 weight: Some(random.random_range(180f32..190f32)),
+                glucose_result: Some(random.random_range(100f32..110f32)),
+                fasted_atleast_2_hours: Some(random.random_bool(0.50)),
                 ..Default::default()
             };
 
@@ -353,6 +404,23 @@ mod tests {
             create_participant_with_history(&database, "CS25-303 weight_test").await?;
         let weights =
             super::WeightHistory::find_all_for_participant(participant_id, (0, 0), &database)
+                .await?;
+
+        assert_eq!(weights.data.len(), 15);
+
+        println!("{:?}", weights);
+        Ok(())
+    }
+    #[tokio::test]
+    pub async fn glucose_test() -> anyhow::Result<()> {
+        let Some(database) = get_testing_db().await else {
+            no_db_connection()?;
+            return Ok(());
+        };
+        let participant_id =
+            create_participant_with_history(&database, "CS25-303 glucose test").await?;
+        let weights =
+            super::BloodGlucoseHistory::find_all_for_participant(participant_id, (0, 0), &database)
                 .await?;
 
         assert_eq!(weights.data.len(), 15);
