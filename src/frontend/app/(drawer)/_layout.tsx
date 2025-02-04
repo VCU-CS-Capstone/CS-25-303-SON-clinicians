@@ -44,7 +44,7 @@ const DrawerLayout = () => (
         drawerLabel: 'Logout',
         drawerIcon: ({ size, color }) => <Ionicons name="home-outline" size={size} color={color} />,
       }}
-    />{' '}
+    />
     <Drawer.Screen
       name="locations"
       options={{

@@ -1,4 +1,4 @@
-import { BloodPressureStats, WeightEntry } from './types/stats';
+import { BloodPressureStats, GlucoseEntry, WeightEntry } from './types/stats';
 import { PaginatedResponse } from './RequestTypes';
 import {
   Participant,
@@ -136,6 +136,18 @@ const api = {
       );
       if (response.ok) {
         return (await response.json()) as PaginatedResponse<WeightEntry>;
+      } else if (response.status === 404) {
+        return undefined;
+      } else {
+        throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
+      }
+    },
+    fetchGlucoseHistory: async (id: number, pageSize: number = 15, pageNumber: number = 1) => {
+      const response = await api.getSecure(
+        `/participant/stats/glucose/history/${id}?page_size=${pageSize}&page=${pageNumber}`
+      );
+      if (response.ok) {
+        return (await response.json()) as PaginatedResponse<GlucoseEntry>;
       } else if (response.status === 404) {
         return undefined;
       } else {

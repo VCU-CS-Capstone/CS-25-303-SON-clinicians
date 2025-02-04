@@ -42,29 +42,7 @@ const DrawerLayout = () => {
             headerTitle: 'Visits',
             drawerLabel: 'Visits',
             drawerIcon: ({ size, color }) => (
-              <Ionicons name="home-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Drawer.Screen
-          name="blood-pressure-trends"
-          initialParams={{ participant_id: participant_id }}
-          options={{
-            headerTitle: 'Blood Pressure Trends',
-            drawerLabel: 'Blood Pressure Trends',
-            drawerIcon: ({ size, color }) => (
-              <Ionicons name="home-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Drawer.Screen
-          name="weight-trends"
-          initialParams={{ participant_id: participant_id }}
-          options={{
-            headerTitle: 'Weight Trends',
-            drawerLabel: 'Weight Trends',
-            drawerIcon: ({ size, color }) => (
-              <Ionicons name="home-outline" size={size} color={color} />
+              <Ionicons name="medkit-outline" size={size} color={color} />
             ),
           }}
         />
@@ -75,7 +53,40 @@ const DrawerLayout = () => {
             headerTitle: 'Medications',
             drawerLabel: 'Medications',
             drawerIcon: ({ size, color }) => (
-              <Ionicons name="home-outline" size={size} color={color} />
+              <Ionicons name="medical-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="blood-pressure-trends"
+          initialParams={{ participant_id: participant_id }}
+          options={{
+            headerTitle: 'Blood Pressure Trends',
+            drawerLabel: 'Blood Pressure Trends',
+            drawerIcon: ({ size, color }) => (
+              <Ionicons name="analytics-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="weight-trends"
+          initialParams={{ participant_id: participant_id }}
+          options={{
+            headerTitle: 'Weight Trends',
+            drawerLabel: 'Weight Trends',
+            drawerIcon: ({ size, color }) => (
+              <Ionicons name="scale-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Drawer.Screen
+          name="glucose-trends"
+          initialParams={{ participant_id: participant_id }}
+          options={{
+            headerTitle: 'Glucose Trends',
+            drawerLabel: 'Glucose Trends',
+            drawerIcon: ({ size, color }) => (
+              <Ionicons name="analytics-outline" size={size} color={color} />
             ),
           }}
         />

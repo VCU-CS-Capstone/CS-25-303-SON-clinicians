@@ -22,3 +22,9 @@ export interface WeightEntry {
   date_of_visit: string;
   weight: number;
 }
+export interface GlucoseEntry {
+  case_note_id: number;
+  date_of_visit: string;
+  fasting?: boolean;
+  result: number;
+}

@@ -5,7 +5,9 @@ import api from '~/lib/api';
 
 interface SessionContextType {
   session: string | null;
+  sessionExpiration: Date | null;
   setSession: (session: string) => void;
+  setSessionExpiration: (expiration: Date) => void;
   logout: () => void;
 }
 
@@ -13,12 +15,27 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export const SessionProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<string | null>(null);
+  const [sessionExpiration, setSessionExpiration] = useState<Date | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const loadSession = async () => {
       const storedSession = await SecureStore.getItemAsync('session');
+      const expiration = await SecureStore.getItemAsync('session-expiration');
+      const expirationDate = expiration ? new Date(expiration) : null;
+
       if (storedSession) {
+        if (expirationDate) {
+          setSessionExpiration(expirationDate);
+          if (expirationDate < new Date()) {
+            await SecureStore.deleteItemAsync('session');
+            await SecureStore.deleteItemAsync('session-expiration');
+            setSessionExpiration(null);
+            setSession(null);
+            router.replace('/login');
+            return;
+          }
+        }
         setSession(storedSession);
       } else {
         router.replace('/login');
@@ -41,7 +58,9 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   return (
-    <SessionContext.Provider value={{ session, setSession, logout }}>
+    <SessionContext.Provider
+      value={{ session, setSession, logout, sessionExpiration, setSessionExpiration }}
+    >
       {children}
     </SessionContext.Provider>
   );
