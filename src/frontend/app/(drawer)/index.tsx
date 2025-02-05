@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 
 import { Container } from '~/components/Container';
 import { ScreenContent } from '~/components/ScreenContent';
-import { HamburgerMenu } from '~/components/menus/hamurger';
+import { HamburgerMenu } from '~/components/menus/hamburger';
 
 export default function Home() {
   return (

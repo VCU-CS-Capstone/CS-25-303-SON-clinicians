@@ -5,8 +5,8 @@ import { Button } from '~/components/Button';
 import LabelAndItem from '~/components/LabelAndItem';
 
 import ProtectedRoute from '~/components/ProtectedRoute';
-import { HamburgerMenu } from '~/components/menus/hamurger';
-import { HamburgerOption } from '~/components/menus/hamurger/HamburgerOption';
+import { HamburgerMenu } from '~/components/menus/hamburger';
+import { HamburgerOption } from '~/components/menus/hamburger/HamburgerOption';
 import { HealthInsuranceSelector, ShowInsurances } from '~/components/participant/HealthInsurance';
 import api from '~/lib/api';
 import {
