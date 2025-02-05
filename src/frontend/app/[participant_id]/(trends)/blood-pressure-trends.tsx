@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Dimensions, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { FlatList } from 'react-native-gesture-handler';
@@ -33,11 +33,14 @@ export default function PatientInfo() {
   }, []);
 
   return (
-    <ProtectedRoute>
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <ShowTrends trends={trends} />
-      </SafeAreaView>
-    </ProtectedRoute>
+    <>
+      <Stack.Screen options={{ title: 'Blood Pressure' }} />
+      <ProtectedRoute>
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <ShowTrends trends={trends} />
+        </SafeAreaView>
+      </ProtectedRoute>
+    </>
   );
 }
 const styles = StyleSheet.create({

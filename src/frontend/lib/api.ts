@@ -12,7 +12,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Location } from './types/locations';
 import { MedicationEntry } from './types/medications';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://cs-25-303.wyatt-herkamp.dev/api';
 
 const api = {
   get: async (endpoint: string) => {
