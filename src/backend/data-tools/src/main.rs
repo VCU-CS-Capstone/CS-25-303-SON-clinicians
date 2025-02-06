@@ -1,19 +1,27 @@
 use anyhow::Context;
 use clap::Parser;
+use config::DataToolConfig;
 use cs25_303_core::database::DatabaseConfig;
 use human_panic::setup_panic;
+use pull::PullParticipant;
 use random::RandomParticipantsCommand;
-use tracing::level_filters::LevelFilter;
+use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer};
 pub mod config;
+pub mod pull;
+pub mod push;
 pub mod random;
 use std::path::{Path, PathBuf};
 #[derive(Debug, Clone, Parser)]
+#[command(
+    version,
+    about = "CS25-30X Data Tools",
+    long_about = "Github Repository: https://github.com/VCU-CS-Capstone/CS-25-303-SON-clinicians",
+    author
+)]
 pub struct CLI {
-    #[clap(flatten)]
-    pub database: DatabaseConfig,
-    #[clap(short, long)]
-    pub config_file: Option<PathBuf>,
+    #[clap(short, long, default_value = "data-tools.toml")]
+    pub config: PathBuf,
     #[clap(subcommand)]
     pub command: Commands,
 }
@@ -21,6 +29,18 @@ pub struct CLI {
 pub enum Commands {
     /// Generate a bunch of random participants
     RandomParticipants(RandomParticipantsCommand),
+    /// Pull a participant from redcap
+    ///
+    /// ## WARNING
+    /// You must be connected to the VCU VPN to pull from redcap
+    PullParticipant(PullParticipant),
+    /// Push a participant to redcap
+    ///
+    /// ## WARNING
+    ///
+    /// You must be connected to the VCU VPN to push to redcap
+    PushParticipant(push::PushParticipant),
+    SaveDefaultConfig,
 }
 
 #[tokio::main]
@@ -29,10 +49,26 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = CLI::parse();
     load_logging()?;
-    let database = cs25_303_core::database::connect(cli.database.try_into()?, true).await?;
+    let config_file = config::load_config(&cli.config)?;
+
     match cli.command {
         Commands::RandomParticipants(command) => {
-            command.run(database).await?;
+            command.run(config_file).await?;
+        }
+        Commands::PullParticipant(command) => {
+            pull::execute(command, config_file).await?;
+        }
+        Commands::PushParticipant(command) => {
+            push::execute(command, config_file).await?;
+        }
+        Commands::SaveDefaultConfig => {
+            let default_config = DataToolConfig {
+                red_cap_token: Some("MY-API-TOKEN".to_string()),
+                database: DatabaseConfig::default(),
+            };
+            let toml = toml::to_string(&default_config)?;
+            std::fs::write(&cli.config, toml)?;
+            info!("Default config saved to {}", cli.config.display());
         }
     }
     Ok(())

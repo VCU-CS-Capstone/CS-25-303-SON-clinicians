@@ -36,10 +36,7 @@ fn set_commit_short(repository: &gix::Repository) -> anyhow::Result<()> {
 
     let commit = head.peel_to_commit_in_place()?;
     let commit_short = commit.short_id()?;
-    println!(
-        "cargo:rustc-env=PROJECT_COMMIT_SHORT={}",
-        commit_short
-    );
+    println!("cargo:rustc-env=PROJECT_COMMIT_SHORT={}", commit_short);
     Ok(())
 }
 /// Access via env!("PROJECT_COMMIT_TIME")
@@ -70,10 +67,7 @@ fn set_branch(repository: &gix::Repository) -> anyhow::Result<()> {
     let head_name = repository.head_name()?;
 
     if let Some(head_name) = head_name {
-        println!(
-            "cargo:rustc-env=PROJECT_BRANCH={}",
-            head_name.shorten()
-        );
+        println!("cargo:rustc-env=PROJECT_BRANCH={}", head_name.shorten());
     }
     Ok(())
 }

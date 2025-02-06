@@ -7,6 +7,8 @@ pub struct TestTable {
     pub name: String,
     pub age: i32,
     pub email: String,
+    pub updated_at: DateTime<FixedOffset>,
+    pub created_at: DateTime<FixedOffset>,
 }
 impl TableType for TestTable {
     type Columns = TestTableColumn;

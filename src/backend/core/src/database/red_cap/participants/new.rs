@@ -79,7 +79,7 @@ impl NewParticipant {
             )
             .insert(ParticipantsColumn::SignedUpOn, signed_up_on)
             .insert(
-                ParticipantsColumn::LastSyncedWithRedcap,
+                ParticipantsColumn::LastSyncedWithRedCap,
                 last_synced_with_redcap,
             )
             .return_all()

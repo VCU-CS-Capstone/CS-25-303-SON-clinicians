@@ -20,7 +20,8 @@ impl RequestId {
     }
     pub fn extract_from_parts(parts: &Parts) -> Result<Self, MissingInternelExtension> {
         let extension = parts.extensions.get::<RequestId>();
-        extension.copied()
+        extension
+            .copied()
             .ok_or(MissingInternelExtension("Request ID"))
     }
 }

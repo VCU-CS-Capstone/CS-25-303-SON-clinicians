@@ -1,6 +1,6 @@
 use ahash::{HashMap, HashMapExt};
 use sqlx::PgPool;
-use tracing::{debug, error, info, instrument};
+use tracing::{debug, error, info, instrument, warn};
 
 use crate::{
     database::red_cap::{
@@ -100,6 +100,10 @@ pub async fn pull_medications(
             ..Default::default()
         })
         .await?;
+    if records.is_empty() {
+        warn!(?record_id, "No medications found for participant");
+        return Ok(());
+    }
     let first_record = records.remove(0);
     let record = process_flat_json(first_record);
     let medications = RedCapMedication::read(&record);
@@ -130,6 +134,10 @@ pub async fn pull_goals(
             ..Default::default()
         })
         .await?;
+    if records.is_empty() {
+        warn!(?record_id, "No goals found for participant");
+        return Ok(());
+    }
     let first_record = records.remove(0);
     let record = process_flat_json(first_record);
     let RedCapCompleteGoals { goals, steps } = RedCapCompleteGoals::read(&record)?;
@@ -201,7 +209,10 @@ pub async fn pull_case_notes(
             fields: Some(vec![Fields::RecordID].into()),
         })
         .await?;
-
+    if records.is_empty() {
+        warn!(?record_id, "No case notes found for participant");
+        return Ok(());
+    }
     for case_note in records {
         let record = process_flat_json(case_note);
 

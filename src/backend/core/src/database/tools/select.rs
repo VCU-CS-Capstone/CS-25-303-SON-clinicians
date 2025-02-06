@@ -285,7 +285,7 @@ mod tests {
             builder
                 .column(AnotherTableColumn::Id)
                 .where_column(AnotherTableColumn::Age, |value| {
-                    value.equals_column(TestTableColumn::Age).build()
+                    value.equals(TestTableColumn::Age.dyn_column()).build()
                 })
                 .build_as("another_table_id")
         });

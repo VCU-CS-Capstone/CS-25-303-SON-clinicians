@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS participants(
     date_home_visit_consent_signed DATE,
     signed_up_on DATE DEFAULT CURRENT_DATE,
     added_to_db_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    last_synced_with_redcap TIMESTAMP WITH TIME ZONE
+    last_synced_with_red_cap TIMESTAMP WITH TIME ZONE
 );
 
 CREATE TABLE IF NOT EXISTS participant_demographics(
@@ -76,7 +76,6 @@ CREATE TABLE IF NOT EXISTS participant_medications(
     dosage VARCHAR(255),
     frequency TEXT,
     date_prescribed DATE,
-    date_stopped_taking DATE,
     date_entered_into_system DATE DEFAULT CURRENT_DATE,
     is_current BOOLEAN,
     date_discontinued DATE,

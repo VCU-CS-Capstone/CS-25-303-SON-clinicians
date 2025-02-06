@@ -59,9 +59,7 @@ pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Debug + T
         permission: Permissions,
         database: &PgPool,
     ) -> impl Future<Output = Result<bool, DBError>> + Send {
-        async {
-            Ok(true)
-        }
+        async { Ok(true) }
     }
 }
 #[derive(Debug, Clone, PartialEq, Eq, FromRow, Serialize, Deserialize, ToSchema, Columns)]

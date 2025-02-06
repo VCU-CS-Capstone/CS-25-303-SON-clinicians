@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS case_notes(
     red_cap_instance integer,
     -- Ensure that the combination of participant_id and red_cap_instance is unique
     UNIQUE (participant_id, red_cap_instance),
-    last_synced_with_redcap TIMESTAMP WITH TIME ZONE,
+    last_synced_with_red_cap TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

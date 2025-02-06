@@ -14,7 +14,7 @@ pub struct DBTestingConfig {
     // The host can be in the format host:port or just host.
     pub host: String,
     // The port is optional. If not specified the default port is used. or will be extracted from the host.
-    pub port: Option<u16>,
+    pub port: u16,
 }
 impl DBTestingConfig {
     pub async fn connect(&self) -> Result<PgPool, DBError> {
@@ -71,23 +71,11 @@ impl DBTestingConfig {
         Ok(test_db_name)
     }
     pub fn get_db_options(&self) -> Result<PgConnectOptions, DBError> {
-        let host = self.host.split(':').collect::<Vec<&str>>();
-
-        let (host, port) = match host.len() {
-            // The port is not specified. Use the default port.
-            1 => (host[0], self.port.unwrap_or(5432)),
-            // The port is specified within the host. The port option is ignored.
-            2 => (host[0], host[1].parse::<u16>().unwrap_or(5432)),
-            _ => {
-                // Not in the format host:port. Possibly IPv6 but we don't support that. As not really supported in the wild.
-                return Err(DBError::InvalidHost(self.host.to_owned()));
-            }
-        };
         let options = PgConnectOptions::new_without_pgpass()
             .username(&self.user)
             .password(&self.password)
-            .host(host)
-            .port(port);
+            .host(&self.host)
+            .port(self.port);
 
         Ok(options)
     }

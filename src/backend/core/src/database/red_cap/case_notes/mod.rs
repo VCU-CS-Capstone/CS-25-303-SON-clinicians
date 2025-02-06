@@ -104,7 +104,7 @@ pub struct CaseNote {
     /// Instance Number of the case note
     pub red_cap_instance: Option<i32>,
     /// DATABASE ONLY
-    pub last_synced_with_redcap: Option<DateTime<FixedOffset>>,
+    pub last_synced_with_red_cap: Option<DateTime<FixedOffset>>,
     /// DATABASE ONLY
     pub created_at: DateTime<FixedOffset>,
 }
@@ -120,16 +120,17 @@ impl CaseNote {
         redcap_instance: i32,
         database: &sqlx::PgPool,
     ) -> DBResult<Option<Self>> {
-        let result = sqlx::query_as(
-            "
-            SELECT * FROM case_notes
-            WHERE participant_id = $1 AND red_cap_instance = $2
-            ",
-        )
-        .bind(participant_id)
-        .bind(redcap_instance)
-        .fetch_optional(database)
-        .await?;
+        let result = SelectQueryBuilder::new(Self::table_name(), Self::columns())
+            .where_column(CaseNoteColumn::ParticipantId, |c| {
+                c.equals(participant_id).build()
+            })
+            .where_column(CaseNoteColumn::RedCapInstance, |c| {
+                c.equals(redcap_instance).build()
+            })
+            .query_as()
+            .fetch_optional(database)
+            .await?;
+
         Ok(result)
     }
     pub async fn find_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
@@ -148,15 +149,14 @@ impl CaseNote {
         participant_id: i32,
         database: &sqlx::PgPool,
     ) -> DBResult<Vec<Self>> {
-        let result = sqlx::query_as(
-            "
-            SELECT * FROM case_notes
-            WHERE participant_id = $1
-            ",
-        )
-        .bind(participant_id)
-        .fetch_all(database)
-        .await?;
+        let result = SelectQueryBuilder::new(Self::table_name(), Self::columns())
+            .where_column(CaseNoteColumn::ParticipantId, |c| {
+                c.equals(participant_id).build()
+            })
+            .order_by(CaseNoteColumn::DateOfVisit, SQLOrder::Descending)
+            .query_as()
+            .fetch_all(database)
+            .await?;
         Ok(result)
     }
     pub async fn update_instance_id(
@@ -164,17 +164,19 @@ impl CaseNote {
         instance_id: i32,
         database: &sqlx::PgPool,
     ) -> DBResult<()> {
-        sqlx::query(
-            "
-            UPDATE case_notes
-            SET redcap_instance = $1
-            WHERE id = $2
-            ",
-        )
-        .bind(instance_id)
-        .bind(self.id)
-        .execute(database)
-        .await?;
+        let result = UpdateQueryBuilder::new(Self::table_name())
+            .set(CaseNoteColumn::RedCapInstance, instance_id)
+            .set(
+                CaseNoteColumn::LastSyncedWithRedCap,
+                QueryBuilderFunction::now(),
+            )
+            .where_column(CaseNoteColumn::Id, |c| c.equals(self.id).build())
+            .query()
+            .execute(database)
+            .await?;
+        if result.rows_affected() != 1 {
+            error!(?result, "Failed to update case note instance id");
+        }
         Ok(())
     }
     #[tracing::instrument()]

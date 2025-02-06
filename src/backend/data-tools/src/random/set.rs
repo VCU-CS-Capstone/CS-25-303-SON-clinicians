@@ -19,9 +19,7 @@ use sqlx::PgPool;
 use tracing::{info, warn};
 
 use super::{utils::RandDate, RandomCompleteGoal, RandomMedication, RandomParticipant};
-#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
-
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, Default)]
 pub enum WeightCategory {
     Underweight,
     Overweight,
@@ -165,7 +163,7 @@ impl RandomSets {
         let start_date = match self.rand.random_range(0..100) {
             0..50 => {
                 // 50% change of being months ago
-                
+
                 Local::now().date_naive()
                     - chrono::Duration::weeks(self.rand.random_range(1..12) * 4)
             }

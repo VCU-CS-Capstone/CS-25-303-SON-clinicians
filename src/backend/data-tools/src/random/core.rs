@@ -1,5 +1,5 @@
 use super::utils::RandDate;
-use chrono::{Local, NaiveDate};
+use chrono::{Duration, Local, NaiveDate, Weekday};
 use cs25_303_core::{
     database::red_cap::participants::{
         goals::{NewParticipantGoal, NewParticipantGoalsSteps},
@@ -10,7 +10,7 @@ use cs25_303_core::{
 use rand::{seq::IndexedRandom, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tracing::error;
+use tracing::{error, info};
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct RandomDateOptions {
     pub min: Option<NaiveDate>,
@@ -160,21 +160,13 @@ impl RandomGoal {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RandomGoalStep {
     pub step: String,
-    pub confidence_in_achieving: ValueOrRandom<i16>,
-    pub date_set: ValueOrRandom<NaiveDate>,
-    pub date_to_be_achieved: ValueOrRandom<NaiveDate>,
 }
 impl RandomGoalStep {
     pub fn create_new_goal_step(&self, rand: &mut impl Rng) -> NewParticipantGoalsSteps {
-        let RandomGoalStep {
-            step,
-            confidence_in_achieving,
-            date_set,
-            date_to_be_achieved,
-        } = self;
-        let confidence_in_achieving = confidence_in_achieving.i16_value(rand);
-        let date_set = date_set.date_value(rand);
-        let date_to_be_achieved = date_to_be_achieved.date_value(rand);
+        let RandomGoalStep { step } = self;
+        let confidence_in_achieving = rand.random_range(1..=10);
+        let date_set = rand.random_date_in_year(2024);
+        let date_to_be_achieved = rand.random_date_in_year(2024);
         NewParticipantGoalsSteps {
             goal_id: None,
             step: step.clone(),
@@ -190,7 +182,6 @@ pub struct RandomMedication {
     pub name: String,
     pub dosage: ValueOrRandom<String>,
     pub frequency: ValueOrRandom<MedicationFrequency>,
-    pub start_date: Option<ValueOrRandom<NaiveDate>>,
 }
 impl RandomMedication {
     pub fn create_new_medication(&self, rand: &mut impl Rng) -> NewMedication {
@@ -198,19 +189,35 @@ impl RandomMedication {
             name,
             dosage,
             frequency,
-            start_date,
         } = self;
 
         let dosage = dosage.string_value(rand);
         let freqeuency = frequency.value_from_string(rand);
-        let start_date = start_date.as_ref().map(|date| date.date_value(rand));
-
+        let start_date = Some(rand.random_date_in_year(2024));
+        let (is_current, date_discontinued) = match rand.random_range(0..100) {
+            0..75 => (Some(true), None),
+            75..95 => (Some(false), Some(Local::now().date_naive())),
+            _ => (None, None),
+        };
+        let date_prescribed = if rand.random_bool(0.75) {
+            start_date.as_ref().map(|date| *date - Duration::days(30))
+        } else {
+            None
+        };
+        info!(
+            ?date_discontinued,
+            ?is_current,
+            ?date_prescribed,
+            "Medication"
+        );
         NewMedication {
             name: name.clone(),
             dosage: Some(dosage),
             frequency: Some(freqeuency),
-            date_prescribed: None,
+            date_prescribed: date_prescribed,
             date_entered_into_system: start_date,
+            is_current,
+            date_discontinued,
             ..Default::default()
         }
     }

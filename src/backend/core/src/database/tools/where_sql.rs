@@ -3,7 +3,10 @@ use std::fmt::Display;
 use derive_more::derive::From;
 use sqlx::{Encode, Postgres, Type};
 
-use super::{AndOr, ColumnType, DynColumn, HasArguments, SQLComparison};
+use super::{
+    AndOr, ColumnType, DynColumn, FormatSql, HasArguments, QueryBuilderValue,
+    QueryBuilderValueType, SQLComparison,
+};
 
 pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
     fn where_column<SC, F>(&mut self, column: SC, where_: F) -> &mut Self
@@ -61,11 +64,7 @@ pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
 pub enum WhereValue {
     CompareValue {
         comparison: SQLComparison,
-        value: usize,
-    },
-    Column {
-        comparison: SQLComparison,
-        column: DynColumn,
+        value: QueryBuilderValue,
     },
     NotNull,
     Null,
@@ -107,36 +106,22 @@ where
             ..self
         }
     }
-    pub fn compare_column<C>(mut self, comparison: SQLComparison, value: C) -> Self
+
+    pub fn compare<V>(mut self, comparison: SQLComparison, value: V) -> Self
     where
-        C: ColumnType + 'static,
+        V: QueryBuilderValueType<'args> + 'args,
     {
-        self.value = Some(WhereValue::Column {
-            comparison,
-            column: value.dyn_column(),
-        });
-        self
-    }
-    pub fn compare<T>(mut self, comparison: SQLComparison, value: T) -> Self
-    where
-        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
-    {
-        let value = self.args.push_argument(value);
+        let value = value.process(self.args);
         self.value = Some(WhereValue::CompareValue { comparison, value });
         self
     }
-    pub fn equals<T>(self, value: T) -> Self
+    pub fn equals<V>(self, value: V) -> Self
     where
-        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
+        V: QueryBuilderValueType<'args> + 'args,
     {
         self.compare(SQLComparison::Equals, value)
     }
-    pub fn equals_column<C>(self, value: C) -> Self
-    where
-        C: ColumnType + 'static,
-    {
-        self.compare_column(SQLComparison::Equals, value)
-    }
+
     pub fn like<T>(self, value: T) -> Self
     where
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
@@ -218,17 +203,10 @@ impl Display for WhereComparison {
         match &self.value {
             WhereValue::CompareValue { comparison, value } => write!(
                 f,
-                "{} {} ${}",
-                self.column.formatted_column(),
-                comparison,
-                value
-            )?,
-            WhereValue::Column { comparison, column } => write!(
-                f,
                 "{} {} {}",
                 self.column.formatted_column(),
                 comparison,
-                column.formatted_column()
+                value.format_sql()
             )?,
             WhereValue::NotNull => {
                 write!(f, "{} IS NOT NULL", self.column.formatted_column())?;
@@ -262,6 +240,7 @@ pub fn format_where(comparison: &[WhereComparison]) -> String {
 #[cfg(test)]
 mod tests {
     #![allow(dead_code)]
+
     use crate::database::{
         prelude::*,
         tools::{
@@ -293,7 +272,7 @@ mod tests {
                 column: TestTableColumn::Name.dyn_column(),
                 value: WhereValue::CompareValue {
                     comparison: SQLComparison::Equals,
-                    value: 2,
+                    value: 2.into(),
                 },
                 then: None,
             });
@@ -301,7 +280,7 @@ mod tests {
                 column: TestTableColumn::Id.dyn_column(),
                 value: WhereValue::CompareValue {
                     comparison: SQLComparison::Equals,
-                    value: 1,
+                    value: 1.into(),
                 },
                 then: Some((AndOr::And, then)),
             }
@@ -312,7 +291,7 @@ mod tests {
                 column: TestTableColumn::Age.dyn_column(),
                 value: WhereValue::CompareValue {
                     comparison: SQLComparison::Equals,
-                    value: 3,
+                    value: 3.into(),
                 },
                 then: None,
             });
@@ -320,7 +299,7 @@ mod tests {
                 column: TestTableColumn::Email.dyn_column(),
                 value: WhereValue::CompareValue {
                     comparison: SQLComparison::Equals,
-                    value: 4,
+                    value: QueryBuilderFunction::now().into(),
                 },
                 then: Some((AndOr::Or, then)),
             }

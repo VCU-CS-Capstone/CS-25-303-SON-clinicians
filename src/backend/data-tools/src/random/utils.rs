@@ -23,7 +23,15 @@ where
 {
     fn random_date_with_range(&mut self, min: &NaiveDate, max: &NaiveDate) -> NaiveDate {
         let random_year = self.random_range(min.year()..=max.year());
-        let random_month = self.random_range(min.month()..=max.month());
+        let random_month = if random_year == min.year() && random_year == max.year() {
+            self.random_range(min.month()..=max.month())
+        } else if random_year == min.year() {
+            self.random_range(min.month()..=12)
+        } else if random_year == max.year() {
+            self.random_range(1..=max.month())
+        } else {
+            self.random_range(1..=12)
+        };
 
         let day = if random_month == min.month() && random_year == min.year() {
             self.random_range(min.day()..=31)

@@ -1,16 +1,19 @@
 use sqlx::{Database, Postgres};
 
-use super::{ColumnType, HasArguments, QueryTool, WhereComparison, WhereableTool};
+use super::{
+    ColumnType, FormatSql, HasArguments, QueryBuilderValue, QueryBuilderValueType, QueryTool,
+    WhereComparison, WhereableTool,
+};
 
-pub struct SimpleUpdateQueryBuilder<'table, 'args, C: ColumnType> {
+pub struct UpdateQueryBuilder<'table, 'args, C: ColumnType> {
     table: &'table str,
-    columns_to_update: Vec<(C, usize)>,
+    columns_to_update: Vec<(C, QueryBuilderValue)>,
     where_comparisons: Vec<WhereComparison>,
     sql: Option<String>,
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
 }
 
-impl<'args, C: ColumnType> HasArguments<'args> for SimpleUpdateQueryBuilder<'_, 'args, C> {
+impl<'args, C: ColumnType> HasArguments<'args> for UpdateQueryBuilder<'_, 'args, C> {
     fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
         self.arguments.take().expect("Arguments already taken")
     }
@@ -20,21 +23,21 @@ impl<'args, C: ColumnType> HasArguments<'args> for SimpleUpdateQueryBuilder<'_, 
     }
 }
 
-impl<'args, C: ColumnType> WhereableTool<'args> for SimpleUpdateQueryBuilder<'_, 'args, C> {
+impl<'args, C: ColumnType> WhereableTool<'args> for UpdateQueryBuilder<'_, 'args, C> {
     #[inline]
     fn push_where_comparison(&mut self, comparison: WhereComparison) {
         self.where_comparisons.push(comparison);
     }
 }
 
-impl<'args, C: ColumnType> QueryTool<'args> for SimpleUpdateQueryBuilder<'_, 'args, C> {
+impl<'args, C: ColumnType> QueryTool<'args> for UpdateQueryBuilder<'_, 'args, C> {
     fn sql(&mut self) -> &str {
         let mut sql = format!("UPDATE {} SET ", self.table);
 
         let columns_to_update = self
             .columns_to_update
             .iter()
-            .map(|(column, value)| format!("{} = ${}", column.column_name(), value))
+            .map(|(column, value)| format!("{} = {}", column.column_name(), value.format_sql()))
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -52,7 +55,7 @@ impl<'args, C: ColumnType> QueryTool<'args> for SimpleUpdateQueryBuilder<'_, 'ar
     }
 }
 
-impl<'table, 'args, C> SimpleUpdateQueryBuilder<'table, 'args, C>
+impl<'table, 'args, C> UpdateQueryBuilder<'table, 'args, C>
 where
     C: ColumnType,
 {
@@ -65,13 +68,38 @@ where
             arguments: Some(Default::default()),
         }
     }
-
-    pub fn set<T>(&mut self, column: C, value: T) -> &mut Self
+    pub fn set<V>(&mut self, column: C, value: V) -> &mut Self
     where
-        T: 'args + sqlx::Encode<'args, Postgres> + sqlx::Type<Postgres>,
+        V: QueryBuilderValueType<'args> + 'args,
     {
-        let index = self.push_argument(value);
-        self.columns_to_update.push((column, index));
+        let value = value.process(self);
+        self.columns_to_update.push((column, value));
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlformat::{FormatOptions, QueryParams};
+
+    use crate::database::tools::{
+        testing::{TestTable, TestTableColumn},
+        QueryBuilderFunction, QueryTool, TableType, UpdateQueryBuilder, WhereableTool,
+    };
+
+    #[test]
+    pub fn test_builder() {
+        let mut query = UpdateQueryBuilder::new(TestTable::table_name());
+
+        query.where_column(TestTableColumn::Id, |builder| builder.equals(1).build());
+        query
+            .set(TestTableColumn::Age, 19)
+            .set(TestTableColumn::Email, "test_ref_value@kingtux.dev")
+            .set(TestTableColumn::UpdatedAt, QueryBuilderFunction::now());
+        let sql = query.sql();
+
+        let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
+
+        println!("{}", sql);
     }
 }

@@ -81,7 +81,7 @@ pub struct Participants {
     /// For Database Only
     pub added_to_db_at: DateTime<FixedOffset>,
     /// For Database Only
-    pub last_synced_with_redcap: Option<DateTime<FixedOffset>>,
+    pub last_synced_with_red_cap: Option<DateTime<FixedOffset>>,
 }
 impl Participants {
     pub async fn does_participant_id_exist(id: i32, db: &sqlx::PgPool) -> DBResult<bool> {
@@ -95,14 +95,23 @@ impl Participants {
     pub async fn set_red_cap_id(
         &mut self,
         red_cap_id: Option<i32>,
-        db: &sqlx::PgPool,
+        database: &sqlx::PgPool,
     ) -> DBResult<()> {
         self.red_cap_id = red_cap_id;
-        sqlx::query("UPDATE participants SET red_cap_id = $1 WHERE id = $2")
-            .bind(red_cap_id)
-            .bind(self.id)
-            .execute(db)
+        let result = UpdateQueryBuilder::new(Self::table_name())
+            .set(ParticipantsColumn::RedCapId, red_cap_id)
+            .set(
+                ParticipantsColumn::LastSyncedWithRedCap,
+                QueryBuilderFunction::now(),
+            )
+            .where_column(ParticipantsColumn::Id, |c| c.equals(self.id).build())
+            .query()
+            .execute(database)
             .await?;
+        if result.rows_affected() != 1 {
+            error!(?result, "Failed to update case note instance id");
+        }
+
         Ok(())
     }
     #[tracing::instrument]

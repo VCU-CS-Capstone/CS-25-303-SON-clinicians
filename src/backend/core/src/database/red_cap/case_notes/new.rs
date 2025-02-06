@@ -58,7 +58,7 @@ impl NewCaseNote {
             .insert(CaseNoteColumn::RedCapInstance, redcap_instance)
             .insert(CaseNoteColumn::Completed, completed)
             .insert(
-                CaseNoteColumn::LastSyncedWithRedcap,
+                CaseNoteColumn::LastSyncedWithRedCap,
                 last_synced_with_redcap,
             )
             .return_all()

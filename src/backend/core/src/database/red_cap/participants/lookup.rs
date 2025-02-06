@@ -115,7 +115,7 @@ impl ParticipantLookupQuery {
                 builder
                     .column(CaseNoteColumn::DateOfVisit)
                     .where_column(CaseNoteColumn::ParticipantId, |builder| {
-                        builder.equals_column(ParticipantsColumn::Id).build()
+                        builder.equals(ParticipantsColumn::Id.dyn_column()).build()
                     })
                     .order_by(CaseNoteColumn::DateOfVisit, SQLOrder::Descending)
                     .build_as("last_visited")

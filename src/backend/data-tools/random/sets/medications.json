@@ -46,9 +46,6 @@
                 "30mg"
             ]
         },
-        "start_date": {
-            "random": "Date"
-        },
         "frequency": "Daily"
     },
     {

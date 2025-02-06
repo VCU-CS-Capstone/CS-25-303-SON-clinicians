@@ -6,36 +6,10 @@
         },
         "steps": [
             {
-                "step": "Take a 15 minute walk every day",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Take a 15 minute walk every day"
             },
             {
-                "step": "Eat a salad for lunch every day",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Eat a salad for lunch every day"
             }
         ]
     },
@@ -46,36 +20,10 @@
         },
         "steps": [
             {
-                "step": "Reduce salt intake",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Reduce salt intake"
             },
             {
-                "step": "Exercise for 30 minutes 5 times a week",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Exercise for 30 minutes 5 times a week"
             }
         ]
     },
@@ -86,36 +34,10 @@
         },
         "steps": [
             {
-                "step": "Reduce cigarette intake by 1 every week",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Reduce cigarette intake by 1 every week"
             },
             {
-                "step": "Use nicotine patches",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Use nicotine patches"
             }
         ]
     },
@@ -126,36 +48,10 @@
         },
         "steps": [
             {
-                "step": "Go to bed at the same time every night",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Go to bed at the same time every night"
             },
             {
-                "step": "Avoid screens 1 hour before bed",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Avoid screens 1 hour before bed"
             }
         ]
     },
@@ -166,36 +62,10 @@
         },
         "steps": [
             {
-                "step": "Drink a glass of water with every meal",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Drink a glass of water with every meal"
             },
             {
-                "step": "Carry a water bottle throughout the day",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Carry a water bottle throughout the day"
             }
         ]
     },
@@ -206,36 +76,10 @@
         },
         "steps": [
             {
-                "step": "Replace sugary snacks with fruits",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Replace sugary snacks with fruits"
             },
             {
-                "step": "Avoid sugary drinks",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Avoid sugary drinks"
             }
         ]
     },
@@ -246,36 +90,10 @@
         },
         "steps": [
             {
-                "step": "Lift weights 3 times a week",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Lift weights 3 times a week"
             },
             {
-                "step": "Increase protein intake",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Increase protein intake"
             }
         ]
     },
@@ -286,36 +104,10 @@
         },
         "steps": [
             {
-                "step": "Stretch for 10 minutes every day",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Stretch for 10 minutes every day"
             },
             {
-                "step": "Attend a yoga class once a week",
-                "confidence_in_achieving": {
-                    "random": "Number",
-                    "options": {
-                        "min": 1,
-                        "max": 10
-                    }
-                },
-                "date_set": {
-                    "random": "Date"
-                },
-                "date_to_be_achieved": {
-                    "random": "Date"
-                }
+                "step": "Attend a yoga class once a week"
             }
         ]
     }

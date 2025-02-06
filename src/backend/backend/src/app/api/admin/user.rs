@@ -7,8 +7,7 @@ use axum::{
 use chrono::Local;
 use cs25_303_core::database::{
     tools::{
-        PageParams, PaginatedResponse, QueryTool, SimpleUpdateQueryBuilder, TableType,
-        WhereableTool,
+        PageParams, PaginatedResponse, QueryTool, TableType, UpdateQueryBuilder, WhereableTool,
     },
     user::{does_email_exist, does_username_exist, new::NewUser, User, UserColumn, UserType},
 };
@@ -149,7 +148,7 @@ pub async fn update_user(
         last_name,
     } = update;
 
-    let mut update = SimpleUpdateQueryBuilder::new(User::table_name());
+    let mut update = UpdateQueryBuilder::new(User::table_name());
     update
         .where_equals(UserColumn::Id, user_id)
         .set(UserColumn::UpdatedAt, Local::now().fixed_offset());

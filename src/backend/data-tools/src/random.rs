@@ -17,13 +17,17 @@ use rand::seq::IndexedRandom;
 use set::RandomSets;
 use sqlx::{types::chrono::NaiveDate, PgPool};
 use tracing::info;
+
+use crate::config::DataToolConfig;
 #[derive(Debug, Clone, Args)]
 pub struct RandomParticipantsCommand {
     #[clap(short, long, default_value = "50")]
     pub count: usize,
 }
 impl RandomParticipantsCommand {
-    pub async fn run(self, database: PgPool) -> anyhow::Result<()> {
+    pub async fn run(self, config: DataToolConfig) -> anyhow::Result<()> {
+        let database = cs25_303_core::database::connect(config.database.try_into()?, true).await?;
+
         println!("Generating {} participants", self.count);
         generate_participants(self.count, database).await
     }

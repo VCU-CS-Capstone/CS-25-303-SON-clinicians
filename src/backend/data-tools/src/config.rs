@@ -1,11 +1,22 @@
 use cs25_303_core::database::DatabaseConfig;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct DataToolConfig {
-    pub database: Option<DatabaseConfig>,
+    pub red_cap_token: Option<String>,
+    pub database: DatabaseConfig,
 }
 
+pub fn load_config(
+    file_path: impl AsRef<std::path::Path>,
+) -> Result<DataToolConfig, anyhow::Error> {
+    if !file_path.as_ref().exists() {
+        return Ok(DataToolConfig::default());
+    }
+    let content = std::fs::read_to_string(file_path)?;
+    let config: DataToolConfig = toml::from_str(&content)?;
+    Ok(config)
+}
 #[cfg(test)]
 pub mod testing {
     #[derive(Debug, Clone, Deserialize, Serialize)]
