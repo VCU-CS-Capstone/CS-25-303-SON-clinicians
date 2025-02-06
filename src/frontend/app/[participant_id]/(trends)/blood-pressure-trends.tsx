@@ -6,7 +6,11 @@ import { BarChart, LineChart, lineDataItem } from 'react-native-gifted-charts';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ProtectedRoute from '~/components/ProtectedRoute';
 import api from '~/lib/api';
-import { BloodPressureStats, BloodPressureStatsOneReading } from '~/lib/types/stats';
+import {
+  BloodPressureReading,
+  BloodPressureStats,
+  BloodPressureStatsOneReading,
+} from '~/lib/types/stats';
 
 export default function PatientInfo() {
   const { participant_id } = useLocalSearchParams<{ participant_id: string }>();
@@ -111,13 +115,22 @@ function ListTrends({ trends }: { trends: BloodPressureStats[] | undefined }) {
 }
 function ListTrendItem({ trend }: { trend: BloodPressureStats }) {
   return (
-    <View>
-      <Text>{trend.date_of_visit}</Text>
-      <Text>{trend.readings.sit?.systolic}</Text>
-      <Text>{trend.readings.sit?.diastolic}</Text>
-      <Text>{trend.readings.stand?.systolic}</Text>
-      <Text>{trend.readings.stand?.diastolic}</Text>
+    <View className="mb-4 border-2 border-solid border-red-100">
+      <Text className="text-xl">Visit {new Date(trend.date_of_visit).toLocaleDateString()}</Text>
+      <Reading type="Sit" trend={trend.readings.sit} />
+      <Reading type="Standing" trend={trend.readings.stand} />
+      <Reading type="Personal" trend={trend.readings.personal} />
     </View>
+  );
+}
+function Reading({ type, trend }: { type: string; trend: BloodPressureReading | undefined }) {
+  if (!trend) {
+    return null;
+  }
+  return (
+    <Text>
+      {type} -{trend.systolic}/{trend.diastolic}
+    </Text>
   );
 }
 
