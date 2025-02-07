@@ -27,11 +27,11 @@ const LoginScreen = () => {
   };
 
   return (
-    <View className="justify-cetner flex-1 items-center bg-gray-100 px-4">
-      <Text className="mb-8 text-2xl font-bold text-gray-800">Login</Text>
-      <View className="w-full max-w-md">
+    <View className={styles.container}>
+      <Text className={styles.title}>Login</Text>
+      <View className={styles.inputContainer}>
         <TextInput
-          className="mb-4 rounded border p-2"
+          className={styles.input}
           placeholder="Username"
           value={username}
           autoCorrect={false}
@@ -41,7 +41,7 @@ const LoginScreen = () => {
           autoCapitalize="none"
         />
         <TextInput
-          className="mb-4 rounded border p-2"
+          className={styles.input}
           placeholder="Password"
           value={password}
           autoCorrect={false}
@@ -54,6 +54,13 @@ const LoginScreen = () => {
       </View>
     </View>
   );
+};
+
+const styles = {
+  container: 'flex-1 justify-center items-center bg-gray-100 px-4',
+  title: 'mb-8 text-2xl font-bold text-gray-800',
+  inputContainer: 'w-full max-w-md',
+  input: 'mb-4 rounded border p-2',
 };
 
 export default LoginScreen;

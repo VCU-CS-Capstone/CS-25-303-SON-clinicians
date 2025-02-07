@@ -1,15 +1,14 @@
 import { Stack } from 'expo-router';
 import { Text, View } from 'react-native';
 
-import { Container } from '~/components/Container';
-import { ScreenContent } from '~/components/ScreenContent';
 import { HamburgerMenu } from '~/components/menus/hamburger';
+import { SafeAreaView } from 'react-native';
 
 export default function Home() {
   return (
     <>
       <Stack.Screen options={{ title: 'Home' }} />
-      <Container>
+      <SafeAreaView className={styles.container}>
         <View className="mt-40 flex flex-row gap-24">
           <Text>Hello World</Text>
           <View className="border">
@@ -18,8 +17,11 @@ export default function Home() {
             </HamburgerMenu>
           </View>
         </View>
-        <ScreenContent path="app/(drawer)/index.tsx" title="Home" />
-      </Container>
+      </SafeAreaView>
     </>
   );
 }
+
+const styles = {
+  container: 'flex flex-1 m-6',
+};
