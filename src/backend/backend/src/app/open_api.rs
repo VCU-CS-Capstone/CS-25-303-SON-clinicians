@@ -1,4 +1,4 @@
-use crate::app::api::auth::AuthApi;
+use crate::app::api::{auth::AuthApi, researcher::ResearcherAPI};
 
 use super::api::{self, admin::AdminAPI, location::LocationsAPI, participant::ParticipantAPI};
 use axum::{
@@ -18,7 +18,7 @@ use cs25_303_core::{
         Locations,
     },
     red_cap::{
-        DegreeLevel, Ethnicity, Gender, HealthInsurance, MedicationFrequency, MobilityDevice,
+        EducationLevel, Ethnicity, Gender, HealthInsurance, MedicationFrequency, MobilityDevice,
         PreferredLanguage, Programs, Race, SeenAtVCUHS, VisitType,
     },
 };
@@ -33,12 +33,13 @@ use utoipa::{
         (path = "/api/auth", api = AuthApi, tags=["Authentication", "user"]),
         (path = "/api/participant", api = ParticipantAPI, tags=["participant"]),
         (path = "/api/location", api = LocationsAPI, tags=["location"]),
-        (path = "/api/admin", api = AdminAPI, tags=["admin"])
+        (path = "/api/admin", api = AdminAPI, tags=["admin"]),
+        (path = "/api/researchyer", api = ResearcherAPI, tags=["Researcher"])
     ),
     paths(api::info),
     components(schemas(
         api::Instance,
-        BloodPressureType, Locations, Gender, Race, SeenAtVCUHS, Programs, Ethnicity,HealthInsurance,DegreeLevel,MobilityDevice,
+        BloodPressureType, Locations, Gender, Race, SeenAtVCUHS, Programs, Ethnicity,HealthInsurance,EducationLevel,MobilityDevice,
         MedicationFrequency,PreferredLanguage, CaseNote, CaseNoteIDAndDate, ParticipantDemograhics,HealthOverview,
         Participants,VisitType,
         QuestionOverview,
@@ -57,6 +58,7 @@ use utoipa::{
         (name = "participant", description = "Participant Information"),
         (name = "location", description = "Location Information"),
         (name = "admin", description = "Admin Information"),
+        (name = "Researcher", description = "Researcher Advanced Queries")
     )
 )]
 pub struct ApiDoc;

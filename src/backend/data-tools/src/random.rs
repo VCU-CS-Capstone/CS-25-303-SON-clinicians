@@ -3,17 +3,20 @@ mod set;
 use chrono::Local;
 use clap::Args;
 pub use core::*;
-use cs25_303_core::database::red_cap::{
-    case_notes::new::{NewCaseNote, NewCaseNoteHealthMeasures},
-    participants::{
-        goals::{ParticipantGoals, ParticipantGoalsSteps},
-        NewMedication, NewParticipant, ParticipantMedications, Participants,
+use cs25_303_core::{
+    database::red_cap::{
+        case_notes::new::{NewCaseNote, NewCaseNoteHealthMeasures},
+        participants::{
+            goals::{ParticipantGoals, ParticipantGoalsSteps},
+            NewMedication, NewParticipant, ParticipantMedications, Participants,
+        },
     },
+    red_cap::SeenAtVCUHS,
 };
 use data::load_random_sets;
 pub mod data;
 pub mod utils;
-use rand::seq::IndexedRandom;
+use rand::{seq::IndexedRandom, Rng};
 use set::RandomSets;
 use sqlx::{types::chrono::NaiveDate, PgPool};
 use tracing::info;
@@ -49,7 +52,13 @@ pub async fn generate_participants(count: usize, database: PgPool) -> anyhow::Re
         let program_and_location = random_sets.pick_random_program();
         let location = random_sets.location_for_program(program_and_location);
         let (signed_up_on, number_of_case_notes) = random_sets.first_week_and_numer_of_case_notes();
-
+        let vcuhs = match random_sets.rand.random_range(0..100) {
+            0..50 => Some(SeenAtVCUHS::Yes),
+            50..75 => Some(SeenAtVCUHS::No),
+            75..85 => Some(SeenAtVCUHS::Unsure),
+            85..95 => Some(SeenAtVCUHS::DidNotAsk),
+            _ => None,
+        };
         let new_participant = NewParticipant {
             first_name,
             last_name,
@@ -59,6 +68,7 @@ pub async fn generate_participants(count: usize, database: PgPool) -> anyhow::Re
             // This string is intentionally this message as it will be used to identify these random participants
             other_contact: Some("Randomly Generated Participant. By Wyatt Herkamp".to_string()),
             program: program_and_location,
+            vcuhs_patient_status: vcuhs,
             location: Some(location.id),
             status: Some(random_sets.random_status()),
             behavioral_risks_identified: random_sets.random_behavioral_risks_identified(),

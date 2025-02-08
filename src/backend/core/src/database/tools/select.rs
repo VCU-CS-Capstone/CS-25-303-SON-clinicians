@@ -1,13 +1,16 @@
+use std::borrow::Cow;
+
 use super::{
     where_sql::{format_where, WhereBuilder, WhereComparison},
     ColumnType, DynColumn, FormatSql, FormatSqlQuery, HasArguments, PaginationSupportingTool,
     QueryTool, SQLOrder, WhereableTool,
 };
+use join::JoinType;
 use sqlx::{Database, Postgres};
-mod sub;
-
 mod count;
 mod exists;
+mod join;
+mod sub;
 pub use count::*;
 pub use exists::*;
 pub use sub::*;
@@ -55,6 +58,7 @@ pub struct SelectQueryBuilder<'args, C: ColumnType> {
     columns_to_select: Vec<SubQueryOrColumn<C>>,
     where_comparisons: Vec<WhereComparison>,
     sql: Option<String>,
+    joins: Vec<join::Join>,
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
     limit: Option<i32>,
     offset: Option<i32>,
@@ -86,6 +90,7 @@ where
             columns_to_select: columns,
             where_comparisons: Vec::new(),
             sql: None,
+            joins: Vec::new(),
             arguments: Some(Default::default()),
             limit: None,
             offset: None,
@@ -102,6 +107,7 @@ where
             where_comparisons,
             sql,
             arguments,
+            joins,
             limit,
             offset,
             order_by,
@@ -117,6 +123,7 @@ where
             columns_to_select,
             where_comparisons,
             sql,
+            joins,
             arguments,
             limit,
             offset,
@@ -153,6 +160,18 @@ where
 
         self
     }
+
+    pub fn join<F>(&mut self, table: &'static str, join_type: JoinType, join: F) -> &mut Self
+    where
+        F: FnOnce(join::JoinBuilder<'_, 'args, Self>) -> join::Join,
+    {
+        let builder = join::JoinBuilder::new(self, table, join_type);
+        let join = join(builder);
+
+        self.joins.push(join);
+
+        self
+    }
 }
 
 impl<'args, C> QueryTool<'args> for SelectQueryBuilder<'args, C>
@@ -160,7 +179,7 @@ where
     C: ColumnType,
 {
     fn sql(&mut self) -> &str {
-        let concat_columns = self
+        let mut columns: Vec<String> = self
             .columns_to_select
             .iter_mut()
             .map(|item| match item {
@@ -171,15 +190,26 @@ where
                     .format_column_with_prefix(Some(self.table))
                     .into_owned(),
             })
-            .collect::<Vec<_>>()
-            .join(", ");
+            .collect();
+        for join in &self.joins {
+            columns.extend(join.columns_to_select.iter().map(|column| {
+                column
+                    .format_column_with_prefix(Some(join.table))
+                    .into_owned()
+            }));
+        }
+
+        let concat_columns = columns.join(", ");
 
         let mut sql = format!(
             "SELECT {columns} FROM {table}",
             columns = concat_columns,
             table = self.table
         );
-
+        for join in &self.joins {
+            sql.push(' ');
+            sql.push_str(&join.format_sql());
+        }
         if !self.where_comparisons.is_empty() {
             let where_sql = format_where(&self.where_comparisons);
             sql.push_str(" WHERE ");
@@ -234,7 +264,7 @@ mod tests {
     use crate::database::{
         prelude::*,
         tools::{
-            select::SelectQueryBuilder,
+            select::{join::JoinType, SelectQueryBuilder},
             testing::{AnotherTable, AnotherTableColumn, TestTableColumn},
         },
     };
@@ -296,7 +326,41 @@ mod tests {
         println!("{}", formatted_sql);
         assert_eq!(
             sql,
-            "SELECT test_table.id, test_table.name, test_table.age, test_table.email, (SELECT another_table.id FROM another_table WHERE another_table.age = test_table.age LIMIT 1) AS another_table_id FROM test_table WHERE (test_table.id = $1) AND (test_table.name = $2 OR test_table.age = $3) ORDER BY id ASC LIMIT 10"
+            "SELECT test_table.id, test_table.name, test_table.age, test_table.email, test_table.updated_at, test_table.created_at, (SELECT another_table.id FROM another_table WHERE another_table.age = test_table.age LIMIT 1) AS another_table_id FROM test_table WHERE (test_table.id = $1) AND (test_table.name = $2 OR test_table.age = $3) ORDER BY id ASC LIMIT 10"
         );
+    }
+    #[test]
+    pub fn test_join() {
+        let mut query = SelectQueryBuilder::new("test_table", TestTableColumn::all());
+
+        query.where_column(TestTableColumn::Id, |builder| builder.equals(1).build());
+
+        query.where_column(TestTableColumn::Name, |builder| {
+            builder
+                .equals("test")
+                .or(TestTableColumn::Age, |builder| builder.equals(2).build())
+        });
+        query.limit(10);
+
+        query.order_by(TestTableColumn::Id, SQLOrder::Ascending);
+
+        query.join(AnotherTable::table_name(), JoinType::Full, |builder| {
+            builder
+                .select(AnotherTableColumn::Email.alias("another_email"))
+                .on(|builder| {
+                    builder
+                        .equals(
+                            TestTableColumn::Email.dyn_column(),
+                            AnotherTableColumn::Email.dyn_column(),
+                        )
+                        .build()
+                })
+        });
+        let sql = query.sql();
+
+        let formatted_sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
+
+        println!("{}", formatted_sql);
+
     }
 }

@@ -11,8 +11,9 @@ use crate::{
         },
     },
     red_cap::{
-        DegreeLevel, Ethnicity, HealthInsurance, MobilityDevice, MultiSelectType, Programs,
-        RedCapDataSet, RedCapEnum, RedCapGender, RedCapLanguage, RedCapRace, RedCapType, Status,
+        EducationLevel, Ethnicity, HealthInsurance, MobilityDevice, MultiSelectType, Programs,
+        RedCapDataSet, RedCapEnum, RedCapGender, RedCapLanguage, RedCapRace, RedCapType,
+        SeenAtVCUHS, Status,
     },
 };
 
@@ -32,6 +33,8 @@ pub struct RedCapParticipant {
     /// RedCap: other_info
     pub other_contact: Option<String>,
     pub program: Programs,
+    /// Redcap: vcuhs_patient
+    pub vcuhs_patient_status: Option<SeenAtVCUHS>,
     /// Redcap: rhwp_location
     /// Relates to [super::Locations]
     pub location: Option<i32>,
@@ -54,6 +57,7 @@ impl From<RedCapParticipant> for NewParticipant {
             last_name,
             phone_number_one,
             phone_number_two,
+            vcuhs_patient_status,
             other_contact,
             program,
             location,
@@ -70,6 +74,7 @@ impl From<RedCapParticipant> for NewParticipant {
             phone_number_one,
             phone_number_two,
             other_contact,
+            vcuhs_patient_status,
             program,
             location,
             status,
@@ -92,6 +97,7 @@ impl From<Participants> for RedCapParticipant {
             phone_number_two: participant.phone_number_two,
             other_contact: participant.other_contact,
             location: participant.location,
+            vcuhs_patient_status: participant.vcuhs_patient_status,
             status: participant.status,
             behavioral_risks_identified: participant.behavioral_risks_identified,
             date_care_coordination_consent_signed: participant
@@ -116,6 +122,7 @@ impl RedCapParticipant {
             other_contact,
             program,
             location,
+            vcuhs_patient_status,
             status,
             behavioral_risks_identified,
             date_care_coordination_consent_signed,
@@ -149,7 +156,10 @@ impl RedCapParticipant {
             (*date_home_visit_consent_signed).into(),
         );
         data.insert("date_intake".to_string(), (*signed_up_on).into());
-
+        data.insert(
+            "vcuhs_patient".to_string(),
+            vcuhs_patient_status.clone().into(),
+        );
         if let Some(location) = location {
             let location = converter.locations.iter().find(|x| x.id == *location);
             if let Some(location) = location {
@@ -181,7 +191,7 @@ impl RedCapParticipant {
         let red_cap_id = data
             .get_number("record_id")
             .ok_or(RedCapConverterError::RequiredFieldMissing("record_id"))?;
-
+        let vcuhs_patient_status = data.get_enum("vcuhs_patient");
         let location = if let Some(location) = RedCapLocationRules::read(data) {
             let location = converter.find_location_from_connection_rules(&location);
             info!("Location: {:?}", location);
@@ -195,6 +205,7 @@ impl RedCapParticipant {
             first_name,
             last_name,
             program,
+            vcuhs_patient_status,
             phone_number_one: data.get("phone1").and_then(|x| x.to_string()),
             phone_number_two: data.get("phone2").and_then(|x| x.to_string()),
             other_contact: data.get("other_info").and_then(|x| x.to_string()),
@@ -230,7 +241,7 @@ pub struct RedCapParticipantDemographics {
     /// Red Cap: insurance
     pub health_insurance: Vec<HealthInsurance>,
     /// Red Cap: education
-    pub highest_education_level: Option<DegreeLevel>,
+    pub highest_education_level: Option<EducationLevel>,
 }
 impl From<RedCapParticipantDemographics> for Option<NewDemographics> {
     fn from(demographics: RedCapParticipantDemographics) -> Self {

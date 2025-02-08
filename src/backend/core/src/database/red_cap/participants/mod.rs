@@ -4,7 +4,8 @@ use crate::{
         converter::participants::{
             RedCapHealthOverview, RedCapParticipant, RedCapParticipantDemographics,
         },
-        DegreeLevel, Ethnicity, Gender, HealthInsurance, PreferredLanguage, Programs, Race, Status,
+        EducationLevel, Ethnicity, Gender, HealthInsurance, PreferredLanguage, Programs, Race,
+        SeenAtVCUHS, Status,
     },
 };
 use chrono::{DateTime, FixedOffset};
@@ -15,6 +16,8 @@ pub mod health_overview;
 mod lookup;
 mod medications;
 mod new;
+mod researcher;
+pub use researcher::*;
 mod summary;
 pub use lookup::*;
 pub use medications::*;
@@ -65,6 +68,7 @@ pub struct Participants {
     /// RedCap: other_info
     pub other_contact: Option<String>,
     pub program: Programs,
+    pub vcuhs_patient_status: Option<SeenAtVCUHS>,
     /// Redcap: rhwp_location
     /// Relates to [super::Locations]
     pub location: Option<i32>,
@@ -179,7 +183,7 @@ pub struct ParticipantDemograhics {
     /// Red Cap: insurance
     pub health_insurance: Vec<HealthInsurance>,
     /// Red Cap: education
-    pub highest_education_level: Option<DegreeLevel>,
+    pub highest_education_level: Option<EducationLevel>,
 }
 impl TableType for ParticipantDemograhics {
     type Columns = ParticipantDemograhicsColumn;

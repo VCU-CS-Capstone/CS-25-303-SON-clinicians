@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use derive_more::From;
 use sqlx::Postgres;
 
-use super::{DynColumn, FormatSql, HasArguments};
+use super::{ColumnType, DynColumn, FormatSql, HasArguments};
 pub trait QueryBuilderValueType<'args> {
     fn process<A>(self, args: &mut A) -> QueryBuilderValue
     where
@@ -53,7 +53,7 @@ impl FormatSql for QueryBuilderValue {
         match self {
             QueryBuilderValue::ArgumentIndex(index) => Cow::Owned(format!("${}", index)),
             QueryBuilderValue::Function(function) => function.format_sql(),
-            QueryBuilderValue::Column(column) => column.format_sql(),
+            QueryBuilderValue::Column(column) => column.formatted_column(),
         }
     }
 }

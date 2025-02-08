@@ -6,6 +6,7 @@ pub mod table_utils;
 pub mod tools;
 use sqlx::{migrate::Migrator, postgres::PgConnectOptions, PgPool};
 use tracing::info;
+pub mod queries;
 /// A bunch of re-exports to make it easier to use the database module.
 pub mod prelude {
     pub use super::tools::*;

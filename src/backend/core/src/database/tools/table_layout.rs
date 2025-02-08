@@ -69,6 +69,15 @@ pub trait ColumnType: Debug + Send + Sync {
             column: *self,
         }
     }
+    fn alias(&self, alias: &'static str) -> ColumnAlias<Self>
+    where
+        Self: Sized + Copy,
+    {
+        ColumnAlias {
+            alias: alias,
+            column: *self,
+        }
+    }
     fn dyn_column(self) -> DynColumn
     where
         Self: Sized + Send + Sync + 'static,
@@ -76,14 +85,34 @@ pub trait ColumnType: Debug + Send + Sync {
         DynColumn::new(self)
     }
 }
-impl<C> FormatSql for C
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ColumnAlias<C> {
+    column: C,
+    alias: &'static str,
+}
+impl<C> ColumnType for ColumnAlias<C>
 where
     C: ColumnType,
 {
-    fn format_sql(&self) -> Cow<'_, str> {
-        self.formatted_column()
+    fn column_name(&self) -> &'static str {
+        self.column.column_name()
+    }
+    fn formatted_column(&self) -> Cow<'static, str> {
+        Cow::Owned(format!(
+            "{} AS {}",
+            self.column.formatted_column(),
+            self.alias
+        ))
+    }
+    fn format_column_with_prefix(&self, prefix: Option<&str>) -> Cow<'static, str> {
+        Cow::Owned(format!(
+            "{} AS {}",
+            self.column.format_column_with_prefix(prefix),
+            self.alias
+        ))
     }
 }
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ColumnFormatWithPrefix<'prefix, 'column, C> {
     column: &'column C,

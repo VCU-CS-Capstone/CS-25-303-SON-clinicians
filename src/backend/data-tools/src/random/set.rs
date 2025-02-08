@@ -241,9 +241,9 @@ impl RandomSets {
 
         let highest_education_level = match self.rand.random_range(0..100) {
             0..50 => None,
-            50..75 => Some(cs25_303_core::red_cap::DegreeLevel::HighschoolOrGED),
-            75..90 => Some(cs25_303_core::red_cap::DegreeLevel::Associates),
-            _ => Some(cs25_303_core::red_cap::DegreeLevel::Bachelors),
+            50..75 => Some(cs25_303_core::red_cap::EducationLevel::HighschoolOrGED),
+            75..90 => Some(cs25_303_core::red_cap::EducationLevel::Associates),
+            _ => Some(cs25_303_core::red_cap::EducationLevel::Bachelors),
         };
         // 10% chance of the age not being here to simulate missing data
         let age = match self.rand.random_range(0..100) {

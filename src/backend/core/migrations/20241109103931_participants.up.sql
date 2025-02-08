@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS participants(
     other_contact TEXT,
     -- Other Info
     program VARCHAR(255) NOT NULL,
+    vcuhs_patient_status VARCHAR(255),
     -- Relates to location table
     location INTEGER,
         CONSTRAINT FK_participants_location

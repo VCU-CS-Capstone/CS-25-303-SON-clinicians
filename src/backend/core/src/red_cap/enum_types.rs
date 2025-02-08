@@ -267,7 +267,7 @@ pub enum HealthInsurance {
 }
 impl MultiSelectType for HealthInsurance {}
 #[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
-pub enum DegreeLevel {
+pub enum EducationLevel {
     #[red_cap(enum_index = 1)]
     None,
     #[red_cap(enum_index = 2)]

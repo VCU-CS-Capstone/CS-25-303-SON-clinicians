@@ -61,13 +61,24 @@ pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
     fn push_where_comparison(&mut self, comparison: WhereComparison);
 }
 #[derive(Debug)]
-pub enum WhereValue {
+pub enum SQLCondition {
     CompareValue {
         comparison: SQLComparison,
         value: QueryBuilderValue,
     },
     NotNull,
     Null,
+}
+impl FormatSql for SQLCondition {
+    fn format_sql(&self) -> std::borrow::Cow<'_, str> {
+        match self {
+            SQLCondition::CompareValue { comparison, value } => {
+                format!("{} {}", comparison.format_sql(), value.format_sql()).into()
+            }
+            SQLCondition::NotNull => "IS NOT NULL".into(),
+            SQLCondition::Null => "IS NULL".into(),
+        }
+    }
 }
 
 pub struct WhereBuilder<'query, 'args, A>
@@ -76,7 +87,7 @@ where
 {
     args: &'query mut A,
     column: DynColumn,
-    value: Option<WhereValue>,
+    value: Option<SQLCondition>,
     phantoms: std::marker::PhantomData<&'args ()>,
 }
 impl<'query, 'args, A> WhereBuilder<'query, 'args, A>
@@ -96,13 +107,13 @@ where
     }
     pub fn is_not_null(self) -> Self {
         Self {
-            value: Some(WhereValue::NotNull),
+            value: Some(SQLCondition::NotNull),
             ..self
         }
     }
     pub fn is_null(self) -> Self {
         Self {
-            value: Some(WhereValue::Null),
+            value: Some(SQLCondition::Null),
             ..self
         }
     }
@@ -112,7 +123,7 @@ where
         V: QueryBuilderValueType<'args> + 'args,
     {
         let value = value.process(self.args);
-        self.value = Some(WhereValue::CompareValue { comparison, value });
+        self.value = Some(SQLCondition::CompareValue { comparison, value });
         self
     }
     pub fn equals<V>(self, value: V) -> Self
@@ -175,7 +186,7 @@ where
 #[derive(Debug)]
 pub struct WhereComparison {
     column: DynColumn,
-    value: WhereValue,
+    value: SQLCondition,
     then: Option<(AndOr, Box<WhereComparison>)>,
 }
 
@@ -201,18 +212,18 @@ impl Display for MultipleWhereFormatter<'_> {
 impl Display for WhereComparison {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.value {
-            WhereValue::CompareValue { comparison, value } => write!(
+            SQLCondition::CompareValue { comparison, value } => write!(
                 f,
                 "{} {} {}",
                 self.column.formatted_column(),
                 comparison,
                 value.format_sql()
             )?,
-            WhereValue::NotNull => {
+            SQLCondition::NotNull => {
                 write!(f, "{} IS NOT NULL", self.column.formatted_column())?;
             }
 
-            WhereValue::Null => {
+            SQLCondition::Null => {
                 write!(f, "{} IS NULL", self.column.formatted_column())?;
             }
         }
@@ -270,7 +281,7 @@ mod tests {
         let part_one = {
             let then = Box::new(WhereComparison {
                 column: TestTableColumn::Name.dyn_column(),
-                value: WhereValue::CompareValue {
+                value: SQLCondition::CompareValue {
                     comparison: SQLComparison::Equals,
                     value: 2.into(),
                 },
@@ -278,7 +289,7 @@ mod tests {
             });
             WhereComparison {
                 column: TestTableColumn::Id.dyn_column(),
-                value: WhereValue::CompareValue {
+                value: SQLCondition::CompareValue {
                     comparison: SQLComparison::Equals,
                     value: 1.into(),
                 },
@@ -289,7 +300,7 @@ mod tests {
         let part_two = {
             let then = Box::new(WhereComparison {
                 column: TestTableColumn::Age.dyn_column(),
-                value: WhereValue::CompareValue {
+                value: SQLCondition::CompareValue {
                     comparison: SQLComparison::Equals,
                     value: 3.into(),
                 },
@@ -297,7 +308,7 @@ mod tests {
             });
             WhereComparison {
                 column: TestTableColumn::Email.dyn_column(),
-                value: WhereValue::CompareValue {
+                value: SQLCondition::CompareValue {
                     comparison: SQLComparison::Equals,
                     value: QueryBuilderFunction::now().into(),
                 },

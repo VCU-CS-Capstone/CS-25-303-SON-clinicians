@@ -80,8 +80,7 @@ pub async fn look_up_participant(
     Json(participant): Json<ParticipantLookupQuery>,
 ) -> Result<Response, InternalError> {
     let participants = participant.find(page, &site.database).await?;
-
-    ok_json_response(participants)
+    Ok(ResponseBuilder::ok().json(&participants))
 }
 /// Gets a participant by ID
 #[utoipa::path(

@@ -32,9 +32,11 @@ pub trait HasArguments<'args> {
         arguments.len()
     }
 }
+
 pub trait FormatSql {
     fn format_sql(&self) -> Cow<'_, str>;
 }
+
 pub trait FormatSqlQuery {
     fn format_sql_query(&mut self) -> &str;
 }

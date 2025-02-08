@@ -90,6 +90,15 @@ pub enum SQLComparison {
     /// `!=`
     NotEquals,
 }
+impl FormatSql for SQLComparison {
+    fn format_sql(&self) -> Cow<'static, str> {
+        match self {
+            Self::Equals => Cow::Borrowed("="),
+            Self::NotEquals => Cow::Borrowed("!="),
+            Self::Like => Cow::Borrowed("LIKE"),
+        }
+    }
+}
 impl Display for SQLComparison {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -114,4 +123,12 @@ pub enum AndOr {
     And,
     #[strum(serialize = "OR")]
     Or,
+}
+impl FormatSql for AndOr {
+    fn format_sql(&self) -> Cow<'static, str> {
+        match self {
+            Self::And => Cow::Borrowed("AND"),
+            Self::Or => Cow::Borrowed("OR"),
+        }
+    }
 }

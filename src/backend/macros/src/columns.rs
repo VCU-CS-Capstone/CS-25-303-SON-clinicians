@@ -116,6 +116,11 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
                     std::borrow::Cow::Owned(format!("{}.{}", <#ident as TableType>::table_name(), self.column_name()))
                 }
             }
+            impl FormatSql for #column_enum_name{
+                fn format_sql(&self) -> std::borrow::Cow<'_, str> {
+                    self.formatted_column()
+                }
+            }
             impl AllColumns for #column_enum_name {
                 fn all() -> std::vec::Vec<Self>
                     where

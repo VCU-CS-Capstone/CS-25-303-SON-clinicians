@@ -1,10 +1,10 @@
-use crate::database::prelude::*;
+use crate::{database::prelude::*, red_cap::SeenAtVCUHS};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     database::DBResult,
     red_cap::{
-        DegreeLevel, Ethnicity, Gender, HealthInsurance, MobilityDevice, PreferredLanguage,
+        EducationLevel, Ethnicity, Gender, HealthInsurance, MobilityDevice, PreferredLanguage,
         Programs, Race, Status,
     },
 };
@@ -24,6 +24,7 @@ pub struct NewParticipant {
     pub phone_number_two: Option<String>,
     pub other_contact: Option<String>,
     pub program: Programs,
+    pub vcuhs_patient_status: Option<SeenAtVCUHS>,
     pub location: Option<i32>,
     pub status: Option<Status>,
     pub behavioral_risks_identified: Option<String>,
@@ -47,6 +48,7 @@ impl NewParticipant {
             other_contact,
             program,
             location,
+            vcuhs_patient_status,
             status,
             behavioral_risks_identified,
             date_care_coordination_consent_signed,
@@ -63,6 +65,7 @@ impl NewParticipant {
             .insert(ParticipantsColumn::PhoneNumberTwo, phone_number_two)
             .insert(ParticipantsColumn::OtherContact, other_contact)
             .insert(ParticipantsColumn::Program, program)
+            .insert(ParticipantsColumn::VcuhsPatientStatus, vcuhs_patient_status)
             .insert(ParticipantsColumn::Location, location)
             .insert(ParticipantsColumn::Status, status)
             .insert(
@@ -109,7 +112,7 @@ pub struct NewDemographics {
     /// Red Cap: insurance
     pub health_insurance: Vec<HealthInsurance>,
     /// Red Cap: education
-    pub highest_education_level: Option<DegreeLevel>,
+    pub highest_education_level: Option<EducationLevel>,
 }
 impl NewDemographics {
     pub async fn insert_none(

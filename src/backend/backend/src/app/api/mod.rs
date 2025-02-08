@@ -13,6 +13,7 @@ pub mod auth;
 pub mod location;
 pub mod participant;
 pub mod questions;
+pub mod researcher;
 pub mod user;
 use crate::config::EnabledFeatures;
 
@@ -65,6 +66,7 @@ pub fn api_routes() -> axum::Router<SiteState> {
         .nest("/participant", participant::participant_routes())
         .nest("/location", location::location_routes())
         .nest("/admin", admin::admin_routes())
+        .nest("/researcher", researcher::researcher_routes())
         .fallback(route_not_found)
         .layer(CorsLayer::very_permissive())
 }
