@@ -18,14 +18,14 @@ pub struct ParticipantLookup {
     pub id: i32,
     pub first_name: String,
     pub last_name: String,
-    #[tabled(display_with = "crate::database::table_utils::display_option")]
+    #[tabled(display = "crate::database::table_utils::display_option")]
     pub phone_number_one: Option<String>,
-    #[tabled(display_with = "crate::database::table_utils::display_option")]
+    #[tabled(display = "crate::database::table_utils::display_option")]
     pub phone_number_two: Option<String>,
     pub program: Programs,
-    #[tabled(display_with = "crate::database::table_utils::display_option")]
+    #[tabled(display = "crate::database::table_utils::display_option")]
     pub location: Option<i32>,
-    #[tabled(display_with = "crate::database::table_utils::display_option")]
+    #[tabled(display = "crate::database::table_utils::display_option")]
     #[sqlx(default)]
     pub last_visited: Option<NaiveDate>,
 }

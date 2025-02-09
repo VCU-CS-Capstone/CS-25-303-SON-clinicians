@@ -9,7 +9,7 @@ description = "Generates Test Data for the CS25-303 Project"
 [dependencies]
 serde.workspace = true
 cs25-303-core.workspace = true
-clap = { version = "4", features = ["derive"] }
+clap.workspace = true
 tokio.workspace = true
 sqlx.workspace = true
 anyhow.workspace = true

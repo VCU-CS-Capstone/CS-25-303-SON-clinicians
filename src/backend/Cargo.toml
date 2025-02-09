@@ -7,6 +7,8 @@ authors = ["Wyatt Jacob Herkamp <herkampwj@vcu.edu>"]
 edition = "2021"
 repository = "https://github.com/VCU-CS-Capstone/CS-25-303-SON-clinicians"
 [workspace.dependencies]
+clap = { version = "4", features = ["derive"] }
+
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -25,7 +27,7 @@ chrono = { version = "0.4", features = ["serde"] }
 ahash = "0.8"
 base64 = "0.22"
 derive_more = { version = "2", features = ["deref", "as_ref", "from", "into"] }
-strum = { version = "0.26", features = ["derive"] }
+strum = { version = "0.27", features = ["derive"] }
 
 
 # Runtime

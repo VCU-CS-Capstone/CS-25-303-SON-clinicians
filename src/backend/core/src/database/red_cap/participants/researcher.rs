@@ -13,7 +13,8 @@ use crate::{
         red_cap::case_notes::{CaseNote, CaseNoteColumn},
     },
     red_cap::{
-        EducationLevel, Gender, HealthInsurance, PreferredLanguage, Programs, SeenAtVCUHS, Status,
+        EducationLevel, Gender, HealthInsurance, PreferredLanguage, Programs, Race, SeenAtVCUHS,
+        Status,
     },
 };
 
@@ -23,29 +24,31 @@ use super::{
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema, FromRow, Tabled)]
 pub struct ResearcherQueryResult {
     pub participant_id: i32,
+    #[tabled(display = "crate::database::table_utils::display_option")]
+    pub red_cap_id: Option<i32>,
     pub first_name: String,
     pub last_name: String,
     /// Phone number one
-    #[tabled(display_with = "crate::database::table_utils::display_option")]
+    #[tabled(display = "crate::database::table_utils::display_option")]
     pub phone_number_one: Option<String>,
     /// Second phone number
-    #[tabled(display_with = "crate::database::table_utils::display_option")]
+    #[tabled(display = "crate::database::table_utils::display_option")]
     pub phone_number_two: Option<String>,
     /// Other contact information
-    #[tabled(display_with = "crate::database::table_utils::display_option")]
+    #[tabled(display = "crate::database::table_utils::display_option")]
     pub other_contact: Option<String>,
 
     /// The visit history of the participant
     ///
     /// Only available if `get_visit_history` is true
-    #[tabled(display_with = "crate::database::table_utils::count_option")]
+    #[tabled(display = "crate::database::table_utils::count_option")]
     #[sqlx(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub visit_history: Option<Vec<NaiveDate>>,
     /// The last visited date
     ///
     /// Only available if `get_last_visited` is true
-    #[tabled(display_with = "crate::database::table_utils::display_option")]
+    #[tabled(display = "crate::database::table_utils::display_option")]
     #[sqlx(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_visited: Option<NaiveDate>,
@@ -61,6 +64,12 @@ impl TableQuery for ResearcherQueryResult {
         ]
     }
 }
+/// The researcher query
+///
+/// # TODO
+/// - Add any of filter for Race, Gender, Education, Language, Health Insurance
+/// - Mobility Devices Parameters
+/// - (LOW Priority) Medication Parameters
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(examples(
     ResearcherQuery::example_one,
@@ -82,7 +91,7 @@ pub struct ResearcherQuery {
 
     pub gender: Option<Gender>,
     pub highest_level_of_education: Option<EducationLevel>,
-    // TODO: Race pub race: Option<Race>,
+    pub race: Option<Race>,
     pub language: Option<PreferredLanguage>,
     pub health_insurance: Option<HealthInsurance>,
     /// Age to filter by
@@ -130,6 +139,7 @@ impl Default for ResearcherQuery {
             age: None,
             get_visit_history: false,
             get_last_visited: false,
+            race: None,
         }
     }
 }
@@ -152,6 +162,7 @@ impl ResearcherQuery {
             age,
             get_visit_history,
             get_last_visited,
+            race,
         } = self;
         if get_last_visited && get_visit_history {
             warn!(
@@ -162,6 +173,7 @@ impl ResearcherQuery {
             Participants::table_name(),
             vec![
                 ParticipantsColumn::Id.alias("participant_id").dyn_column(),
+                ParticipantsColumn::RedCapId.dyn_column(),
                 ParticipantsColumn::FirstName.dyn_column(),
                 ParticipantsColumn::LastName.dyn_column(),
                 ParticipantsColumn::PhoneNumberOne.dyn_column(),
@@ -241,6 +253,11 @@ impl ResearcherQuery {
                 builder.number_query(age).build()
             });
         };
+        if let Some(race) = race {
+            query.where_column(ParticipantDemograhicsColumn::Race, |builder| {
+                builder.equals(race).build()
+            });
+        }
 
         if get_visit_history {
             trace!("Getting last visited");
@@ -305,12 +322,10 @@ mod tests {
     use crate::utils::testing::config::testing::{get_testing_config, no_testing_config};
 
     use super::*;
-    /// Tests the participant lookup query
-    ///
-    /// Note: This test may not find anything if the database is empty or if random data is not consistent with my setup
+    /// Test the examples of the researcher query
     #[tokio::test]
     #[ignore]
-    async fn test_participant_lookup_query() -> anyhow::Result<()> {
+    async fn test_examples() -> anyhow::Result<()> {
         let Some(config) = get_testing_config() else {
             no_testing_config()?;
             return Ok(());
@@ -328,14 +343,14 @@ mod tests {
                 .clone()
                 .query((10, 0).into(), &database)
                 .await
-                .unwrap();
+                .expect("Failed to Execute Researcher Query");
+
             if result.is_empty() {
                 eprintln!("No participant found. But it might be expected");
                 continue;
             }
             println!("Found {} participants from {:?}", result.len(), query);
-            let table = Table::new(result.iter()).to_string();
-            println!("{}", table);
+            println!("{}", Table::new(result.iter()));
         }
 
         Ok(())

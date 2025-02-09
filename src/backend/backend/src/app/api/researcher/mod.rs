@@ -23,9 +23,18 @@ use crate::app::{
 #[derive(OpenApi)]
 #[openapi(
     paths(query),
-    components(schemas(PageParams, ResearcherQuery, ResearcherQueryResult, PaginatedResponse<ResearcherQueryResult>, NumberQuery<i16>, PreferredLanguage, EducationLevel, Programs,ItemOrArray<i32>)),
-
-
+    components(
+        schemas(PageParams,
+         ResearcherQuery,
+         ResearcherQueryResult,
+         PaginatedResponse<ResearcherQueryResult>,
+         NumberQuery<i16>,
+         PreferredLanguage,
+         EducationLevel,
+         Programs,
+         ItemOrArray<i32>
+        )
+    ),
 )]
 pub struct ResearcherAPI;
 

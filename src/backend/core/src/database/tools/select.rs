@@ -259,7 +259,7 @@ mod tests {
 
         assert_eq!(
             sql,
-            "SELECT test_table.id, test_table.name, test_table.age, test_table.email FROM test_table WHERE (test_table.id = $1) AND (test_table.name = $2 OR test_table.age = $3) ORDER BY id ASC LIMIT 10"
+            "SELECT test_table.id, test_table.name, test_table.age, test_table.email, test_table.updated_at, test_table.created_at FROM test_table WHERE (test_table.id = $1) AND (test_table.name = $2 OR test_table.age = $3) ORDER BY id ASC LIMIT 10"
         );
 
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
@@ -288,6 +288,7 @@ mod tests {
                 .where_column(AnotherTableColumn::Age, |value| {
                     value.equals(TestTableColumn::Age.dyn_column()).build()
                 })
+                .limit(1)
                 .build_as("another_table_id")
         });
         let sql = query.format_sql_query();
