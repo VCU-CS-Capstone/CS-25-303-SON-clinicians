@@ -1,8 +1,8 @@
 use sqlx::{Database, Postgres};
 
 use super::{
-    ColumnType, FormatSql, HasArguments, QueryBuilderValue, QueryBuilderValueType, QueryTool,
-    WhereComparison, WhereableTool,
+    ColumnType, FormatSql, FormatSqlQuery, HasArguments, QueryBuilderValue, QueryBuilderValueType,
+    QueryTool, WhereComparison, WhereableTool,
 };
 
 pub struct UpdateQueryBuilder<'table, 'args, C: ColumnType> {
@@ -29,9 +29,8 @@ impl<'args, C: ColumnType> WhereableTool<'args> for UpdateQueryBuilder<'_, 'args
         self.where_comparisons.push(comparison);
     }
 }
-
-impl<'args, C: ColumnType> QueryTool<'args> for UpdateQueryBuilder<'_, 'args, C> {
-    fn sql(&mut self) -> &str {
+impl<'args, C: ColumnType> FormatSqlQuery for UpdateQueryBuilder<'_, 'args, C> {
+    fn format_sql_query(&mut self) -> &str {
         let mut sql = format!("UPDATE {} SET ", self.table);
 
         let columns_to_update = self
@@ -54,6 +53,8 @@ impl<'args, C: ColumnType> QueryTool<'args> for UpdateQueryBuilder<'_, 'args, C>
         self.sql.as_ref().expect("SQL not set")
     }
 }
+
+impl<'args, C: ColumnType> QueryTool<'args> for UpdateQueryBuilder<'_, 'args, C> {}
 
 impl<'table, 'args, C> UpdateQueryBuilder<'table, 'args, C>
 where
@@ -84,7 +85,7 @@ mod tests {
 
     use crate::database::tools::{
         testing::{TestTable, TestTableColumn},
-        QueryBuilderFunction, QueryTool, TableType, UpdateQueryBuilder, WhereableTool,
+        FormatSqlQuery, QueryBuilderFunction, TableType, UpdateQueryBuilder, WhereableTool,
     };
 
     #[test]
@@ -96,7 +97,7 @@ mod tests {
             .set(TestTableColumn::Age, 19)
             .set(TestTableColumn::Email, "test_ref_value@kingtux.dev")
             .set(TestTableColumn::UpdatedAt, QueryBuilderFunction::now());
-        let sql = query.sql();
+        let sql = query.format_sql_query();
 
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 

@@ -3,6 +3,8 @@ use std::fmt::Display;
 use derive_more::derive::From;
 use sqlx::{Encode, Postgres, Type};
 
+use crate::database::queries::NumberQuery;
+
 use super::{
     AndOr, ColumnType, DynColumn, FormatSql, HasArguments, QueryBuilderValue,
     QueryBuilderValueType, SQLComparison,
@@ -139,7 +141,22 @@ where
     {
         self.compare(SQLComparison::Like, value)
     }
-
+    pub fn number_query<T>(self, value: NumberQuery<T>) -> Self
+    where
+        T: 'args + Encode<'args, Postgres> + Type<Postgres>,
+    {
+        match value {
+            NumberQuery::EqualTo(value) => self.equals(value),
+            NumberQuery::GreaterThan(value) => self.compare(SQLComparison::GreaterThan, value),
+            NumberQuery::LessThan(value) => self.compare(SQLComparison::LessThan, value),
+            NumberQuery::GreaterThanOrEqualTo(value) => {
+                self.compare(SQLComparison::GreaterThanOrEqualTo, value)
+            }
+            NumberQuery::LessThanOrEqualTo(value) => {
+                self.compare(SQLComparison::LessThanOrEqualTo, value)
+            }
+        }
+    }
     pub fn build(self) -> WhereComparison {
         self.into()
     }
@@ -216,7 +233,7 @@ impl Display for WhereComparison {
                 f,
                 "{} {} {}",
                 self.column.formatted_column(),
-                comparison,
+                comparison.format_sql(),
                 value.format_sql()
             )?,
             SQLCondition::NotNull => {

@@ -41,19 +41,19 @@ pub trait FormatSqlQuery {
     fn format_sql_query(&mut self) -> &str;
 }
 /// A base Query TOol type that can be used to build queries.
-pub trait QueryTool<'args>: HasArguments<'args> {
-    /// The SQL query that will be executed
-    ///
-    /// # Note
-    /// This uses &mut self because some sql queries are not generated until the query is built but then its cached.
-    fn sql(&mut self) -> &str;
-
+///
+/// ## Note
+///
+/// These query builders are not meant to be fill every case in sql.
+///
+/// They are great for the simple cases but the more you need. The more you should consider using sql directly.
+pub trait QueryTool<'args>: HasArguments<'args> + FormatSqlQuery {
     /// Builds a query that can be executed.
     ///
     /// See [sqlx::query_with] for more information.
     fn query(&mut self) -> Query<'_, Postgres, <Postgres as Database>::Arguments<'args>> {
         let args = self.take_arguments_or_error();
-        let sql = self.sql();
+        let sql = self.format_sql_query();
         trace!(?sql, "Generated SQL");
 
         sqlx::query_with(sql, args)
@@ -67,7 +67,7 @@ pub trait QueryTool<'args>: HasArguments<'args> {
     {
         let args = self.take_arguments_or_error();
 
-        let sql = self.sql();
+        let sql = self.format_sql_query();
         trace!(?sql, "Generated SQL");
         sqlx::query_as_with(sql, args)
     }
@@ -82,7 +82,7 @@ pub trait QueryTool<'args>: HasArguments<'args> {
     {
         let args = self.take_arguments_or_error();
 
-        let sql = self.sql();
+        let sql = self.format_sql_query();
         trace!(?sql, "Generated SQL");
         sqlx::query_scalar_with(sql, args)
     }

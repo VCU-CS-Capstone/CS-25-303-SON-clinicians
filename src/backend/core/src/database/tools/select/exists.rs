@@ -1,7 +1,8 @@
 use sqlx::{Database, Postgres};
 
 use crate::database::tools::{
-    format_where, HasArguments, QueryScalarTool, QueryTool, WhereComparison, WhereableTool,
+    format_where, FormatSqlQuery, HasArguments, QueryScalarTool, QueryTool, WhereComparison,
+    WhereableTool,
 };
 
 pub struct SelectExists<'table, 'args> {
@@ -34,8 +35,12 @@ impl HasArguments<'_> for SelectExists<'_, '_> {
         self.arguments.as_mut().expect("Arguments already taken")
     }
 }
-impl QueryTool<'_> for SelectExists<'_, '_> {
-    fn sql(&mut self) -> &str {
+impl QueryTool<'_> for SelectExists<'_, '_> {}
+impl QueryScalarTool<'_> for SelectExists<'_, '_> {
+    type Output = bool;
+}
+impl FormatSqlQuery for SelectExists<'_, '_> {
+    fn format_sql_query(&mut self) -> &str {
         let mut sql = format!("SELECT EXISTS (SELECT 1 FROM {} ", self.table);
 
         if !self.where_comparisons.is_empty() {
@@ -51,16 +56,13 @@ impl QueryTool<'_> for SelectExists<'_, '_> {
         self.sql.as_ref().expect("SQL not set")
     }
 }
-impl QueryScalarTool<'_> for SelectExists<'_, '_> {
-    type Output = bool;
-}
 #[cfg(test)]
 mod tests {
     use sqlformat::{FormatOptions, QueryParams};
 
     use crate::database::tools::{
         testing::{TestTable, TestTableColumn},
-        QueryTool, SelectExists, TableType, WhereableTool,
+        FormatSqlQuery, SelectExists, TableType, WhereableTool,
     };
 
     #[test]
@@ -68,7 +70,7 @@ mod tests {
         let mut query = SelectExists::new(TestTable::table_name());
         query.where_equals(TestTableColumn::Age, 50);
 
-        let sql = query.sql();
+        let sql = query.format_sql_query();
         assert_eq!(
             sql,
             "SELECT EXISTS (SELECT 1 FROM test_table  WHERE test_table.age = $1)"

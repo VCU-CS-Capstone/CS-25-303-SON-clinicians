@@ -1,7 +1,4 @@
-use std::{
-    borrow::Cow,
-    fmt::{Debug, Display},
-};
+use std::{borrow::Cow, fmt::Debug};
 mod insert;
 mod pagination;
 mod select;
@@ -89,6 +86,14 @@ pub enum SQLComparison {
     ///
     /// `!=`
     NotEquals,
+
+    GreaterThan,
+
+    LessThan,
+
+    GreaterThanOrEqualTo,
+
+    LessThanOrEqualTo,
 }
 impl FormatSql for SQLComparison {
     fn format_sql(&self) -> Cow<'static, str> {
@@ -96,18 +101,14 @@ impl FormatSql for SQLComparison {
             Self::Equals => Cow::Borrowed("="),
             Self::NotEquals => Cow::Borrowed("!="),
             Self::Like => Cow::Borrowed("LIKE"),
+            Self::GreaterThan => Cow::Borrowed(">"),
+            Self::LessThan => Cow::Borrowed("<"),
+            Self::GreaterThanOrEqualTo => Cow::Borrowed(">="),
+            Self::LessThanOrEqualTo => Cow::Borrowed("<="),
         }
     }
 }
-impl Display for SQLComparison {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Equals => write!(f, "="),
-            Self::NotEquals => write!(f, "!="),
-            Self::Like => write!(f, "LIKE"),
-        }
-    }
-}
+
 /// SQL Ordering
 #[derive(Debug, Clone, Copy, PartialEq, Display, AsRefStr)]
 pub enum SQLOrder {

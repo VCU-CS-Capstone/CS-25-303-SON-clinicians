@@ -1,9 +1,9 @@
 use std::{borrow::Cow, fmt::Debug};
 
-use super::{FormatSql, FunctionCallColumn};
+use super::FunctionCallColumn;
 
 pub trait TableType {
-    type Columns: ColumnType;
+    type Columns: ColumnType + 'static;
     fn table_name() -> &'static str
     where
         Self: Sized;
@@ -69,6 +69,7 @@ pub trait ColumnType: Debug + Send + Sync {
             column: *self,
         }
     }
+    /// Alias the column with a new name
     fn alias(&self, alias: &'static str) -> ColumnAlias<Self>
     where
         Self: Sized + Copy,

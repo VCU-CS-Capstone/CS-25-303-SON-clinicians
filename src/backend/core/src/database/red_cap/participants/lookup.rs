@@ -62,7 +62,7 @@ pub struct ParticipantLookupQuery {
     pub program: Option<Programs>,
     /// Rather or not to pull the participants last visited date
     #[serde(default)]
-    pub get_last_visited: bool,
+    pub get_visit_history: bool,
 }
 impl ParticipantLookupQuery {
     pub fn apply_arguments<'args, Q>(&self, query: &mut Q)
@@ -110,10 +110,11 @@ impl ParticipantLookupQuery {
             SelectQueryBuilder::new(Participants::table_name(), ParticipantLookup::columns());
 
         self.apply_arguments(&mut query);
-        if self.get_last_visited {
+        if self.get_visit_history {
             query.select_also(CaseNote::table_name(), |mut builder| {
                 builder
                     .column(CaseNoteColumn::DateOfVisit)
+                    .limit(1)
                     .where_column(CaseNoteColumn::ParticipantId, |builder| {
                         builder.equals(ParticipantsColumn::Id.dyn_column()).build()
                     })
@@ -122,11 +123,6 @@ impl ParticipantLookupQuery {
             });
         }
         query.page_params(page_params);
-        #[cfg(test)]
-        {
-            let sql = query.sql();
-            tracing::debug!("SQL: {}", sql);
-        }
         let total: i64 = {
             let mut count = SelectCount::new(Participants::table_name());
             self.apply_arguments(&mut count);
@@ -165,14 +161,14 @@ mod tests {
             ParticipantLookupQuery {
                 first_name: "John".to_string(),
                 last_name: String::new(),
-                get_last_visited: true,
+                get_visit_history: true,
                 ..Default::default()
             },
             ParticipantLookupQuery {
                 first_name: "Hannah".to_string(),
                 last_name: "H".to_string(),
                 program: Some(Programs::RHWP),
-                get_last_visited: true,
+                get_visit_history: true,
 
                 ..Default::default()
             },
@@ -181,7 +177,7 @@ mod tests {
                 last_name: "H".to_string(),
                 program: Some(Programs::MHWP),
                 location: Some(9),
-                get_last_visited: true,
+                get_visit_history: true,
             },
         ];
 

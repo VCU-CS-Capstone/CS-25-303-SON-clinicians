@@ -2,7 +2,6 @@ use crate::database::prelude::*;
 use cs25_303_macros::Columns;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
-use tracing::debug;
 use utoipa::ToSchema;
 
 use crate::red_cap::MobilityDevice;
@@ -33,10 +32,6 @@ pub trait HealthOverviewType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
     ) -> DBResult<Option<Self>> {
         let mut result = SelectQueryBuilder::new("participant_health_overview", Self::columns());
         result.where_equals(HealthOverviewColumn::ParticipantId, participant_id);
-        if tracing::enabled!(tracing::Level::DEBUG) {
-            let query = result.sql();
-            debug!(?query, "Executing Query");
-        }
         let result = result.query_as::<Self>().fetch_optional(database).await?;
         Ok(result)
     }

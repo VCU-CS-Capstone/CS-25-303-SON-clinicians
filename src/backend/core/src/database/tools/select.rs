@@ -1,11 +1,8 @@
-use std::borrow::Cow;
-
 use super::{
     where_sql::{format_where, WhereBuilder, WhereComparison},
     ColumnType, DynColumn, FormatSql, FormatSqlQuery, HasArguments, PaginationSupportingTool,
     QueryTool, SQLOrder, WhereableTool,
 };
-use join::JoinType;
 use sqlx::{Database, Postgres};
 mod count;
 mod exists;
@@ -13,6 +10,7 @@ mod join;
 mod sub;
 pub use count::*;
 pub use exists::*;
+pub use join::*;
 pub use sub::*;
 
 pub enum SubQueryOrColumn<C> {
@@ -53,18 +51,20 @@ impl<C> SubQueryOrColumn<C> {
     }
 }
 
-pub struct SelectQueryBuilder<'args, C: ColumnType> {
+pub struct SelectQueryBuilder<'args> {
     table: &'static str,
-    columns_to_select: Vec<SubQueryOrColumn<C>>,
+    columns_to_select: Vec<SubQueryOrColumn<DynColumn>>,
     where_comparisons: Vec<WhereComparison>,
     sql: Option<String>,
     joins: Vec<join::Join>,
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
     limit: Option<i32>,
     offset: Option<i32>,
-    order_by: Option<(C, SQLOrder)>,
+    order_by: Option<(DynColumn, SQLOrder)>,
+
+    total_count: Option<&'static str>,
 }
-impl<C: ColumnType> PaginationSupportingTool for SelectQueryBuilder<'_, C> {
+impl PaginationSupportingTool for SelectQueryBuilder<'_> {
     fn limit(&mut self, limit: i32) -> &mut Self {
         self.limit = Some(limit);
         self
@@ -75,15 +75,15 @@ impl<C: ColumnType> PaginationSupportingTool for SelectQueryBuilder<'_, C> {
         self
     }
 }
-impl<'args, C> SelectQueryBuilder<'args, C>
-where
-    C: ColumnType,
-{
-    pub fn new(table: &'static str, columns: impl Into<Vec<C>>) -> Self {
+impl<'args> SelectQueryBuilder<'args> {
+    pub fn new<C>(table: &'static str, columns: impl Into<Vec<C>>) -> Self
+    where
+        C: ColumnType + 'static,
+    {
         let columns = columns
             .into()
             .into_iter()
-            .map(SubQueryOrColumn::Column)
+            .map(|column| SubQueryOrColumn::Column(column.dyn_column()))
             .collect();
         Self {
             table,
@@ -95,43 +95,18 @@ where
             limit: None,
             offset: None,
             order_by: None,
+            total_count: None,
         }
     }
-    pub fn map_to_dyn_column(self) -> SelectQueryBuilder<'args, DynColumn>
+    pub fn total_count(&mut self, column: &'static str) -> &mut Self {
+        self.total_count = Some(column);
+        self
+    }
+    pub fn order_by<C>(&mut self, column: C, order: SQLOrder) -> &mut Self
     where
-        C: Send + Sync + 'static,
+        C: ColumnType + 'static,
     {
-        let Self {
-            table,
-            columns_to_select,
-            where_comparisons,
-            sql,
-            arguments,
-            joins,
-            limit,
-            offset,
-            order_by,
-        } = self;
-
-        let columns_to_select = columns_to_select
-            .into_iter()
-            .map(|column| column.map_to_dyn_column())
-            .collect();
-        let order_by = order_by.map(|(column, order)| (DynColumn::new(column), order));
-        SelectQueryBuilder {
-            table,
-            columns_to_select,
-            where_comparisons,
-            sql,
-            joins,
-            arguments,
-            limit,
-            offset,
-            order_by,
-        }
-    }
-    pub fn order_by(&mut self, column: C, order: SQLOrder) -> &mut Self {
-        self.order_by = Some((column, order));
+        self.order_by = Some((column.dyn_column(), order));
         self
     }
 
@@ -173,12 +148,8 @@ where
         self
     }
 }
-
-impl<'args, C> QueryTool<'args> for SelectQueryBuilder<'args, C>
-where
-    C: ColumnType,
-{
-    fn sql(&mut self) -> &str {
+impl<'args> FormatSqlQuery for SelectQueryBuilder<'args> {
+    fn format_sql_query(&mut self) -> &str {
         let mut columns: Vec<String> = self
             .columns_to_select
             .iter_mut()
@@ -200,9 +171,14 @@ where
         }
 
         let concat_columns = columns.join(", ");
+        let total_count = if let Some(total_count) = self.total_count {
+            format!(",   COUNT(*) OVER() AS {}", total_count)
+        } else {
+            String::default()
+        };
 
         let mut sql = format!(
-            "SELECT {columns} FROM {table}",
+            "SELECT {columns}{total_count} FROM {table}",
             columns = concat_columns,
             table = self.table
         );
@@ -236,10 +212,8 @@ where
         self.sql.as_ref().expect("SQL not set")
     }
 }
-impl<'args, C> HasArguments<'args> for SelectQueryBuilder<'args, C>
-where
-    C: ColumnType,
-{
+impl<'args> QueryTool<'args> for SelectQueryBuilder<'args> {}
+impl<'args> HasArguments<'args> for SelectQueryBuilder<'args> {
     fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
         self.arguments.take().expect("Arguments already taken")
     }
@@ -247,10 +221,7 @@ where
         self.arguments.as_mut().expect("Arguments already taken")
     }
 }
-impl<'args, C> WhereableTool<'args> for SelectQueryBuilder<'args, C>
-where
-    C: ColumnType,
-{
+impl<'args> WhereableTool<'args> for SelectQueryBuilder<'args> {
     #[inline]
     fn push_where_comparison(&mut self, comparison: WhereComparison) {
         self.where_comparisons.push(comparison);
@@ -284,7 +255,7 @@ mod tests {
 
         query.order_by(TestTableColumn::Id, SQLOrder::Ascending);
 
-        let sql = query.sql();
+        let sql = query.format_sql_query();
 
         assert_eq!(
             sql,
@@ -319,7 +290,7 @@ mod tests {
                 })
                 .build_as("another_table_id")
         });
-        let sql = query.sql();
+        let sql = query.format_sql_query();
 
         let formatted_sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
@@ -356,11 +327,10 @@ mod tests {
                         .build()
                 })
         });
-        let sql = query.sql();
+        let sql = query.format_sql_query();
 
         let formatted_sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
         println!("{}", formatted_sql);
-
     }
 }

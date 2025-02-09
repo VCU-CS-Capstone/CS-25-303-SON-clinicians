@@ -10,7 +10,8 @@ pub struct SelectSubQuery {
     table: &'static str,
     columns_to_select: Vec<DynColumn>,
     where_comparisons: Vec<WhereComparison>,
-
+    wrap_in_function: Option<&'static str>,
+    limit: Option<i64>,
     order_by: Option<(DynColumn, SQLOrder)>,
     query_as: Option<String>,
     sql: Option<String>,
@@ -19,16 +20,23 @@ impl SelectSubQuery {
     fn generate_sql(&self) -> String {
         let concat_columns = concat_columns(&self.columns_to_select, Some(self.table));
         // Wrap the {columns} in parentheses because they are only allowed to return 1 column
+        let wrap_in_function = if let Some(wrap_in_function) = self.wrap_in_function {
+            wrap_in_function
+        } else {
+            ""
+        };
         let mut sql = if self.columns_to_select.len() == 1 {
             format!(
-                "(SELECT {columns} FROM {table}",
+                "{function}(SELECT {columns} FROM {table}",
                 columns = concat_columns,
+                function = wrap_in_function,
                 table = self.table
             )
         } else {
             format!(
-                "(SELECT ({columns}) FROM {table}",
+                "{function}(SELECT ({columns}) FROM {table}",
                 columns = concat_columns,
+                function = wrap_in_function,
                 table = self.table
             )
         };
@@ -43,8 +51,10 @@ impl SelectSubQuery {
             sql.push(' ');
             sql.push_str(order.as_ref());
         }
-
-        sql.push_str(" LIMIT 1");
+        if let Some(limit) = self.limit {
+            sql.push_str(" LIMIT ");
+            sql.push_str(&limit.to_string());
+        }
 
         sql.push(')');
         if let Some(query_as) = &self.query_as {
@@ -77,7 +87,8 @@ where
     select_columns: Vec<DynColumn>,
     where_comparisons: Vec<WhereComparison>,
     args: &'query mut A,
-
+    limit: Option<i64>,
+    wrap_in_function: Option<&'static str>,
     order_by: Option<(DynColumn, SQLOrder)>,
     phantoms: std::marker::PhantomData<&'args ()>,
 }
@@ -93,6 +104,8 @@ where
             where_comparisons: Vec::new(),
             args,
             order_by: None,
+            limit: None,
+            wrap_in_function: None,
             phantoms: std::marker::PhantomData,
         }
     }
@@ -105,9 +118,15 @@ where
             select_columns: columns.into_iter().map(|c| c.dyn_column()).collect(),
             where_comparisons: Vec::new(),
             args,
+            limit: None,
             order_by: None,
+            wrap_in_function: None,
             phantoms: std::marker::PhantomData,
         }
+    }
+    pub fn limit(&mut self, limit: i64) -> &mut Self {
+        self.limit = Some(limit);
+        self
     }
     pub fn column<C>(&mut self, column: C) -> &mut Self
     where
@@ -123,6 +142,10 @@ where
         self.order_by = Some((column.dyn_column(), order));
         self
     }
+    pub fn wrap_in_function(&mut self, function_name: &'static str) -> &mut Self {
+        self.wrap_in_function = Some(function_name);
+        self
+    }
     pub fn build_as(&mut self, query_as: &str) -> SelectSubQuery {
         self.build_inner(Some(query_as.to_owned()))
     }
@@ -135,6 +158,8 @@ where
             columns_to_select: mem::take(&mut self.select_columns),
             where_comparisons: mem::take(&mut self.where_comparisons),
             order_by: mem::take(&mut self.order_by),
+            wrap_in_function: self.wrap_in_function,
+            limit: self.limit,
             query_as,
             sql: None,
         }
@@ -177,12 +202,12 @@ mod tests {
             TestTableColumn::all(),
             &mut testing_args,
         );
-        let sub_query = sub_query_builder.build_as("sub_query");
+        let sub_query = sub_query_builder.limit(1).build_as("sub_query");
 
         let sql = sub_query.format_sql();
         assert_eq!(
             sql,
-            "(SELECT (test_table.id, test_table.name, test_table.age, test_table.email) FROM test_table LIMIT 1) AS sub_query"
+            "(SELECT (test_table.id, test_table.name, test_table.age, test_table.email, test_table.updated_at, test_table.created_at) FROM test_table LIMIT 1) AS sub_query"
         );
 
         let sql = sqlformat::format(
@@ -199,6 +224,7 @@ mod tests {
         let mut sub_query_builder =
             SelectSubQueryBuilder::new(TestTable::table_name(), &mut testing_args);
         sub_query_builder
+            .limit(1)
             .column(TestTableColumn::Id)
             .where_column(TestTableColumn::Age, |builder| builder.equals(18).build());
         let sub_query = sub_query_builder.build_as("sub_query");
@@ -207,6 +233,32 @@ mod tests {
         assert_eq!(
             sql,
             "(SELECT test_table.id FROM test_table WHERE test_table.age = $1 LIMIT 1) AS sub_query"
+        );
+
+        let sql = sqlformat::format(
+            sql.as_ref(),
+            &sqlformat::QueryParams::None,
+            &sqlformat::FormatOptions::default(),
+        );
+
+        println!("{}", sql);
+    }
+
+    #[test]
+    pub fn wrap_in_function() {
+        let mut testing_args = FakeArgumentsHolder::default();
+        let mut sub_query_builder = SelectSubQueryBuilder::new_with_columns(
+            TestTable::table_name(),
+            TestTableColumn::all(),
+            &mut testing_args,
+        );
+        sub_query_builder.wrap_in_function("ARRAY");
+        let sub_query = sub_query_builder.build_as("sub_query");
+
+        let sql = sub_query.format_sql();
+        assert_eq!(
+            sql,
+            "ARRAY(SELECT (test_table.id, test_table.name, test_table.age, test_table.email, test_table.updated_at, test_table.created_at) FROM test_table) AS sub_query"
         );
 
         let sql = sqlformat::format(

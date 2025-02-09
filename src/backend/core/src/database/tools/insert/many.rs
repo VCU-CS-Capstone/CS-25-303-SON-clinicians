@@ -2,13 +2,9 @@ use std::fmt::Debug;
 
 use crate::database::prelude::*;
 use ahash::{HashSet, HashSetExt};
-use sqlx::{
-    query::{Query, QueryAs},
-    Database, FromRow, Postgres,
-};
+use sqlx::{Database, Postgres};
 mod row;
 pub use row::*;
-use tracing::trace;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InsertManyValue(usize);
@@ -132,38 +128,10 @@ impl<'args, C: ColumnType> InsertManyBuilder<'args, C> {
 
         self.sql = Some(sql);
     }
-    pub fn query(&mut self) -> Query<'_, Postgres, <Postgres as Database>::Arguments<'args>> {
-        let args = self.arguments.take().expect("BUG: Arguments taken already");
-        let sql = self.sql();
-        if tracing::enabled!(tracing::Level::TRACE) {
-            trace!(?sql, "Generated SQL");
-        }
-        sqlx::query_with(sql, args)
-    }
-    pub fn query_as<T>(
-        &mut self,
-    ) -> QueryAs<'_, Postgres, T, <Postgres as Database>::Arguments<'args>>
-    where
-        T: for<'r> FromRow<'r, <Postgres as Database>::Row>,
-    {
-        let args = self.arguments.take().expect("BUG: Arguments taken already");
-
-        let sql = self.sql();
-        if tracing::enabled!(tracing::Level::TRACE) {
-            trace!(?sql, "Generated SQL");
-        }
-        sqlx::query_as_with(sql, args)
-    }
 }
-impl<'args, C> QueryTool<'args> for InsertManyBuilder<'args, C>
-where
-    C: ColumnType,
-{
-    /// Generates the SQL for the query if not already generated
-    ///
-    /// Why do we need to store this in an Option?
-    /// Because lifetime issues with the borrow checker
-    fn sql(&mut self) -> &str {
+impl<'args, C> QueryTool<'args> for InsertManyBuilder<'args, C> where C: ColumnType {}
+impl<C: ColumnType> FormatSqlQuery for InsertManyBuilder<'_, C> {
+    fn format_sql_query(&mut self) -> &str {
         if self.sql.is_none() {
             self.gen_sql();
         }
@@ -178,7 +146,8 @@ mod tests {
     use crate::database::{
         red_cap::participants::{Participants, ParticipantsColumn},
         tools::{
-            many::InsertManyBuilder, OnConflict, OnConflictAction, QueryTool, SetColumm, TableType,
+            many::InsertManyBuilder, FormatSqlQuery, OnConflict, OnConflictAction, SetColumm,
+            TableType,
         },
     };
 
@@ -215,7 +184,7 @@ mod tests {
             row.insert(ParticipantsColumn::LastName, "Doe")
                 .insert(ParticipantsColumn::FirstName, "John");
         });
-        let sql = builder.sql();
+        let sql = builder.format_sql_query();
         let formatted = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
         println!("{}", formatted);
     }
@@ -245,7 +214,7 @@ mod tests {
         builder.insert_row_ordered(|row| {
             row.insert("Doe").insert("John");
         });
-        let sql = builder.sql();
+        let sql = builder.format_sql_query();
         let formatted = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
         println!("{}", formatted);
     }
@@ -288,7 +257,7 @@ mod tests {
         builder.insert_row_ordered(|row| {
             row.insert("Doe").insert("John");
         });
-        let sql = builder.sql();
+        let sql = builder.format_sql_query();
         let formatted = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
         println!("{}", formatted);
     }

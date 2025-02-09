@@ -4,19 +4,26 @@ use axum::{
     routing::post,
     Json,
 };
-use cs25_303_core::database::{
-    red_cap::participants::{ParticipantLookup, ParticipantLookupQuery},
-    tools::{PageParams, PaginatedResponse},
+use cs25_303_core::{
+    database::{
+        queries::{ItemOrArray, NumberQuery},
+        red_cap::participants::{ResearcherQuery, ResearcherQueryResult},
+        tools::{PageParams, PaginatedResponse},
+    },
+    red_cap::{EducationLevel, PreferredLanguage, Programs},
 };
 use tracing::instrument;
 use utoipa::OpenApi;
 
-use crate::app::{authentication::Authentication, error::InternalError, SiteState};
+use crate::app::{
+    authentication::Authentication, error::InternalError,
+    utils::response::builder::ResponseBuilder, SiteState,
+};
 
 #[derive(OpenApi)]
 #[openapi(
     paths(query),
-    components(schemas(PageParams, ParticipantLookup, ParticipantLookupQuery, PaginatedResponse<ParticipantLookup>)),
+    components(schemas(PageParams, ResearcherQuery, ResearcherQueryResult, PaginatedResponse<ResearcherQueryResult>, NumberQuery<i16>, PreferredLanguage, EducationLevel, Programs,ItemOrArray<i32>)),
 
 
 )]
@@ -25,16 +32,16 @@ pub struct ResearcherAPI;
 pub fn researcher_routes() -> axum::Router<SiteState> {
     axum::Router::new().route("/query", post(query))
 }
-/// Look up participants
+/// Query for participants that match the given query
 #[utoipa::path(
     post,
     path = "/query",
     params(
         PageParams,
     ),
-    request_body(content = ParticipantLookupQuery, content_type = "application/json"),
+    request_body(content = ResearcherQuery, content_type = "application/json"),
     responses(
-        (status = 200, description = "Participants Found", body = PaginatedResponse<ParticipantLookup>)
+        (status = 200, description = "Participants Found", body = PaginatedResponse<ResearcherQueryResult>)
     ),
     security(
         ("session" = []),
@@ -45,9 +52,9 @@ pub async fn query(
     State(site): State<SiteState>,
     Query(page): Query<PageParams>,
     auth: Authentication,
-    Json(participant): Json<ParticipantLookupQuery>,
+    Json(participant): Json<ResearcherQuery>,
 ) -> Result<Response, InternalError> {
-    let participants = participant.find(page, &site.database).await?;
+    let participants = participant.query(page, &site.database).await?;
 
-    todo!()
+    Ok(ResponseBuilder::ok().json(&participants))
 }

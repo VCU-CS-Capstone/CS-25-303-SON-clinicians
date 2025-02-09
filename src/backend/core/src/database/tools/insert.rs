@@ -1,14 +1,10 @@
 use std::fmt::{Debug, Display};
 
 use crate::database::prelude::*;
-use sqlx::{
-    query::{Query, QueryAs},
-    Database, Encode, FromRow, Postgres, Type,
-};
+use sqlx::{Database, Encode, Postgres, Type};
 mod conflict;
 pub use conflict::*;
 pub mod many;
-use tracing::trace;
 #[derive(Debug, Clone)]
 pub enum Returning<C: ColumnType> {
     None,
@@ -129,38 +125,10 @@ impl<'table, 'args, C: ColumnType> SimpleInsertQueryBuilder<'table, 'args, C> {
 
         self.sql = Some(sql);
     }
-    pub fn query(&mut self) -> Query<'_, Postgres, <Postgres as Database>::Arguments<'args>> {
-        let args = self.arguments.take().expect("BUG: Arguments taken already");
-        let sql = self.sql();
-        if tracing::enabled!(tracing::Level::TRACE) {
-            trace!(?sql, "Generated SQL");
-        }
-        sqlx::query_with(sql, args)
-    }
-    pub fn query_as<T>(
-        &mut self,
-    ) -> QueryAs<'_, Postgres, T, <Postgres as Database>::Arguments<'args>>
-    where
-        T: for<'r> FromRow<'r, <Postgres as Database>::Row>,
-    {
-        let args = self.arguments.take().expect("BUG: Arguments taken already");
-
-        let sql = self.sql();
-        if tracing::enabled!(tracing::Level::TRACE) {
-            trace!(?sql, "Generated SQL");
-        }
-        sqlx::query_as_with(sql, args)
-    }
 }
-impl<'args, C> QueryTool<'args> for SimpleInsertQueryBuilder<'_, 'args, C>
-where
-    C: ColumnType,
-{
-    /// Generates the SQL for the query if not already generated
-    ///
-    /// Why do we need to store this in an Option?
-    /// Because lifetime issues with the borrow checker
-    fn sql(&mut self) -> &str {
+impl<'args, C> QueryTool<'args> for SimpleInsertQueryBuilder<'_, 'args, C> where C: ColumnType {}
+impl<C: ColumnType> FormatSqlQuery for SimpleInsertQueryBuilder<'_, '_, C> {
+    fn format_sql_query(&mut self) -> &str {
         if self.sql.is_none() {
             self.gen_sql();
         }
@@ -178,7 +146,7 @@ pub fn generate_placeholder_string(len: usize) -> String {
 mod tests {
     use crate::database::{
         red_cap::participants::{Participants, ParticipantsColumn},
-        tools::{QueryTool, TableType},
+        tools::{FormatSqlQuery, TableType},
     };
 
     #[test]
@@ -193,7 +161,7 @@ mod tests {
             )
             .insert(ParticipantsColumn::PhoneNumberTwo, Option::<String>::None);
 
-        let sql = builder.sql();
+        let sql = builder.format_sql_query();
         assert_eq!(
             sql,
             "INSERT INTO participants (last_name, first_name, phone_number_one, phone_number_two) VALUES ($1, $2, $3, $4);"
@@ -214,7 +182,7 @@ mod tests {
             .insert(ParticipantsColumn::PhoneNumberTwo, Option::<String>::None)
             .return_all();
 
-        let sql = builder.sql();
+        let sql = builder.format_sql_query();
         assert_eq!(
             sql,
             "INSERT INTO participants (last_name, first_name, phone_number_one, phone_number_two) VALUES ($1, $2, $3, $4) RETURNING *;"

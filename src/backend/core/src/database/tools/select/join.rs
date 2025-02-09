@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::database::tools::{
     AndOr, ColumnType, DynColumn, FormatSql, HasArguments, QueryBuilderValue,
-    QueryBuilderValueType, SQLComparison, SQLCondition, WhereComparison,
+    QueryBuilderValueType, SQLComparison, SQLCondition,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,7 +64,6 @@ where
 {
     join_type: JoinType,
     table: &'static str,
-    on: Option<OnCondition>,
     args: &'query mut A,
     pub columns_to_select: Vec<DynColumn>,
 
@@ -79,7 +78,6 @@ where
             args,
             join_type: join,
             table: table_name,
-            on: None,
             phantoms: std::marker::PhantomData,
             columns_to_select: Vec::new(),
         }
@@ -153,7 +151,9 @@ impl<'query, 'args, A: HasArguments<'args>> OnConditionBuilder<'query, 'args, A>
         });
         self
     }
-
+    /// Compare two values. This can be either a column or a value
+    ///
+    /// Please note because trait limitations you will need to call .dyn_column() on the column
     pub fn equals<L, R>(self, left: L, right: R) -> Self
     where
         L: QueryBuilderValueType<'args> + 'args,

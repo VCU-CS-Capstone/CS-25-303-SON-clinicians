@@ -1,7 +1,8 @@
 use sqlx::{Database, Postgres};
 
 use crate::database::tools::{
-    format_where, HasArguments, QueryScalarTool, QueryTool, WhereComparison, WhereableTool,
+    format_where, FormatSqlQuery, HasArguments, QueryScalarTool, QueryTool, WhereComparison,
+    WhereableTool,
 };
 /// Counts the number of rows in a table based on the given where comparisons.
 pub struct SelectCount<'table, 'args> {
@@ -34,8 +35,10 @@ impl HasArguments<'_> for SelectCount<'_, '_> {
         self.arguments.as_mut().expect("Arguments already taken")
     }
 }
-impl QueryTool<'_> for SelectCount<'_, '_> {
-    fn sql(&mut self) -> &str {
+
+impl QueryTool<'_> for SelectCount<'_, '_> {}
+impl FormatSqlQuery for SelectCount<'_, '_> {
+    fn format_sql_query(&mut self) -> &str {
         let mut sql = format!("SELECT COUNT(1) FROM {}", self.table);
 
         if !self.where_comparisons.is_empty() {
@@ -59,7 +62,7 @@ mod tests {
 
     use crate::database::tools::{
         testing::{TestTable, TestTableColumn},
-        QueryTool, SelectCount, TableType, WhereableTool,
+        FormatSqlQuery, SelectCount, TableType, WhereableTool,
     };
 
     #[test]
@@ -67,7 +70,7 @@ mod tests {
         let mut query = SelectCount::new(TestTable::table_name());
         query.where_equals(TestTableColumn::Age, 18);
 
-        let sql = query.sql();
+        let sql = query.format_sql_query();
         assert_eq!(
             sql,
             "SELECT COUNT(1) FROM test_table WHERE test_table.age = $1"

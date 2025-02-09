@@ -1,5 +1,5 @@
 use super::utils::RandDate;
-use chrono::{Duration, Local, NaiveDate, Weekday};
+use chrono::{Duration, Local, NaiveDate};
 use cs25_303_core::{
     database::red_cap::participants::{
         goals::{NewParticipantGoal, NewParticipantGoalsSteps},

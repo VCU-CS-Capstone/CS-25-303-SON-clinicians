@@ -34,7 +34,7 @@ use utoipa::{
         (path = "/api/participant", api = ParticipantAPI, tags=["participant"]),
         (path = "/api/location", api = LocationsAPI, tags=["location"]),
         (path = "/api/admin", api = AdminAPI, tags=["admin"]),
-        (path = "/api/researchyer", api = ResearcherAPI, tags=["Researcher"])
+        (path = "/api/researcher", api = ResearcherAPI, tags=["Researcher"])
     ),
     paths(api::info),
     components(schemas(
