@@ -9,7 +9,7 @@ description = "Core Shared Code between the backend and database"
 path = "src/lib.rs"
 
 [dependencies]
-
+chumsky = { version = "1.0.0-alpha.8", features = ["std"] }
 strum.workspace = true
 serde.workspace = true
 serde_json.workspace = true

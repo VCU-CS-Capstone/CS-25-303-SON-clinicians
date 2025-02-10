@@ -68,6 +68,10 @@ pub enum SQLCondition {
         comparison: SQLComparison,
         value: QueryBuilderValue,
     },
+    Between {
+        start: QueryBuilderValue,
+        end: QueryBuilderValue,
+    },
     NotNull,
     Null,
 }
@@ -76,6 +80,9 @@ impl FormatSql for SQLCondition {
         match self {
             SQLCondition::CompareValue { comparison, value } => {
                 format!("{} {}", comparison.format_sql(), value.format_sql()).into()
+            }
+            SQLCondition::Between { start, end } => {
+                format!("{} AND {}", start.format_sql(), end.format_sql()).into()
             }
             SQLCondition::NotNull => "IS NOT NULL".into(),
             SQLCondition::Null => "IS NULL".into(),
@@ -134,7 +141,18 @@ where
     {
         self.compare(SQLComparison::Equals, value)
     }
-
+    pub fn between<S, E>(self, start: S, end: E) -> Self
+    where
+        S: QueryBuilderValueType<'args> + 'args,
+        E: QueryBuilderValueType<'args> + 'args,
+    {
+        let start = start.process(self.args);
+        let end = end.process(self.args);
+        Self {
+            value: Some(SQLCondition::Between { start, end }),
+            ..self
+        }
+    }
     pub fn like<T>(self, value: T) -> Self
     where
         T: 'args + Encode<'args, Postgres> + Type<Postgres>,
@@ -155,6 +173,7 @@ where
             NumberQuery::LessThanOrEqualTo(value) => {
                 self.compare(SQLComparison::LessThanOrEqualTo, value)
             }
+            NumberQuery::Range { start, end } => self.between(start, end),
         }
     }
     pub fn build(self) -> WhereComparison {
@@ -242,6 +261,15 @@ impl Display for WhereComparison {
 
             SQLCondition::Null => {
                 write!(f, "{} IS NULL", self.column.formatted_column())?;
+            }
+            SQLCondition::Between { start, end } => {
+                write!(
+                    f,
+                    "{} BETWEEN {} AND {}",
+                    self.column.formatted_column(),
+                    start.format_sql(),
+                    end.format_sql()
+                )?;
             }
         }
         if let Some((and_or, then)) = &self.then {
@@ -344,6 +372,18 @@ mod tests {
         let where_part = WhereBuilder::new(&mut query, TestTableColumn::Id)
             .equals(1)
             .and(TestTableColumn::Name, |builder| builder.equals(2).build());
+        let result = format_where(&[where_part]);
+        println!("{}", result);
+    }
+
+    #[test]
+    pub fn test_between() {
+        let mut query = TestParentQuery {
+            arguments: Some(Default::default()),
+        };
+        let where_part = WhereBuilder::new(&mut query, TestTableColumn::Id)
+            .between(1, 10)
+            .build();
         let result = format_where(&[where_part]);
         println!("{}", result);
     }

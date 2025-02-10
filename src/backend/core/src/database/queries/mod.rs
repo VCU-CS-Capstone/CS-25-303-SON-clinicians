@@ -2,15 +2,8 @@ use serde::{Deserialize, Serialize};
 use strum::EnumIs;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(tag = "type", content = "value")]
-pub enum NumberQuery<I = i32> {
-    GreaterThan(I),
-    LessThan(I),
-    EqualTo(I),
-    GreaterThanOrEqualTo(I),
-    LessThanOrEqualTo(I),
-}
+mod number;
+pub use number::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIs, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]

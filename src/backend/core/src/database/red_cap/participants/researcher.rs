@@ -97,6 +97,8 @@ pub struct ResearcherQuery {
     /// Age to filter by
     pub age: Option<NumberQuery<i16>>,
     /// Get the participants visit history
+    ///
+    /// Capped at 10
     pub get_visit_history: bool,
     /// Get the last visited date
     pub get_last_visited: bool,
@@ -260,7 +262,7 @@ impl ResearcherQuery {
         }
 
         if get_visit_history {
-            trace!("Getting last visited");
+            trace!("Getting Visit History");
             query.select_also(CaseNote::table_name(), |mut builder| {
                 builder
                     .column(CaseNoteColumn::DateOfVisit)
@@ -274,6 +276,7 @@ impl ResearcherQuery {
             });
         }
         if get_last_visited {
+            trace!("Getting Last Visited Date");
             query.select_also(CaseNote::table_name(), |mut builder| {
                 builder
                     .column(CaseNoteColumn::DateOfVisit)
