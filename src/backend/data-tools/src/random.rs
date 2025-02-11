@@ -77,18 +77,16 @@ pub async fn generate_participants(count: usize, database: PgPool) -> anyhow::Re
             signed_up_on,
             last_synced_with_redcap: None,
         };
-        let part = new_participant.insert_return_participant(&database).await?;
+        let part = new_participant.insert_returning(&database).await?;
         let extra_info =
             random_sets.create_extended_profile_for_partiicpant(part.id, gender.clone());
         info!("Created Participant {:?} and extra {:?}", part, extra_info);
         let health_overview = random_sets.random_health_overview();
-        health_overview
-            .insert_return_none(part.id, &database)
-            .await?;
+        health_overview.insert(part.id, &database).await?;
 
         let demographics = random_sets.random_demographics(part.id);
 
-        demographics.insert_none(part.id, &database).await?;
+        demographics.insert(part.id, &database).await?;
         let medications = random_sets.random_medications();
         if !medications.is_empty() {
             NewMedication::insert_many(medications, part.id, &database).await?;

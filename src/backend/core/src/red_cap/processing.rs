@@ -11,11 +11,16 @@ pub fn find_and_extract_multi_selects(
     items: &mut HashMap<String, Value>,
 ) -> HashMap<String, MultiSelect> {
     let mut multi_selects = HashMap::new();
-    let keys = items
+    let keys: Vec<_> = items
         .keys()
-        .filter(|key| is_check_box_item(key.as_str()))
-        .cloned()
-        .collect::<Vec<String>>();
+        .filter_map(|key| {
+            if is_check_box_item(key) {
+                Some(key.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
     for key in keys {
         let value = items.remove(&key).unwrap();
         let FieldNameAndIndex { field_name, index } =

@@ -269,7 +269,7 @@ impl RandomSets {
             is_veteran: Some(is_veteran),
             race,
             race_other,
-            race_multiple,
+            race_multiracial_other: race_multiple,
             health_insurance,
             highest_education_level,
             language,

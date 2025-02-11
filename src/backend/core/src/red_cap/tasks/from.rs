@@ -71,15 +71,13 @@ pub async fn pull_record_base_types(
         let new_demographics: Option<NewDemographics> = demographics.into();
         let new_overview: NewHealthOverview = overview.into();
 
-        let participant = new_participant.insert_return_participant(database).await?;
+        let participant = new_participant.insert_returning(database).await?;
 
         if let Some(demographics) = new_demographics {
-            demographics.insert_none(participant.id, database).await?;
+            demographics.insert(participant.id, database).await?;
         }
 
-        new_overview
-            .insert_return_none(participant.id, database)
-            .await?;
+        new_overview.insert(participant.id, database).await?;
     }
     Ok(())
 }

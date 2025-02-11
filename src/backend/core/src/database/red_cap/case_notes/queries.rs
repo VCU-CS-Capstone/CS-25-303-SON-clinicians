@@ -332,7 +332,7 @@ mod tests {
             other_contact: Some(connect_message.to_string()),
             ..NewParticipant::default()
         }
-        .insert_return_participant(database)
+        .insert_returning(database)
         .await?;
         for i in 0..15 {
             let case_note = NewCaseNote {

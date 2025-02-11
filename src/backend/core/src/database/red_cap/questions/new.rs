@@ -10,7 +10,6 @@ use super::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Builder)]
-
 pub struct NewQuestionCategory {
     pub string_id: String,
     pub name: String,

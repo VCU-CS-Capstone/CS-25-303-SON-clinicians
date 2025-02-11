@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
     spanned::Spanned,
-    Data, DeriveInput, Ident, LitInt, LitStr, Result, Variant,
+    Data, DeriveInput, Ident, Lit, LitInt, LitStr, Result, Variant,
 };
 mod kw {
     syn::custom_keyword!(enum_index);
@@ -203,6 +203,8 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
     for variant in data_enum.variants {
         variants.push(RedCapEnumVariant::new(variant)?);
     }
+    let number_of_variants_str = variants.len().to_string();
+    let number_of_variants = LitInt::new(&number_of_variants_str, proc_macro2::Span::call_site());
     let contains_default = variants.iter().any(|v| v.is_default);
     let from_usize_impl: Vec<_> = variants.iter().map(|v| v.from_enum_index()).collect();
     let to_usize_impl: Vec<_> = variants.iter().map(|v| v.to_enum_index()).collect();
@@ -241,6 +243,12 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
                 match self {
                     #(#to_usize_impl)*
                 }
+            }
+            #[inline(always)]
+            fn num_variants() -> usize
+            where
+                Self: Sized {
+                return #number_of_variants;
             }
         }
         const _: () = {

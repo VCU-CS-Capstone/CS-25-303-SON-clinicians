@@ -4,7 +4,7 @@ use crate::database::{prelude::*, tools::many::InsertManyBuilder};
 use chrono::{Local, NaiveDate};
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
-use tracing::{debug, instrument, trace};
+use tracing::{debug, instrument, trace, warn};
 use utoipa::ToSchema;
 
 use crate::red_cap::MedicationFrequency;
@@ -266,6 +266,10 @@ impl NewMedication {
         participant_id: i32,
         database: &PgPool,
     ) -> DBResult<()> {
+        if medications.is_empty() {
+            warn!("No medications to insert");
+            return Ok(());
+        }
         let mut query_builder = InsertManyBuilder::new(
             ParticipantMedications::table_name(),
             vec![
@@ -336,7 +340,7 @@ mod tests {
             ..Default::default()
         };
 
-        let part = participant.insert_return_participant(db).await?;
+        let part = participant.insert_returning(db).await?;
         Ok(part.id)
     }
 

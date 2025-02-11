@@ -35,7 +35,7 @@ pub struct NewParticipant {
 }
 
 impl NewParticipant {
-    pub async fn insert_return_participant(
+    pub async fn insert_returning(
         self,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Participants> {
@@ -102,7 +102,7 @@ pub struct NewDemographics {
     pub race: Option<Vec<Race>>,
     /// Not Sure???
     pub race_other: Option<String>,
-    pub race_multiple: Option<String>,
+    pub race_multiracial_other: Option<String>,
     /// Red Cap: ethnicity
     pub ethnicity: Option<Ethnicity>,
     pub language: Option<PreferredLanguage>,
@@ -115,7 +115,7 @@ pub struct NewDemographics {
     pub highest_education_level: Option<EducationLevel>,
 }
 impl NewDemographics {
-    pub async fn insert_none(
+    pub async fn insert(
         self,
         participant_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
@@ -125,7 +125,7 @@ impl NewDemographics {
             gender,
             race,
             race_other,
-            race_multiple,
+            race_multiracial_other,
             ethnicity,
             language,
             is_veteran,
@@ -139,7 +139,10 @@ impl NewDemographics {
             .insert(ParticipantDemograhicsColumn::Gender, gender)
             .insert(ParticipantDemograhicsColumn::Race, race)
             .insert(ParticipantDemograhicsColumn::RaceOther, race_other)
-            .insert(ParticipantDemograhicsColumn::RaceMultiple, race_multiple)
+            .insert(
+                ParticipantDemograhicsColumn::RaceMultiracialOther,
+                race_multiracial_other,
+            )
             .insert(ParticipantDemograhicsColumn::Ethnicity, ethnicity)
             .insert(ParticipantDemograhicsColumn::Language, language)
             .insert(ParticipantDemograhicsColumn::IsVeteran, is_veteran)
@@ -173,11 +176,10 @@ pub struct NewHealthOverview {
     pub mobility_devices: Option<Vec<MobilityDevice>>,
 }
 impl NewHealthOverview {
-    pub async fn insert_return_health_overview(
+    fn insert_base(
         self,
         participant_id: i32,
-        database: impl Executor<'_, Database = sqlx::Postgres>,
-    ) -> DBResult<HealthOverview> {
+    ) -> SimpleInsertQueryBuilder<'static, HealthOverviewColumn> {
         let Self {
             height,
             reported_health_conditions,
@@ -187,7 +189,9 @@ impl NewHealthOverview {
             mobility_devices,
         } = self;
 
-        SimpleInsertQueryBuilder::new(HealthOverview::table_name())
+        let mut builder = SimpleInsertQueryBuilder::new(HealthOverview::table_name());
+
+        builder
             .insert(HealthOverviewColumn::ParticipantId, participant_id)
             .insert(HealthOverviewColumn::Height, height)
             .insert(
@@ -203,47 +207,30 @@ impl NewHealthOverview {
                 HealthOverviewColumn::TakesMoreThan5Medications,
                 takes_more_than_5_medications,
             )
-            .insert(HealthOverviewColumn::MobilityDevices, mobility_devices)
+            .insert(HealthOverviewColumn::MobilityDevices, mobility_devices);
+        builder
+    }
+    pub async fn insert_returning(
+        self,
+        participant_id: i32,
+        database: impl Executor<'_, Database = sqlx::Postgres>,
+    ) -> DBResult<HealthOverview> {
+        self.insert_base(participant_id)
             .return_all()
             .query_as::<HealthOverview>()
             .fetch_one(database)
             .await
             .map_err(DBError::from)
     }
-    pub async fn insert_return_none(
+    pub async fn insert(
         self,
         participant_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<()> {
-        let Self {
-            height,
-            reported_health_conditions,
-            allergies,
-            has_blood_pressure_cuff,
-            takes_more_than_5_medications,
-            ..
-        } = self;
-
-        SimpleInsertQueryBuilder::new(HealthOverview::table_name())
-            .insert(HealthOverviewColumn::ParticipantId, participant_id)
-            .insert(HealthOverviewColumn::Height, height)
-            .insert(
-                HealthOverviewColumn::ReportedHealthConditions,
-                reported_health_conditions,
-            )
-            .insert(HealthOverviewColumn::Allergies, allergies)
-            .insert(
-                HealthOverviewColumn::HasBloodPressureCuff,
-                has_blood_pressure_cuff,
-            )
-            .insert(
-                HealthOverviewColumn::TakesMoreThan5Medications,
-                takes_more_than_5_medications,
-            )
+        self.insert_base(participant_id)
             .query()
             .execute(database)
             .await?;
-        // TODO: Insert mobility devices - We can't do this due to the executor moving issue
         Ok(())
     }
 }

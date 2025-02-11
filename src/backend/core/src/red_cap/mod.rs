@@ -4,6 +4,7 @@ use ahash::{HashMap, HashMapExt};
 use api::utils::CheckboxValue;
 use chrono::NaiveDate;
 use serde_json::Value;
+use strum::IntoEnumIterator;
 use tracing::error;
 pub mod converter;
 mod types;
@@ -33,7 +34,11 @@ macro_rules! get {
 }
 pub trait RedCapDataSet {
     fn insert(&mut self, key: impl Into<String>, value: RedCapExportDataType);
-    fn insert_multi_select<T: MultiSelectType>(&mut self, key: impl Into<String>, value: &[T]) {
+    fn insert_multi_select<T: MultiSelectType + PartialEq + IntoEnumIterator>(
+        &mut self,
+        key: impl Into<String>,
+        value: &[T],
+    ) {
         let key = key.into();
         let multi_select = T::create_multiselect(&key, value);
         self.insert(key, multi_select.into());

@@ -173,7 +173,7 @@ pub struct ParticipantDemograhics {
     pub race: Option<Vec<Race>>,
     /// Not Sure???
     pub race_other: Option<String>,
-    pub race_multiple: Option<String>,
+    pub race_multiracial_other: Option<String>,
     /// Red Cap: ethnicity
     pub ethnicity: Option<Ethnicity>,
     pub language: Option<PreferredLanguage>,

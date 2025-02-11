@@ -276,7 +276,7 @@ impl From<RedCapParticipantDemographics> for Option<NewDemographics> {
             age,
             gender: gender.and_then(Into::into),
             race,
-            race_multiple: race_multiracial_other,
+            race_multiracial_other,
             race_other,
             ethnicity,
             health_insurance,
@@ -292,7 +292,7 @@ impl From<ParticipantDemograhics> for RedCapParticipantDemographics {
     fn from(demographics: ParticipantDemograhics) -> Self {
         let race = RedCapRace {
             race: demographics.race,
-            race_multiracial_other: demographics.race_multiple,
+            race_multiracial_other: demographics.race_multiracial_other,
             race_other: demographics.race_other,
         };
 
@@ -433,7 +433,7 @@ impl RedCapHealthOverview {
             (*takes_more_than_5_medications).into(),
         );
         if let Some(mobility_devices) = mobility_devices {
-            data.insert_multi_select("mobility_devices", mobility_devices);
+            data.insert_multi_select(MobilityDevice::multi_select_key(), mobility_devices);
         }
     }
 }

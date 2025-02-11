@@ -1,6 +1,6 @@
 [workspace]
 members = ["backend", "core", "macros", "data-tools"]
-resolver = "2"
+resolver = "3"
 [workspace.package]
 version = "0.1.0-beta"
 authors = ["Wyatt Jacob Herkamp <herkampwj@vcu.edu>"]

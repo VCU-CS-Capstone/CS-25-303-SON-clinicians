@@ -1,10 +1,12 @@
 use crate::utils::InvalidVariant;
 use cs25_303_macros::RedCapEnum;
 use serde::Serialize;
-use tracing::debug;
+use strum::EnumIter;
+mod multi_select;
+pub use multi_select::*;
 use utoipa::ToSchema;
 
-use crate::red_cap::{utils::is_all_none, MultiSelectType, RedCapDataSet, RedCapEnum, RedCapType};
+use crate::red_cap::{utils::is_all_none, RedCapDataSet, RedCapEnum, RedCapType};
 
 /// The two Program Types that are available
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, RedCapEnum, ToSchema)]
@@ -117,73 +119,7 @@ pub enum Gender {
     PreferToSelfDescribe(String),
 }
 
-#[derive(Debug, Clone, Serialize, Default)]
-pub struct RedCapRace {
-    pub race: Option<Vec<Race>>,
-    pub race_other: Option<String>,
-    pub race_multiracial_other: Option<String>,
-}
-impl RedCapType for RedCapRace {
-    fn read<D: RedCapDataSet>(data: &D) -> Option<Self>
-    where
-        Self: Sized,
-    {
-        let race = data.get_enum_multi_select("race");
-        let race_other = data.get_string("race_other");
-        let race_multiracial_other = data.get_string("race_multiracial_other");
-        is_all_none!(race, race_other, race_multiracial_other);
-        Some(Self {
-            race,
-            race_other,
-            race_multiracial_other,
-        })
-    }
-
-    fn write<D: RedCapDataSet>(&self, data: &mut D) {
-        let multi_select_race = self
-            .race
-            .as_ref()
-            .map(|value| Race::create_multiselect("race", value));
-        debug!(?multi_select_race, "Multi Select Race");
-        if let Some(race) = multi_select_race {
-            data.insert("race", race.into());
-        }
-
-        data.insert("race_other", self.race_other.clone().into());
-
-        data.insert(
-            "race_multiracial_other",
-            self.race_multiracial_other.clone().into(),
-        );
-    }
-}
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
-pub enum Race {
-    #[red_cap(enum_index = 3)]
-    NativeAmerican,
-    #[red_cap(enum_index = 4)]
-    Asian,
-    #[red_cap(enum_index = 2)]
-    Black,
-    #[red_cap(enum_index = 5)]
-    Hispanic,
-    #[red_cap(enum_index = 10)]
-    MiddleEasternOrNorthAfrican,
-    #[red_cap(enum_index = 7)]
-    NativeHawaiianOrOtherPacificIslander,
-    #[red_cap(enum_index = 1)]
-    White,
-    /// Will have a second field with a value in DB
-    #[red_cap(enum_index = 9)]
-    Multiracial,
-    /// Will have a second field with a value in DB
-    #[red_cap(enum_index = 6)]
-    IdentifyOther,
-    #[red_cap(enum_index = 8)]
-    Declined,
-}
-impl MultiSelectType for Race {}
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema, EnumIter)]
 pub enum Ethnicity {
     #[red_cap(enum_index = 1)]
     HispanicOrLatino,
@@ -252,20 +188,7 @@ impl RedCapType for RedCapLanguage {
         data.insert("language_other", self.language_other.clone().into());
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
-pub enum HealthInsurance {
-    #[red_cap(enum_index = 1)]
-    Medicaid,
-    #[red_cap(enum_index = 2)]
-    Medicare,
-    #[red_cap(enum_index = 3)]
-    Private,
-    #[red_cap(enum_index = 4)]
-    VA,
-    #[red_cap(enum_index = 5)]
-    None,
-}
-impl MultiSelectType for HealthInsurance {}
+
 #[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
 pub enum EducationLevel {
     #[red_cap(enum_index = 1)]
@@ -288,26 +211,7 @@ pub enum EducationLevel {
     Graduates,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
-pub enum MobilityDevice {
-    #[red_cap(enum_index = 1)]
-    None,
-    #[red_cap(enum_index = 2)]
-    Cane,
-    #[red_cap(enum_index = 3)]
-    Walker,
-    #[red_cap(enum_index = 4)]
-    Rollator,
-    #[red_cap(enum_index = 5)]
-    ManualWheelchair,
-    #[red_cap(enum_index = 6)]
-    PowerWheelchair,
-    #[red_cap(enum_index = 7)]
-    PowerScooter,
-}
-impl MultiSelectType for MobilityDevice {}
-
-#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, RedCapEnum, ToSchema, EnumIter)]
 pub enum MedicationFrequency {
     #[red_cap(name = "Daily", enum_index = 1)]
     Daily,

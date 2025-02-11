@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS participant_demographics(
     gender TEXT,
     race VARCHAR(255)[],
     race_other TEXT,
-    race_multiple TEXT,
+    race_multiracial_other TEXT,
     ethnicity VARCHAR(255),
     language TEXT,
     is_veteran BOOLEAN,

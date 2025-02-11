@@ -29,16 +29,16 @@ impl<C: ColumnType> Default for Returning<C> {
         Self::None
     }
 }
-pub struct SimpleInsertQueryBuilder<'table, 'args, C: ColumnType> {
+pub struct SimpleInsertQueryBuilder<'args, C: ColumnType> {
     columns_to_insert: Vec<C>,
     sql: Option<String>,
     returning: Returning<C>,
-    table: &'table str,
+    table: &'static str,
     on_conflict: Option<OnConflict<C>>,
 
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
 }
-impl<'args, C> HasArguments<'args> for SimpleInsertQueryBuilder<'_, 'args, C>
+impl<'args, C> HasArguments<'args> for SimpleInsertQueryBuilder<'args, C>
 where
     C: ColumnType,
 {
@@ -51,7 +51,7 @@ where
     }
 }
 
-impl<C> Debug for SimpleInsertQueryBuilder<'_, '_, C>
+impl<C> Debug for SimpleInsertQueryBuilder<'_, C>
 where
     C: ColumnType + Debug,
 {
@@ -64,8 +64,8 @@ where
             .finish()
     }
 }
-impl<'table, 'args, C: ColumnType> SimpleInsertQueryBuilder<'table, 'args, C> {
-    pub fn new(table: &'table str) -> Self {
+impl<'args, C: ColumnType> SimpleInsertQueryBuilder<'args, C> {
+    pub fn new(table: &'static str) -> Self {
         Self {
             table,
             arguments: Some(Default::default()),
@@ -126,8 +126,8 @@ impl<'table, 'args, C: ColumnType> SimpleInsertQueryBuilder<'table, 'args, C> {
         self.sql = Some(sql);
     }
 }
-impl<'args, C> QueryTool<'args> for SimpleInsertQueryBuilder<'_, 'args, C> where C: ColumnType {}
-impl<C: ColumnType> FormatSqlQuery for SimpleInsertQueryBuilder<'_, '_, C> {
+impl<'args, C> QueryTool<'args> for SimpleInsertQueryBuilder<'args, C> where C: ColumnType {}
+impl<C: ColumnType> FormatSqlQuery for SimpleInsertQueryBuilder<'_, C> {
     fn format_sql_query(&mut self) -> &str {
         if self.sql.is_none() {
             self.gen_sql();
