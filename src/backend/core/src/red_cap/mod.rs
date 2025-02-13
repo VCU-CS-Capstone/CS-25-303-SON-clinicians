@@ -45,28 +45,28 @@ pub trait RedCapDataSet {
     }
     fn get(&self, key: &str) -> Option<&RedCapExportDataType>;
     get!(
-        /// Get a number from the data set.
+        /// Get a number from the dataset.
         ///
         /// If the value is not a number, it will return None
         get_number -> to_number -> usize,
-        /// Get a float from the data set.
+        /// Get a float from the dataset.
         ///
         /// If the value is not a float, it will return None
         get_float -> to_float -> f32,
-        /// Get a date from the data set.
+        /// Get a date from the dataset.
         ///
         /// If the value is not a date, it will return None
         get_date -> to_date -> NaiveDate,
 
-        /// Get a bad boolean from the data set.
+        /// Get a bad boolean from the dataset.
         ///
         /// If the value is not a bad boolean, it will return None
         get_bad_boolean -> to_bad_boolean -> bool,
 
-        /// Get a string from the data set.
+        /// Get a string from the dataset.
         /// If it is any other type it will call to_string. Except for MultiSelect and Enums
         get_string -> to_string -> String,
-        /// Get a boolean from the data set.
+        /// Get a boolean from the dataset.
         get_bool -> to_bool -> bool
     );
     fn get_enum<T>(&self, key: &str) -> Option<T>
@@ -229,7 +229,7 @@ impl RedCapExportDataType {
             _ => None,
         }
     }
-    /// Bad Booleans are 2 = true, 1 = false
+    /// Bad Boolean's are 2 = true, 1 = false
     /// Wouldn't shock me if they sometimes use 0 = false
     ///
     /// So I only check for value = 2
