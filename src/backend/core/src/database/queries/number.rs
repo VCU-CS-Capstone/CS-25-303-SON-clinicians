@@ -52,7 +52,7 @@ where
 {
     pub fn filter(self, column: impl ColumnType + 'static) -> FilterConditionBuilder<'args> {
         match self {
-            NumberQuery::GreaterThan(n) => column.dyn_column().equals(n.value()),
+            NumberQuery::GreaterThan(n) => column.dyn_column().greater_than(n.value()),
             NumberQuery::LessThan(n) => column.dyn_column().less_than(n.value()),
             NumberQuery::EqualTo(n) => column.dyn_column().equals(n.value()),
             NumberQuery::GreaterThanOrEqualTo(n) => {

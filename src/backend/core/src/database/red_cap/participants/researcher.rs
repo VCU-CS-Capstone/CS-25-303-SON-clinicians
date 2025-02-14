@@ -350,4 +350,42 @@ mod tests {
 
         Ok(())
     }
+    #[ignore]
+    #[tokio::test]
+    async fn more_tests() -> anyhow::Result<()> {
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
+        let database = config.connect_to_db().await?;
+        let query: Vec<ResearcherQuery> = vec![ResearcherQuery {
+            age: Some(">25".parse().unwrap()),
+            gender: Some(Gender::Male),
+            ..Default::default()
+        }];
+
+        for query in query {
+            let result = query
+                .clone()
+                .query(
+                    PageParams {
+                        page_number: 1,
+                        page_size: 10,
+                    },
+                    &database,
+                )
+                .await
+                .expect("Failed to Execute Researcher Query");
+
+            if result.is_empty() {
+                eprintln!("No participant found. But it might be expected");
+                continue;
+            }
+            println!("Found {} participants from {:?}", result.len(), query);
+            println!("{}", Table::new(result.iter()));
+        }
+
+        Ok(())
+    }
 }

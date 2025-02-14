@@ -3427,7 +3427,7 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 [[package]]
 name = "pg-extended-sqlx-queries"
 version = "0.1.0"
-source = "git+https://github.com/wyatt-herkamp/pg-extended-sqlx-queries.git#36f5d6292937571510927f6c659c5f7253e08315"
+source = "git+https://github.com/wyatt-herkamp/pg-extended-sqlx-queries.git#6390cde839062561da7cc6be05cfa4f175a92aeb"
 dependencies = [
  "ahash",
  "pg-extended-sqlx-queries-macros",
@@ -3439,7 +3439,7 @@ dependencies = [
 [[package]]
 name = "pg-extended-sqlx-queries-macros"
 version = "0.1.0"
-source = "git+https://github.com/wyatt-herkamp/pg-extended-sqlx-queries.git#36f5d6292937571510927f6c659c5f7253e08315"
+source = "git+https://github.com/wyatt-herkamp/pg-extended-sqlx-queries.git#6390cde839062561da7cc6be05cfa4f175a92aeb"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -3614,9 +3614,9 @@ dependencies = [
 
 [[package]]
 name = "psm"
-version = "0.1.24"
+version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "200b9ff220857e53e184257720a14553b2f4aa02577d2ed9842d45d4b9654810"
+checksum = "f58e5423e24c18cc840e1c98370b3993c6649cd1678b4d24318bcf0a083cbe88"
 dependencies = [
  "cc",
 ]

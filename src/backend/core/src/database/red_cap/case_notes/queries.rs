@@ -409,7 +409,10 @@ mod tests {
             create_participant_with_history(&database, "CS25-303 weight_test").await?;
         let weights = super::WeightHistory::find_all_for_participant(
             participant_id,
-            PageParams::default(),
+            PageParams {
+                page_number: 1,
+                page_size: 15,
+            },
             &database,
         )
         .await?;
@@ -429,7 +432,10 @@ mod tests {
             create_participant_with_history(&database, "CS25-303 glucose test").await?;
         let weights = super::BloodGlucoseHistory::find_all_for_participant(
             participant_id,
-            PageParams::default(),
+            PageParams {
+                page_number: 1,
+                page_size: 15,
+            },
             &database,
         )
         .await?;

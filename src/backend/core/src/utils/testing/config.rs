@@ -43,6 +43,7 @@ impl CoreTestingConfig {
                 .with(
                     stdout_log.with_filter(
                         filter::Targets::new()
+                            .with_target("pg_extended_sqlx_queries", LevelFilter::TRACE)
                             .with_target("cs25_303_core", LevelFilter::TRACE)
                             .with_default(LevelFilter::INFO)
                             .with_target("sqlx", LevelFilter::WARN),
