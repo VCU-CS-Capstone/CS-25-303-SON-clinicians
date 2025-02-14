@@ -5,6 +5,7 @@ use std::str::FromStr;
 use chumsky::label::LabelError;
 use chumsky::prelude::*;
 use chumsky::text::int;
+use pg_extended_sqlx_queries::{ColumnType, DynEncodeType, ExprType, FilterConditionBuilder};
 use tracing::warn;
 use utoipa::ToSchema;
 
@@ -44,6 +45,25 @@ pub enum NumberQuery<I = i32> {
     GreaterThanOrEqualTo(I),
     LessThanOrEqualTo(I),
     Range { start: I, end: I },
+}
+impl<'args, I> NumberQuery<I>
+where
+    I: DynEncodeType<'args>,
+{
+    pub fn filter(self, column: impl ColumnType + 'static) -> FilterConditionBuilder<'args> {
+        match self {
+            NumberQuery::GreaterThan(n) => column.dyn_column().equals(n.value()),
+            NumberQuery::LessThan(n) => column.dyn_column().less_than(n.value()),
+            NumberQuery::EqualTo(n) => column.dyn_column().equals(n.value()),
+            NumberQuery::GreaterThanOrEqualTo(n) => {
+                column.dyn_column().greater_than_or_equals(n.value())
+            }
+            NumberQuery::LessThanOrEqualTo(n) => column.dyn_column().less_than_or_equals(n.value()),
+            NumberQuery::Range { start, end } => {
+                column.dyn_column().between(start.value(), end.value())
+            }
+        }
+    }
 }
 impl<I> Display for NumberQuery<I>
 where

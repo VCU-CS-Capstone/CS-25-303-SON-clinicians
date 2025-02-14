@@ -1,19 +1,7 @@
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput};
-pub(crate) mod columns;
 pub(crate) mod permissions;
 pub(crate) mod red_cap_enum;
-/// This macro is used to derive the `ColumnType` trait for a struct.
-/// To use Properly each field must be the same name as the column in the database.
-#[proc_macro_derive(Columns)]
-pub fn columns(item: TokenStream) -> TokenStream {
-    let input = syn::parse_macro_input!(item as syn::DeriveInput);
-
-    match columns::expand(input) {
-        Ok(result) => result.into(),
-        Err(err) => err.to_compile_error().into(),
-    }
-}
 
 /// Implements a bunch of traits for handling enums that are used in the redcap api.
 ///

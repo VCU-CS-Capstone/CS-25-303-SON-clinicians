@@ -22,7 +22,8 @@ pub struct LocationNoConnectionRules {
 /// Table Name: locations
 ///
 /// This is the table of locations that are used in the system.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, TableType, ToSchema)]
+#[table(name = "locations")]
 pub struct Locations {
     pub id: i32,
     /// Location Name
@@ -35,12 +36,7 @@ pub struct Locations {
     #[schema(value_type = RedCapLocationConnectionRules)]
     pub red_cap_connection_rules: Json<RedCapLocationConnectionRules>,
 }
-impl TableType for Locations {
-    type Columns = LocationsColumn;
-    fn table_name() -> &'static str {
-        "locations"
-    }
-}
+
 impl Locations {
     /// Find a location by its name
     ///
@@ -50,11 +46,12 @@ impl Locations {
         name: &str,
         database: &sqlx::PgPool,
     ) -> Result<Option<Locations>, sqlx::Error> {
-        let result = SelectQueryBuilder::new(Locations::table_name(), LocationsColumn::all())
-            .where_equals(LocationsColumn::Name, name)
-            .query_as()
-            .fetch_optional(database)
-            .await?;
+        let result =
+            SelectQueryBuilder::with_columns(Locations::table_name(), LocationsColumn::all())
+                .filter(LocationsColumn::Name.equals(name.value()))
+                .query_as()
+                .fetch_optional(database)
+                .await?;
         Ok(result)
     }
     /// Find all children locations of a parent location
@@ -69,8 +66,8 @@ impl Locations {
         parent_id: i32,
         database: &sqlx::PgPool,
     ) -> Result<Vec<Locations>, DBError> {
-        SelectQueryBuilder::new(Locations::table_name(), LocationsColumn::all())
-            .where_equals(LocationsColumn::ParentLocation, parent_id)
+        SelectQueryBuilder::with_columns(Locations::table_name(), LocationsColumn::all())
+            .filter(LocationsColumn::ParentLocation.equals(parent_id.value()))
             .query_as()
             .fetch_all(database)
             .await
@@ -79,7 +76,7 @@ impl Locations {
     /// Get all locations in the system
     #[instrument]
     pub async fn get_all(database: &sqlx::PgPool) -> Result<Vec<Locations>, DBError> {
-        SelectQueryBuilder::new(Locations::table_name(), LocationsColumn::all())
+        SelectQueryBuilder::with_columns(Locations::table_name(), LocationsColumn::all())
             .query_as()
             .fetch_all(database)
             .await
@@ -91,8 +88,8 @@ impl Locations {
         program: Programs,
         database: &sqlx::PgPool,
     ) -> Result<Vec<Locations>, DBError> {
-        SelectQueryBuilder::new(Locations::table_name(), LocationsColumn::all())
-            .where_equals(LocationsColumn::Program, program)
+        SelectQueryBuilder::with_columns(Locations::table_name(), LocationsColumn::all())
+            .filter(LocationsColumn::Program.equals(program.value()))
             .query_as()
             .fetch_all(database)
             .await
@@ -104,11 +101,12 @@ impl Locations {
         id: i32,
         database: &sqlx::PgPool,
     ) -> Result<Option<Locations>, sqlx::Error> {
-        let result = SelectQueryBuilder::new(Locations::table_name(), LocationsColumn::all())
-            .where_equals(LocationsColumn::Id, id)
-            .query_as()
-            .fetch_optional(database)
-            .await?;
+        let result =
+            SelectQueryBuilder::with_columns(Locations::table_name(), LocationsColumn::all())
+                .filter(LocationsColumn::Id.equals(id.value()))
+                .query_as()
+                .fetch_optional(database)
+                .await?;
         Ok(result)
     }
 }

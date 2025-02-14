@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use crate::database::{
     prelude::*,
     red_cap::case_notes::{CaseNote, CaseNoteColumn},
+    PaginatedResponse,
 };
 use serde::{Deserialize, Serialize};
 use tabled::Tabled;
@@ -76,27 +77,24 @@ impl ParticipantLookupQuery {
             program,
             ..
         } = self;
-        query.where_column(ParticipantsColumn::FirstName.lower(), |builder| {
-            builder
-                .like(format!("{}%", first_name.to_lowercase()))
-                .build()
-        });
+
+        query.filter(
+            ParticipantsColumn::FirstName
+                .lower()
+                .like(format!("{}%", first_name.to_lowercase()).value()),
+        );
         if !last_name.is_empty() {
-            query.where_column(ParticipantsColumn::LastName.lower(), |builder| {
-                builder
-                    .like(format!("{}%", last_name.to_lowercase()))
-                    .build()
-            });
+            query.filter(
+                ParticipantsColumn::LastName
+                    .lower()
+                    .like(format!("{}%", last_name.to_lowercase()).value()),
+            );
         }
         if let Some(location) = location {
-            query.where_column(ParticipantsColumn::Location, |builder| {
-                builder.equals(*location).build()
-            });
+            query.filter(ParticipantsColumn::Location.equals((*location).value()));
         }
         if let Some(program) = program {
-            query.where_column(ParticipantsColumn::Program, |builder| {
-                builder.equals(*program).build()
-            });
+            query.filter(ParticipantsColumn::Program.equals((*program).value()));
         }
     }
     #[instrument(name = "ParticipantLookupQuery::find", skip(database))]
@@ -106,21 +104,23 @@ impl ParticipantLookupQuery {
         database: &PgPool,
     ) -> DBResult<PaginatedResponse<ParticipantLookup>> {
         let page_params: PageParams = page_and_size.into();
-        let mut query =
-            SelectQueryBuilder::new(Participants::table_name(), ParticipantLookup::columns());
+        let mut query = SelectQueryBuilder::with_columns(
+            Participants::table_name(),
+            ParticipantLookup::columns(),
+        );
 
         self.apply_arguments(&mut query);
         if self.get_visit_history {
-            query.select_also(CaseNote::table_name(), |mut builder| {
-                builder
+            query.select(
+                SelectExprBuilder::new(CaseNote::table_name())
                     .column(CaseNoteColumn::DateOfVisit)
                     .limit(1)
-                    .where_column(CaseNoteColumn::ParticipantId, |builder| {
-                        builder.equals(ParticipantsColumn::Id.dyn_column()).build()
-                    })
+                    .filter(
+                        CaseNoteColumn::ParticipantId.equals(ParticipantsColumn::Id.dyn_column()),
+                    )
                     .order_by(CaseNoteColumn::DateOfVisit, SQLOrder::Descending)
-                    .build_as("last_visited")
-            });
+                    .alias("last_visited"),
+            );
         }
         query.page_params(page_params);
         let total: i64 = {
@@ -129,7 +129,7 @@ impl ParticipantLookupQuery {
             count.query_scalar().fetch_one(database).await?
         };
         let result: Vec<ParticipantLookup> = query.query_as().fetch_all(database).await?;
-        let result = page_params.create_result(total, result);
+        let result = PaginatedResponse::create_response(result, &page_params, total);
         Ok(result)
     }
 }
@@ -182,7 +182,17 @@ mod tests {
         ];
 
         for query in query {
-            let result = query.clone().find((10, 100), &database).await.unwrap();
+            let result = query
+                .clone()
+                .find(
+                    PageParams {
+                        page_number: 1,
+                        page_size: 10,
+                    },
+                    &database,
+                )
+                .await
+                .unwrap();
             if result.is_empty() {
                 eprintln!("No participant found. But it might be expected");
                 continue;

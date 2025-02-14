@@ -2,14 +2,14 @@ pub mod new;
 pub mod queries;
 use std::fmt::Debug;
 
-use crate::database::prelude::*;
-use crate::database::tools::many::InsertManyBuilder;
+use crate::database::{prelude::*, PaginatedResponse};
 use crate::red_cap::converter::case_notes::{
     OtherCaseNoteData, RedCapCaseNoteBase, RedCapHealthMeasures,
 };
-use crate::{database::tools::TableType, red_cap::VisitType};
+use crate::red_cap::VisitType;
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use new::NewBloodPressure;
+use pg_extended_sqlx_queries::many::InsertManyBuilder;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use strum::EnumIter;
@@ -25,8 +25,8 @@ pub trait CaseNoteType:
 
     /// Find a case note by its ID
     async fn find_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
-        let result = SelectQueryBuilder::new(CaseNote::table_name(), Self::columns())
-            .where_equals(CaseNoteColumn::Id, id)
+        let result = SelectQueryBuilder::with_columns(CaseNote::table_name(), Self::columns())
+            .filter(CaseNoteColumn::Id.equals(id.value()))
             .query_as()
             .fetch_optional(database)
             .await?;
@@ -37,10 +37,8 @@ pub trait CaseNoteType:
         participant_id: i32,
         database: &sqlx::PgPool,
     ) -> DBResult<Vec<Self>> {
-        let result = SelectQueryBuilder::new(CaseNote::table_name(), Self::columns())
-            .where_column(CaseNoteColumn::ParticipantId, |c| {
-                c.equals(participant_id).build()
-            })
+        let result = SelectQueryBuilder::with_columns(CaseNote::table_name(), Self::columns())
+            .filter(CaseNoteColumn::ParticipantId.equals(participant_id.value()))
             .order_by(CaseNoteColumn::DateOfVisit, SQLOrder::Descending)
             .query_as()
             .fetch_all(database)
@@ -55,7 +53,7 @@ pub trait CaseNoteType:
     ) -> DBResult<PaginatedResponse<Self>> {
         let count = {
             SelectCount::new(CaseNote::table_name())
-                .where_equals(CaseNoteColumn::ParticipantId, participant_id)
+                .filter(CaseNoteColumn::ParticipantId.equals(participant_id.value()))
                 .execute(database)
                 .await?
         };
@@ -68,19 +66,23 @@ pub trait CaseNoteType:
             debug!(?page_params, ?count, "The offset os greater than the count");
             return Ok(PaginatedResponse::default());
         }
-        let query_result = SelectQueryBuilder::new(CaseNote::table_name(), Self::columns())
-            .where_column(CaseNoteColumn::ParticipantId, |c| {
-                c.equals(participant_id).build()
-            })
-            .page_params(page_params)
-            .order_by(CaseNoteColumn::DateOfVisit, SQLOrder::Descending)
-            .query_as()
-            .fetch_all(database)
-            .await?;
-        Ok(page_params.create_result(count, query_result))
+        let query_result =
+            SelectQueryBuilder::with_columns(CaseNote::table_name(), Self::columns())
+                .filter(CaseNoteColumn::ParticipantId.equals(participant_id.value()))
+                .page_params(page_params)
+                .order_by(CaseNoteColumn::DateOfVisit, SQLOrder::Descending)
+                .query_as()
+                .fetch_all(database)
+                .await?;
+        Ok(PaginatedResponse::create_response(
+            query_result,
+            &page_params,
+            count,
+        ))
     }
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, TableType, ToSchema)]
+#[table(name = "case_notes")]
 pub struct CaseNote {
     pub id: i32,
     /// Relates to #[crate::database::red_cap::participants::Participants]
@@ -108,25 +110,19 @@ pub struct CaseNote {
     /// DATABASE ONLY
     pub created_at: DateTime<FixedOffset>,
 }
-impl TableType for CaseNote {
-    type Columns = CaseNoteColumn;
-    fn table_name() -> &'static str {
-        "case_notes"
-    }
-}
+
 impl CaseNote {
     pub async fn find_by_participant_id_and_redcap_instance(
         participant_id: i32,
         redcap_instance: i32,
         database: &sqlx::PgPool,
     ) -> DBResult<Option<Self>> {
-        let result = SelectQueryBuilder::new(Self::table_name(), Self::columns())
-            .where_column(CaseNoteColumn::ParticipantId, |c| {
-                c.equals(participant_id).build()
-            })
-            .where_column(CaseNoteColumn::RedCapInstance, |c| {
-                c.equals(redcap_instance).build()
-            })
+        let result = SelectQueryBuilder::with_columns(Self::table_name(), Self::columns())
+            .filter(
+                CaseNoteColumn::ParticipantId
+                    .equals(participant_id.value())
+                    .and(CaseNoteColumn::RedCapInstance.equals(redcap_instance.value())),
+            )
             .query_as()
             .fetch_optional(database)
             .await?;
@@ -149,10 +145,8 @@ impl CaseNote {
         participant_id: i32,
         database: &sqlx::PgPool,
     ) -> DBResult<Vec<Self>> {
-        let result = SelectQueryBuilder::new(Self::table_name(), Self::columns())
-            .where_column(CaseNoteColumn::ParticipantId, |c| {
-                c.equals(participant_id).build()
-            })
+        let result = SelectQueryBuilder::with_columns(Self::table_name(), Self::columns())
+            .filter(CaseNoteColumn::ParticipantId.equals(participant_id.value()))
             .order_by(CaseNoteColumn::DateOfVisit, SQLOrder::Descending)
             .query_as()
             .fetch_all(database)
@@ -165,12 +159,12 @@ impl CaseNote {
         database: &sqlx::PgPool,
     ) -> DBResult<()> {
         let result = UpdateQueryBuilder::new(Self::table_name())
-            .set(CaseNoteColumn::RedCapInstance, instance_id)
+            .set(CaseNoteColumn::RedCapInstance, instance_id.value())
             .set(
                 CaseNoteColumn::LastSyncedWithRedCap,
-                QueryBuilderFunction::now(),
+                ExprFunctionBuilder::now(),
             )
-            .where_column(CaseNoteColumn::Id, |c| c.equals(self.id).build())
+            .filter(CaseNoteColumn::Id.equals(self.id.value()))
             .query()
             .execute(database)
             .await?;
@@ -193,7 +187,8 @@ impl CaseNote {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, TableType)]
+#[table(name = "case_note_health_measures")]
 pub struct CaseNoteHealthMeasures {
     pub id: i32,
     /// 1:1 with [CaseNote]
@@ -217,14 +212,23 @@ pub struct CaseNoteHealthMeasures {
 }
 impl CaseNoteHealthMeasures {
     pub async fn add_bp(&self, bp: NewBloodPressure, db: &PgPool) -> DBResult<()> {
-        SimpleInsertQueryBuilder::new(HealthMeasureBloodPressure::table_name())
-            .insert(HealthMeasureBloodPressureColumn::HealthMeasureId, self.id)
+        InsertQueryBuilder::new(HealthMeasureBloodPressure::table_name())
+            .insert(
+                HealthMeasureBloodPressureColumn::HealthMeasureId,
+                self.id.value(),
+            )
             .insert(
                 HealthMeasureBloodPressureColumn::BloodPressureType,
-                bp.blood_pressure_type,
+                bp.blood_pressure_type.value(),
             )
-            .insert(HealthMeasureBloodPressureColumn::Systolic, bp.systolic)
-            .insert(HealthMeasureBloodPressureColumn::Diastolic, bp.diastolic)
+            .insert(
+                HealthMeasureBloodPressureColumn::Systolic,
+                bp.systolic.value(),
+            )
+            .insert(
+                HealthMeasureBloodPressureColumn::Diastolic,
+                bp.diastolic.value(),
+            )
             .query()
             .execute(db)
             .await?;
@@ -254,10 +258,10 @@ impl CaseNoteHealthMeasures {
 
         for bp in bp {
             query.insert_row_ordered(|row| {
-                row.insert(self.id)
-                    .insert(bp.blood_pressure_type)
-                    .insert(bp.systolic)
-                    .insert(bp.diastolic);
+                row.insert(self.id.value())
+                    .insert(bp.blood_pressure_type.value())
+                    .insert(bp.systolic.value())
+                    .insert(bp.diastolic.value());
             });
         }
 
@@ -265,12 +269,7 @@ impl CaseNoteHealthMeasures {
         Ok(())
     }
 }
-impl TableType for CaseNoteHealthMeasures {
-    type Columns = CaseNoteHealthMeasuresColumn;
-    fn table_name() -> &'static str {
-        "case_note_health_measures"
-    }
-}
+
 impl CaseNoteHealthMeasures {
     pub async fn find_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
         let result = sqlx::query_as(
@@ -288,8 +287,8 @@ impl CaseNoteHealthMeasures {
         case_note_id: i32,
         database: &sqlx::PgPool,
     ) -> DBResult<Option<Self>> {
-        SelectQueryBuilder::new(Self::table_name(), CaseNoteHealthMeasuresColumn::all())
-            .where_equals(CaseNoteHealthMeasuresColumn::CaseNoteId, case_note_id)
+        SelectQueryBuilder::with_columns(Self::table_name(), CaseNoteHealthMeasuresColumn::all())
+            .filter(CaseNoteHealthMeasuresColumn::CaseNoteId.equals(case_note_id.value()))
             .query_as()
             .fetch_optional(database)
             .await
@@ -354,7 +353,8 @@ impl BloodPressureType {
     }
 }
 /// Blood Pressure gets its own table because it happens between 0-3 different ways
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, TableType)]
+#[table(name = "health_measure_blood_pressure")]
 pub struct HealthMeasureBloodPressure {
     pub id: i32,
     /// Each [CaseNote] can have at most 3 blood pressures
@@ -365,11 +365,4 @@ pub struct HealthMeasureBloodPressure {
     pub systolic: i16,
     /// Possible Red CAP IDs: bp_sit_dia, bp_stand_dia
     pub diastolic: i16,
-}
-
-impl TableType for HealthMeasureBloodPressure {
-    type Columns = HealthMeasureBloodPressureColumn;
-    fn table_name() -> &'static str {
-        "health_measure_blood_pressure"
-    }
 }

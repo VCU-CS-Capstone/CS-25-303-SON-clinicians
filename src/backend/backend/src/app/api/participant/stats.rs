@@ -10,7 +10,7 @@ use cs25_303_core::database::{
         },
         participants::Participants,
     },
-    tools::{PageParams, PaginatedResponse},
+    CSPageParams, PaginatedResponse,
 };
 use tracing::instrument;
 use utoipa::OpenApi;
@@ -43,7 +43,7 @@ pub fn stat_routes() -> axum::Router<SiteState> {
 
     params(
         ("participant_id" = i32, Path, description = "Participant ID"),
-        PageParams,
+        CSPageParams,
     ),
     responses(
         (status = 200, description = "Participant Weight History", body = PaginatedResponse<WeightHistory>),
@@ -57,7 +57,7 @@ pub fn stat_routes() -> axum::Router<SiteState> {
 pub async fn participant_weight_history(
     State(site): State<SiteState>,
     Path(participant_id): Path<i32>,
-    Query(page): Query<PageParams>,
+    Query(page): Query<CSPageParams>,
     auth: Authentication,
 ) -> Result<Response, InternalError> {
     let weights =
@@ -76,7 +76,7 @@ pub async fn participant_weight_history(
     path = "/bp/history/{participant_id}",
     params(
         ("participant_id" = i32, Path, description = "Participant ID"),
-        PageParams,
+        CSPageParams,
     ),
     summary="Fetch the blood pressure history for a participant",
     responses(
@@ -91,7 +91,7 @@ pub async fn participant_weight_history(
 pub async fn bp_history(
     State(site): State<SiteState>,
     Path(participant_id): Path<i32>,
-    Query(page): Query<PageParams>,
+    Query(page): Query<CSPageParams>,
 
     auth: Authentication,
 ) -> Result<Response, InternalError> {
@@ -111,7 +111,7 @@ pub async fn bp_history(
     path = "/glucose/history/{participant_id}",
     params(
         ("participant_id" = i32, Path, description = "Participant ID"),
-        PageParams,
+        CSPageParams,
     ),
     summary="Fetch the blood glucose history for a participant",
     responses(
@@ -126,7 +126,7 @@ pub async fn bp_history(
 pub async fn glucose_history(
     State(site): State<SiteState>,
     Path(participant_id): Path<i32>,
-    Query(page): Query<PageParams>,
+    Query(page): Query<CSPageParams>,
 
     auth: Authentication,
 ) -> Result<Response, InternalError> {

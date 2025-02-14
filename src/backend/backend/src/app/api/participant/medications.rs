@@ -5,7 +5,7 @@ use axum::{
 };
 use cs25_303_core::database::{
     red_cap::participants::{ParticipantMedications, Participants},
-    tools::{PageParams, PaginatedResponse},
+    CSPageParams, PaginatedResponse,
 };
 use serde::Deserialize;
 use tracing::instrument;
@@ -77,7 +77,7 @@ pub struct MedicationSearch {
     summary = "Search for medications for a participant",
     params(
         ("participant_id", Path,  description = "Participant ID"),
-        PageParams,
+        CSPageParams,
         MedicationSearch
     ),
     responses(
@@ -93,12 +93,16 @@ pub async fn search_medications(
     State(site): State<SiteState>,
     Path(participant_id): Path<i32>,
     auth: Authentication,
-    Query(params): Query<PageParams>,
+    Query(params): Query<CSPageParams>,
     Query(MedicationSearch { name }): Query<MedicationSearch>,
 ) -> Result<Response, InternalError> {
-    let medications =
-        ParticipantMedications::search_medications(participant_id, &site.database, name, params)
-            .await?;
+    let medications = ParticipantMedications::search_medications(
+        participant_id,
+        &site.database,
+        name,
+        params.into(),
+    )
+    .await?;
     // If the response is empty and the participant does not exist return a 404
     if medications.is_empty()
         && !Participants::does_participant_id_exist(participant_id, &site.database).await?

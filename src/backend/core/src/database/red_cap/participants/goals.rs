@@ -26,11 +26,14 @@ impl NewParticipantGoal {
             is_active,
             red_cap_index,
         } = self;
-        SimpleInsertQueryBuilder::new(ParticipantGoals::table_name())
-            .insert(ParticipantGoalsColumn::ParticipantId, participant_id)
-            .insert(ParticipantGoalsColumn::Goal, goal)
-            .insert(ParticipantGoalsColumn::IsActive, is_active)
-            .insert(ParticipantGoalsColumn::RedCapIndex, red_cap_index)
+        InsertQueryBuilder::new(ParticipantGoals::table_name())
+            .insert(
+                ParticipantGoalsColumn::ParticipantId,
+                participant_id.value(),
+            )
+            .insert(ParticipantGoalsColumn::Goal, goal.value())
+            .insert(ParticipantGoalsColumn::IsActive, is_active.value())
+            .insert(ParticipantGoalsColumn::RedCapIndex, red_cap_index.value())
             .return_all()
             .query_as()
             .fetch_one(database)
@@ -38,7 +41,8 @@ impl NewParticipantGoal {
             .map_err(DBError::from)
     }
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, TableType, ToSchema)]
+#[table(name = "participant_goals")]
 pub struct ParticipantGoals {
     pub id: i32,
     pub participant_id: i32,
@@ -53,11 +57,11 @@ impl ParticipantGoals {
         goal_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Option<ParticipantGoals>> {
-        SelectQueryBuilder::new(
+        SelectQueryBuilder::with_columns(
             ParticipantGoals::table_name(),
             ParticipantGoalsColumn::all(),
         )
-        .where_equals(ParticipantGoalsColumn::Id, goal_id)
+        .filter(ParticipantGoalsColumn::Id.equals(goal_id.value()))
         .query_as()
         .fetch_optional(database)
         .await
@@ -83,11 +87,11 @@ impl ParticipantGoals {
         participant_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Vec<ParticipantGoals>> {
-        SelectQueryBuilder::new(
+        SelectQueryBuilder::with_columns(
             ParticipantGoals::table_name(),
             ParticipantGoalsColumn::all(),
         )
-        .where_equals(ParticipantGoalsColumn::ParticipantId, participant_id)
+        .filter(ParticipantGoalsColumn::ParticipantId.equals(participant_id.value()))
         .query_as()
         .fetch_all(database)
         .await
@@ -113,12 +117,7 @@ impl ParticipantGoals {
         Ok(())
     }
 }
-impl TableType for ParticipantGoals {
-    type Columns = ParticipantGoalsColumn;
-    fn table_name() -> &'static str {
-        "participant_goals"
-    }
-}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct NewParticipantGoalsSteps {
     pub goal_id: Option<i32>,
@@ -148,21 +147,27 @@ impl NewParticipantGoalsSteps {
             action_step,
             red_cap_index,
         } = self;
-        SimpleInsertQueryBuilder::new(ParticipantGoalsSteps::table_name())
-            .insert(ParticipantGoalsStepsColumn::ParticipantId, participant_id)
-            .insert(ParticipantGoalsStepsColumn::GoalId, goal_id)
-            .insert(ParticipantGoalsStepsColumn::Step, step)
+        InsertQueryBuilder::new(ParticipantGoalsSteps::table_name())
+            .insert(
+                ParticipantGoalsStepsColumn::ParticipantId,
+                participant_id.value(),
+            )
+            .insert(ParticipantGoalsStepsColumn::GoalId, goal_id.value())
+            .insert(ParticipantGoalsStepsColumn::Step, step.value())
             .insert(
                 ParticipantGoalsStepsColumn::ConfidenceLevel,
-                confidence_level,
+                confidence_level.value(),
             )
-            .insert(ParticipantGoalsStepsColumn::DateSet, date_set)
+            .insert(ParticipantGoalsStepsColumn::DateSet, date_set.value())
             .insert(
                 ParticipantGoalsStepsColumn::DateToBeCompleted,
-                date_to_be_completed,
+                date_to_be_completed.value(),
             )
-            .insert(ParticipantGoalsStepsColumn::ActionStep, action_step)
-            .insert(ParticipantGoalsStepsColumn::RedCapIndex, red_cap_index)
+            .insert(ParticipantGoalsStepsColumn::ActionStep, action_step.value())
+            .insert(
+                ParticipantGoalsStepsColumn::RedCapIndex,
+                red_cap_index.value(),
+            )
             .query()
             .execute(database)
             .await?;
@@ -181,7 +186,8 @@ impl NewParticipantGoalsSteps {
         Ok(())
     }
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, TableType, ToSchema)]
+#[table(name = "participant_goal_steps")]
 pub struct ParticipantGoalsSteps {
     pub id: i32,
     pub goal_id: Option<i32>,
@@ -221,11 +227,11 @@ impl ParticipantGoalsSteps {
         participant_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Vec<ParticipantGoalsSteps>> {
-        SelectQueryBuilder::new(
+        SelectQueryBuilder::with_columns(
             ParticipantGoalsSteps::table_name(),
             ParticipantGoalsStepsColumn::all(),
         )
-        .where_equals(ParticipantGoalsStepsColumn::ParticipantId, participant_id)
+        .filter(ParticipantGoalsStepsColumn::ParticipantId.equals(participant_id.value()))
         .query_as()
         .fetch_all(database)
         .await
@@ -235,11 +241,11 @@ impl ParticipantGoalsSteps {
         goal_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Vec<ParticipantGoalsSteps>> {
-        SelectQueryBuilder::new(
+        SelectQueryBuilder::with_columns(
             ParticipantGoalsSteps::table_name(),
             ParticipantGoalsStepsColumn::all(),
         )
-        .where_equals(ParticipantGoalsStepsColumn::GoalId, goal_id)
+        .filter(ParticipantGoalsStepsColumn::GoalId.equals(goal_id.value()))
         .query_as()
         .fetch_all(database)
         .await
@@ -249,12 +255,12 @@ impl ParticipantGoalsSteps {
         participant_id: i32,
         database: impl Executor<'_, Database = sqlx::Postgres>,
     ) -> DBResult<Vec<ParticipantGoalsSteps>> {
-        SelectQueryBuilder::new(
+        SelectQueryBuilder::with_columns(
             ParticipantGoalsSteps::table_name(),
             ParticipantGoalsStepsColumn::all(),
         )
-        .where_is_null(ParticipantGoalsStepsColumn::GoalId)
-        .where_equals(ParticipantGoalsStepsColumn::ParticipantId, participant_id)
+        .filter(ParticipantGoalsStepsColumn::GoalId.is_not_null())
+        .filter(ParticipantGoalsStepsColumn::ParticipantId.equals(participant_id.value()))
         .query_as()
         .fetch_all(database)
         .await
@@ -278,11 +284,5 @@ impl ParticipantGoalsSteps {
             goal.set_red_cap_index(red_cap_index, database).await?;
         }
         Ok(())
-    }
-}
-impl TableType for ParticipantGoalsSteps {
-    type Columns = ParticipantGoalsStepsColumn;
-    fn table_name() -> &'static str {
-        "participant_goal_steps"
     }
 }

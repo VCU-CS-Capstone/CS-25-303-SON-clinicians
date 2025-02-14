@@ -79,15 +79,15 @@ impl NewQuestion {
         }
         let json_options = additional_options.map(Json);
 
-        let question = SimpleInsertQueryBuilder::new(Question::table_name())
-            .insert(QuestionColumn::CategoryId, category_id)
-            .insert(QuestionColumn::QuestionType, question_type)
-            .insert(QuestionColumn::Question, question)
-            .insert(QuestionColumn::StringId, string_id)
-            .insert(QuestionColumn::StringIdOther, string_id_other)
-            .insert(QuestionColumn::Required, required)
-            .insert(QuestionColumn::Requirements, requirements)
-            .insert(QuestionColumn::AdditionalOptions, json_options)
+        let question = InsertQueryBuilder::new(Question::table_name())
+            .insert(QuestionColumn::CategoryId, category_id.value())
+            .insert(QuestionColumn::QuestionType, question_type.value())
+            .insert(QuestionColumn::Question, question.value())
+            .insert(QuestionColumn::StringId, string_id.value())
+            .insert(QuestionColumn::StringIdOther, string_id_other.value())
+            .insert(QuestionColumn::Required, required.value())
+            .insert(QuestionColumn::Requirements, requirements.value())
+            .insert(QuestionColumn::AdditionalOptions, json_options.value())
             .return_all()
             .query_as::<Question>()
             .fetch_one(conn)
@@ -124,16 +124,16 @@ impl NewQuestionOptions {
         } = self;
         let additional = additional_options.map(Json);
 
-        let option = SimpleInsertQueryBuilder::new(QuestionOptions::table_name())
-            .insert(QuestionOptionsColumn::QuestionId, question_id)
-            .insert(QuestionOptionsColumn::Name, name)
-            .insert(QuestionOptionsColumn::Description, description)
+        let option = InsertQueryBuilder::new(QuestionOptions::table_name())
+            .insert(QuestionOptionsColumn::QuestionId, question_id.value())
+            .insert(QuestionOptionsColumn::Name, name.value())
+            .insert(QuestionOptionsColumn::Description, description.value())
             .insert(
                 QuestionOptionsColumn::RedCapOptionIndex,
-                red_cap_option_index,
+                red_cap_option_index.value(),
             )
-            .insert(QuestionOptionsColumn::StringId, string_id)
-            .insert(QuestionOptionsColumn::AdditionalOptions, additional)
+            .insert(QuestionOptionsColumn::StringId, string_id.value())
+            .insert(QuestionOptionsColumn::AdditionalOptions, additional.value())
             .return_all()
             .query_as::<QuestionOptions>()
             .fetch_one(conn)

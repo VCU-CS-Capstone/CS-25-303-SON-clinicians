@@ -1,5 +1,6 @@
 use ahash::HashMap;
 use chrono::NaiveDate;
+use pg_extended_sqlx_queries::TableQuery;
 use serde::{Deserialize, Serialize};
 use sqlx::{
     prelude::{FromRow, Type},
@@ -7,9 +8,9 @@ use sqlx::{
 };
 use utoipa::ToSchema;
 
-use crate::{database::tools::TableQuery, red_cap::VisitType};
+use crate::{database::PaginatedResponse, red_cap::VisitType};
 
-use super::{BloodPressureType, CaseNoteType, DBResult, PageParams, PaginatedResponse};
+use super::{BloodPressureType, CaseNoteType, DBResult, PageParams};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema, FromRow)]
 pub struct CaseNoteIDAndDate {
     /// Case Note ID
@@ -306,6 +307,7 @@ impl BloodPressureHistory {
 #[cfg(test)]
 mod tests {
     use chrono::{Duration, Local};
+    use pg_extended_sqlx_queries::PageParams;
     use rand::Rng;
 
     use crate::{
@@ -386,7 +388,10 @@ mod tests {
 
         let bps = super::BloodPressureHistory::find_all_for_participant(
             participant_id,
-            (0, 0),
+            PageParams {
+                page_number: 1,
+                page_size: 0,
+            },
             &database,
         )
         .await?;
@@ -402,9 +407,12 @@ mod tests {
         };
         let participant_id =
             create_participant_with_history(&database, "CS25-303 weight_test").await?;
-        let weights =
-            super::WeightHistory::find_all_for_participant(participant_id, (0, 0), &database)
-                .await?;
+        let weights = super::WeightHistory::find_all_for_participant(
+            participant_id,
+            PageParams::default(),
+            &database,
+        )
+        .await?;
 
         assert_eq!(weights.data.len(), 15);
 
@@ -419,9 +427,12 @@ mod tests {
         };
         let participant_id =
             create_participant_with_history(&database, "CS25-303 glucose test").await?;
-        let weights =
-            super::BloodGlucoseHistory::find_all_for_participant(participant_id, (0, 0), &database)
-                .await?;
+        let weights = super::BloodGlucoseHistory::find_all_for_participant(
+            participant_id,
+            PageParams::default(),
+            &database,
+        )
+        .await?;
 
         assert_eq!(weights.data.len(), 15);
 

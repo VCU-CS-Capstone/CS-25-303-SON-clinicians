@@ -5,7 +5,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::database::prelude::*;
-#[derive(Debug, Clone, PartialEq, Eq, FromRow, Serialize, Deserialize, ToSchema, Columns)]
+#[derive(Debug, Clone, PartialEq, Eq, FromRow, Serialize, Deserialize, ToSchema, TableType)]
+#[table(name = "user_login_attempts")]
 pub struct UserLoginAttempt {
     pub id: Uuid,
     pub user_id: Option<i32>,
@@ -15,12 +16,7 @@ pub struct UserLoginAttempt {
     pub additional_footprint: Option<Json<AdditionalFootprint>>,
     pub created_at: DateTime<FixedOffset>,
 }
-impl TableType for UserLoginAttempt {
-    type Columns = UserLoginAttemptColumn;
-    fn table_name() -> &'static str {
-        "user_login_attempts"
-    }
-}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub struct AdditionalFootprint {
     #[serde(default)]
@@ -36,13 +32,13 @@ pub async fn add_login_attempt(
     additional_footprint: Option<AdditionalFootprint>,
     database: &sqlx::PgPool,
 ) -> DBResult<Uuid> {
-    let id = SimpleInsertQueryBuilder::new(UserLoginAttempt::table_name())
-        .insert(UserLoginAttemptColumn::UserId, user_id)
-        .insert(UserLoginAttemptColumn::IpAddress, ip_address)
-        .insert(UserLoginAttemptColumn::Success, success)
+    let id = InsertQueryBuilder::new(UserLoginAttempt::table_name())
+        .insert(UserLoginAttemptColumn::UserId, user_id.value())
+        .insert(UserLoginAttemptColumn::IpAddress, ip_address.value())
+        .insert(UserLoginAttemptColumn::Success, success.value())
         .insert(
             UserLoginAttemptColumn::AdditionalFootprint,
-            additional_footprint.map(Json),
+            additional_footprint.map(Json).value(),
         )
         .return_columns(vec![UserLoginAttemptColumn::Id])
         .query_scalar()

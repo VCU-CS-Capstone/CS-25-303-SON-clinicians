@@ -9,7 +9,6 @@ use crate::{
     },
 };
 use chrono::{DateTime, FixedOffset};
-use cs25_303_macros::Columns;
 use serde::{Deserialize, Serialize};
 pub mod goals;
 pub mod health_overview;
@@ -30,8 +29,8 @@ pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Ta
 
     #[tracing::instrument(level = "trace", fields(result))]
     async fn find_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
-        let result = SelectQueryBuilder::new(Participants::table_name(), Self::columns())
-            .where_equals(ParticipantsColumn::Id, id)
+        let result = SelectQueryBuilder::with_columns(Participants::table_name(), Self::columns())
+            .filter(ParticipantsColumn::Id.equals(id.value()))
             .query_as()
             .fetch_optional(database)
             .await?;
@@ -42,8 +41,8 @@ pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Ta
         red_cap_id: i32,
         database: &sqlx::PgPool,
     ) -> DBResult<Option<Self>> {
-        let result = SelectQueryBuilder::new(Participants::table_name(), Self::columns())
-            .where_equals(ParticipantsColumn::RedCapId, red_cap_id)
+        let result = SelectQueryBuilder::with_columns(Participants::table_name(), Self::columns())
+            .filter(ParticipantsColumn::RedCapId.equals(red_cap_id.value()))
             .query_as()
             .fetch_optional(database)
             .await?;
@@ -51,7 +50,8 @@ pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Ta
     }
 }
 /// Database Table: `participants`
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, TableType, ToSchema)]
+#[table(name = "participants")]
 pub struct Participants {
     pub id: i32,
     /// The ID within Red Cap. This is separate so if we added creating a new participant
@@ -103,12 +103,12 @@ impl Participants {
     ) -> DBResult<()> {
         self.red_cap_id = red_cap_id;
         let result = UpdateQueryBuilder::new(Self::table_name())
-            .set(ParticipantsColumn::RedCapId, red_cap_id)
+            .set(ParticipantsColumn::RedCapId, red_cap_id.value())
             .set(
                 ParticipantsColumn::LastSyncedWithRedCap,
-                QueryBuilderFunction::now(),
+                ExprFunctionBuilder::now(),
             )
-            .where_column(ParticipantsColumn::Id, |c| c.equals(self.id).build())
+            .filter(ParticipantsColumn::Id.equals(self.id.value()))
             .query()
             .execute(database)
             .await?;
@@ -131,12 +131,7 @@ impl Participants {
         Ok(())
     }
 }
-impl TableType for Participants {
-    type Columns = ParticipantsColumn;
-    fn table_name() -> &'static str {
-        "participants"
-    }
-}
+
 impl ParticipantType for Participants {
     fn get_id(&self) -> i32 {
         self.id
@@ -152,15 +147,16 @@ pub trait ParticipantDemograhicsType:
     }
 
     async fn find_by_participant(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
-        let result = SelectQueryBuilder::new(Self::table_name(), Self::columns())
-            .where_equals(ParticipantDemograhicsColumn::ParticipantId, id)
+        let result = SelectQueryBuilder::with_columns(Self::table_name(), Self::columns())
+            .filter(ParticipantDemograhicsColumn::ParticipantId.equals(id.value()))
             .query_as()
             .fetch_optional(database)
             .await?;
         Ok(result)
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, TableType, ToSchema)]
+#[table(name = "participant_demographics")]
 pub struct ParticipantDemograhics {
     pub id: i32,
     /// 1:1 with [Participants]
@@ -185,12 +181,7 @@ pub struct ParticipantDemograhics {
     /// Red Cap: education
     pub highest_education_level: Option<EducationLevel>,
 }
-impl TableType for ParticipantDemograhics {
-    type Columns = ParticipantDemograhicsColumn;
-    fn table_name() -> &'static str {
-        "participant_demographics"
-    }
-}
+
 impl ParticipantDemograhicsType for ParticipantDemograhics {
     fn get_id(&self) -> i32 {
         self.id

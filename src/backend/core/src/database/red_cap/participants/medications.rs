@@ -1,7 +1,8 @@
 use std::fmt::Debug;
 
-use crate::database::{prelude::*, tools::many::InsertManyBuilder};
+use crate::database::{prelude::*, PaginatedResponse};
 use chrono::{Local, NaiveDate};
+use pg_extended_sqlx_queries::many::InsertManyBuilder;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use tracing::{debug, instrument, trace, warn};
@@ -16,7 +17,8 @@ use super::TableType;
 ///
 /// Relationships:
 /// * Belongs to [Participants](crate::database::red_cap::participants::Participants)
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, TableType, ToSchema)]
+#[table(name = "participant_medications")]
 pub struct ParticipantMedications {
     /// The ID of the medication
     pub id: i32,
@@ -55,11 +57,11 @@ impl ParticipantMedications {
         participant_id: i32,
         database: &PgPool,
     ) -> DBResult<Vec<ParticipantMedications>> {
-        let result = SelectQueryBuilder::new(
+        let result = SelectQueryBuilder::with_columns(
             ParticipantMedications::table_name(),
             ParticipantMedicationsColumn::all(),
         )
-        .where_equals(ParticipantMedicationsColumn::ParticipantId, participant_id)
+        .filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id.value()))
         .query_as()
         .fetch_all(database)
         .await?;
@@ -79,11 +81,14 @@ impl ParticipantMedications {
         trace!(?name, ?participant_id, ?params, "Searching for medications");
         let count = {
             let mut query = SelectCount::new(ParticipantMedications::table_name());
-            query.where_equals(ParticipantMedicationsColumn::ParticipantId, participant_id);
+            query
+                .filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id.value()));
             if let Some(name) = &name {
-                query.where_column(ParticipantMedicationsColumn::Name.lower(), |where_name| {
-                    where_name.like(name).build()
-                });
+                query.filter(
+                    ParticipantMedicationsColumn::Name
+                        .lower()
+                        .like(name.value()),
+                );
             }
             query.execute(database).await?
         };
@@ -102,15 +107,17 @@ impl ParticipantMedications {
             return Ok(PaginatedResponse::default());
         }
 
-        let mut query = SelectQueryBuilder::new(
+        let mut query = SelectQueryBuilder::with_columns(
             ParticipantMedications::table_name(),
             ParticipantMedicationsColumn::all(),
         );
-        query.where_equals(ParticipantMedicationsColumn::ParticipantId, participant_id);
+        query.filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id.value()));
         if let Some(name) = name {
-            query.where_column(ParticipantMedicationsColumn::Name.lower(), |where_name| {
-                where_name.like(name).build()
-            });
+            query.filter(
+                ParticipantMedicationsColumn::Name
+                    .lower()
+                    .like(name.value()),
+            );
         }
         query.page_params(params);
         let result = query.query_as().fetch_all(database).await?;
@@ -130,15 +137,15 @@ impl ParticipantMedications {
         name: Option<&str>,
     ) -> DBResult<i64> {
         let mut query = SelectCount::new(ParticipantMedications::table_name());
-        query.where_equals(ParticipantMedicationsColumn::ParticipantId, participant_id);
+        query.filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id.value()));
         if let Some(name) = name {
-            query.where_column(ParticipantMedicationsColumn::Name.lower(), |where_name| {
-                where_name
-                    .like(format!("%{}%", name.to_lowercase()))
-                    .build()
-            });
+            query.filter(
+                ParticipantMedicationsColumn::Name
+                    .lower()
+                    .like(format!("%{}%", name.to_lowercase()).value()),
+            );
         }
-        query.execute(database).await
+        Ok(query.execute(database).await?)
     }
     /// Returns the number of medications for a participant
     #[tracing::instrument]
@@ -147,7 +154,7 @@ impl ParticipantMedications {
         database: &PgPool,
     ) -> DBResult<i64> {
         let query = SelectCount::new(ParticipantMedications::table_name())
-            .where_equals(ParticipantMedicationsColumn::ParticipantId, participant_id)
+            .filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id.value()))
             .execute(database)
             .await?;
 
@@ -196,12 +203,6 @@ impl ParticipantMedications {
         Ok(())
     }
 }
-impl TableType for ParticipantMedications {
-    type Columns = ParticipantMedicationsColumn;
-    fn table_name() -> &'static str {
-        "participant_medications"
-    }
-}
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct NewMedication {
@@ -235,26 +236,32 @@ impl NewMedication {
 
         let date_entered_into_system =
             date_entered_into_system.unwrap_or_else(|| Local::now().date_naive());
-        SimpleInsertQueryBuilder::new(ParticipantMedications::table_name())
-            .insert(ParticipantMedicationsColumn::ParticipantId, participant_id)
-            .insert(ParticipantMedicationsColumn::Name, name)
-            .insert(ParticipantMedicationsColumn::Dosage, dosage)
-            .insert(ParticipantMedicationsColumn::Frequency, frequency)
+        InsertQueryBuilder::new(ParticipantMedications::table_name())
+            .insert(
+                ParticipantMedicationsColumn::ParticipantId,
+                participant_id.value(),
+            )
+            .insert(ParticipantMedicationsColumn::Name, name.value())
+            .insert(ParticipantMedicationsColumn::Dosage, dosage.value())
+            .insert(ParticipantMedicationsColumn::Frequency, frequency.value())
             .insert(
                 ParticipantMedicationsColumn::DatePrescribed,
-                date_prescribed,
+                date_prescribed.value(),
             )
             .insert(
                 ParticipantMedicationsColumn::DateEnteredIntoSystem,
-                date_entered_into_system,
+                date_entered_into_system.value(),
             )
-            .insert(ParticipantMedicationsColumn::IsCurrent, is_current)
+            .insert(ParticipantMedicationsColumn::IsCurrent, is_current.value())
             .insert(
                 ParticipantMedicationsColumn::DateDiscontinued,
-                date_discontinued,
+                date_discontinued.value(),
             )
-            .insert(ParticipantMedicationsColumn::Comments, comments)
-            .insert(ParticipantMedicationsColumn::RedCapIndex, red_cap_index)
+            .insert(ParticipantMedicationsColumn::Comments, comments.value())
+            .insert(
+                ParticipantMedicationsColumn::RedCapIndex,
+                red_cap_index.value(),
+            )
             .query()
             .execute(database)
             .await?;
@@ -285,7 +292,6 @@ impl NewMedication {
                 ParticipantMedicationsColumn::RedCapIndex,
             ],
         );
-        let participant_id_value = query_builder.register_value(participant_id);
         for medication in medications {
             let Self {
                 name,
@@ -303,16 +309,16 @@ impl NewMedication {
                 date_entered_into_system.unwrap_or_else(|| Local::now().date_naive());
 
             query_builder.insert_row_ordered(|row| {
-                row.insert_value(participant_id_value)
-                    .insert(name)
-                    .insert(dosage)
-                    .insert(frequency)
-                    .insert(date_prescribed)
-                    .insert(date_entered_into_system)
-                    .insert(is_current)
-                    .insert(date_discontinued)
-                    .insert(comments)
-                    .insert(red_cap_index);
+                row.insert(participant_id.value())
+                    .insert(name.value())
+                    .insert(dosage.value())
+                    .insert(frequency.value())
+                    .insert(date_prescribed.value())
+                    .insert(date_entered_into_system.value())
+                    .insert(is_current.value())
+                    .insert(date_discontinued.value())
+                    .insert(comments.value())
+                    .insert(red_cap_index.value());
             });
         }
         query_builder.query().execute(database).await?;

@@ -27,11 +27,11 @@ impl NewUser {
     }
 
     pub async fn insert_return_user(self, database: &sqlx::PgPool) -> DBResult<User> {
-        let user = SimpleInsertQueryBuilder::new(User::table_name())
-            .insert(UserColumn::Username, self.username)
-            .insert(UserColumn::Email, self.email)
-            .insert(UserColumn::FirstName, self.first_name)
-            .insert(UserColumn::LastName, self.last_name)
+        let user = InsertQueryBuilder::new(User::table_name())
+            .insert(UserColumn::Username, self.username.value())
+            .insert(UserColumn::Email, self.email.value())
+            .insert(UserColumn::FirstName, self.first_name.value())
+            .insert(UserColumn::LastName, self.last_name.value())
             .return_all()
             .query_as()
             .fetch_one(database)

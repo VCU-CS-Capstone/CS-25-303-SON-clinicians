@@ -1,5 +1,6 @@
 use ahash::{HashMap, HashMapExt};
 use opentelemetry::{KeyValue, StringValue};
+use opentelemetry_sdk::Resource;
 use serde::{Deserialize, Serialize};
 
 use super::{AppLoggerType, ChildLoggingLevels, LoggingLevels};
@@ -34,7 +35,7 @@ impl From<OtelResourceMap> for opentelemetry_sdk::Resource {
             .into_iter()
             .map(|(k, v)| KeyValue::new(k, Into::<StringValue>::into(v)))
             .collect();
-        opentelemetry_sdk::Resource::new(resources)
+        Resource::builder().with_attributes(resources).build()
     }
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]

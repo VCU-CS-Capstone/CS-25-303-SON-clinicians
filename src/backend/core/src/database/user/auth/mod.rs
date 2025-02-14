@@ -9,7 +9,8 @@ pub struct UserAndPasswordAuth {
     pub password_auth: Option<UserPasswordAuthentication>,
 }
 /// Table: user_authentication_password
-#[derive(Debug, FromRow, Columns)]
+#[derive(Debug, FromRow, TableType)]
+#[table(name = "user_authentication_password")]
 pub struct UserPasswordAuthentication {
     pub id: i32,
     pub user_id: i32,
@@ -22,12 +23,7 @@ pub struct UserPasswordAuthentication {
     pub updated_at: Option<DateTime<FixedOffset>>,
     pub created_at: DateTime<FixedOffset>,
 }
-impl TableType for UserPasswordAuthentication {
-    type Columns = UserPasswordAuthenticationColumn;
-    fn table_name() -> &'static str {
-        "user_authentication_password"
-    }
-}
+
 impl UserPasswordAuthentication {
     pub async fn find_by_user_id(user_id: i32, db: &PgPool) -> DBResult<Option<Self>> {
         sqlx::query_as("SELECT * FROM user_authentication_password WHERE user_id = $1")

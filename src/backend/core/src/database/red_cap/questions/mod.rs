@@ -4,7 +4,6 @@
 //! This prevents a ton of tables and columns with null values.
 pub mod requirements;
 use crate::database::prelude::*;
-use cs25_303_macros::Columns;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
 use strum::{Display, EnumIs};
@@ -85,7 +84,8 @@ impl Default for QuestionType {
         Self::Text
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, TableType)]
+#[table(name = "question_categories")]
 
 pub struct QuestionCategory {
     pub id: i32,
@@ -98,16 +98,8 @@ pub struct QuestionCategory {
     pub description: Option<String>,
 }
 
-impl TableType for QuestionCategory {
-    type Columns = QuestionCategoryColumn;
-    fn table_name() -> &'static str
-    where
-        Self: Sized,
-    {
-        "question_categories"
-    }
-}
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, TableType)]
+#[table(name = "questions")]
 pub struct Question {
     pub id: i32,
     /// The category the question belongs to
@@ -133,8 +125,8 @@ pub struct Question {
 }
 impl Question {
     pub async fn find_by_string_id(red_cap_id: &str, conn: &PgPool) -> DBResult<Option<Self>> {
-        let question = SelectQueryBuilder::new(Self::table_name(), QuestionColumn::all())
-            .where_equals(QuestionColumn::StringId, red_cap_id)
+        let question = SelectQueryBuilder::with_columns(Self::table_name(), QuestionColumn::all())
+            .filter(QuestionColumn::StringId.equals(red_cap_id.value()))
             .limit(1)
             .query_as::<Self>()
             .fetch_optional(conn)
@@ -146,14 +138,12 @@ impl Question {
         other_id: &str,
         conn: &PgPool,
     ) -> DBResult<Option<Self>> {
-        let question = SelectQueryBuilder::new(Self::table_name(), QuestionColumn::all())
-            .where_column(QuestionColumn::StringId, |builder| {
-                builder
-                    .equals(red_cap_id)
-                    .or(QuestionColumn::StringIdOther, |builder| {
-                        builder.equals(other_id).build()
-                    })
-            })
+        let question = SelectQueryBuilder::with_columns(Self::table_name(), QuestionColumn::all())
+            .filter(
+                QuestionColumn::StringId
+                    .equals(red_cap_id.value())
+                    .or(QuestionColumn::StringIdOther.equals(other_id.value())),
+            )
             .limit(1)
             .query_as::<Self>()
             .fetch_optional(conn)
@@ -161,27 +151,19 @@ impl Question {
         Ok(question)
     }
     pub async fn get_all_in_category(category_id: i32, conn: &PgPool) -> DBResult<Vec<Self>> {
-        let questions = SelectQueryBuilder::new(Self::table_name(), QuestionColumn::all())
-            .where_equals(QuestionColumn::CategoryId, category_id)
+        let questions = SelectQueryBuilder::with_columns(Self::table_name(), QuestionColumn::all())
+            .filter(QuestionColumn::CategoryId.equals(category_id.value()))
             .query_as::<Self>()
             .fetch_all(conn)
             .await?;
         Ok(questions)
     }
 }
-impl TableType for Question {
-    type Columns = QuestionColumn;
-    fn table_name() -> &'static str
-    where
-        Self: Sized,
-    {
-        "questions"
-    }
-}
 
 #[derive(
-    Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema, FromRow, Columns,
+    Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema, FromRow, TableType,
 )]
+#[table(name = "question_options")]
 pub struct QuestionOptions {
     pub id: i32,
     pub question_id: i32,
@@ -205,13 +187,14 @@ impl QuestionOptions {
         question_id: i32,
         conn: &PgPool,
     ) -> DBResult<Option<Self>> {
-        let option = SelectQueryBuilder::new(Self::table_name(), QuestionOptionsColumn::all())
-            .where_equals(QuestionOptionsColumn::StringId, string_id)
-            .where_equals(QuestionOptionsColumn::QuestionId, question_id)
-            .limit(1)
-            .query_as::<Self>()
-            .fetch_optional(conn)
-            .await?;
+        let option =
+            SelectQueryBuilder::with_columns(Self::table_name(), QuestionOptionsColumn::all())
+                .filter(QuestionOptionsColumn::StringId.equals(string_id.value()))
+                .filter(QuestionOptionsColumn::QuestionId.equals(question_id.value()))
+                .limit(1)
+                .query_as::<Self>()
+                .fetch_optional(conn)
+                .await?;
         Ok(option)
     }
     pub async fn find_option_with_red_cap_index_and_in_question(
@@ -219,23 +202,15 @@ impl QuestionOptions {
         question_id: i32,
         conn: &PgPool,
     ) -> DBResult<Option<Self>> {
-        let option = SelectQueryBuilder::new(Self::table_name(), QuestionOptionsColumn::all())
-            .where_equals(QuestionOptionsColumn::RedCapOptionIndex, red_cap_index)
-            .where_equals(QuestionOptionsColumn::QuestionId, question_id)
-            .limit(1)
-            .query_as::<Self>()
-            .fetch_optional(conn)
-            .await?;
+        let option =
+            SelectQueryBuilder::with_columns(Self::table_name(), QuestionOptionsColumn::all())
+                .filter(QuestionOptionsColumn::RedCapOptionIndex.equals(red_cap_index.value()))
+                .filter(QuestionOptionsColumn::QuestionId.equals(question_id.value()))
+                .limit(1)
+                .query_as::<Self>()
+                .fetch_optional(conn)
+                .await?;
         Ok(option)
-    }
-}
-impl TableType for QuestionOptions {
-    type Columns = QuestionOptionsColumn;
-    fn table_name() -> &'static str
-    where
-        Self: Sized,
-    {
-        "question_options"
     }
 }
 

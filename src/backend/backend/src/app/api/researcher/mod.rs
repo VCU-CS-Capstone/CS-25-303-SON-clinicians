@@ -8,7 +8,7 @@ use cs25_303_core::{
     database::{
         queries::{ItemOrArray, NumberQuery},
         red_cap::participants::{ResearcherQuery, ResearcherQueryResult},
-        tools::{PageParams, PaginatedResponse},
+        CSPageParams, PaginatedResponse,
     },
     red_cap::{EducationLevel, PreferredLanguage, Programs},
 };
@@ -24,7 +24,7 @@ use crate::app::{
 #[openapi(
     paths(query),
     components(
-        schemas(PageParams,
+        schemas(CSPageParams,
          ResearcherQuery,
          ResearcherQueryResult,
          PaginatedResponse<ResearcherQueryResult>,
@@ -46,7 +46,7 @@ pub fn researcher_routes() -> axum::Router<SiteState> {
     post,
     path = "/query",
     params(
-        PageParams,
+        CSPageParams,
     ),
     request_body(content = ResearcherQuery, content_type = "application/json"),
     responses(
@@ -59,11 +59,11 @@ pub fn researcher_routes() -> axum::Router<SiteState> {
 #[instrument]
 pub async fn query(
     State(site): State<SiteState>,
-    Query(page): Query<PageParams>,
+    Query(page): Query<CSPageParams>,
     auth: Authentication,
     Json(participant): Json<ResearcherQuery>,
 ) -> Result<Response, InternalError> {
-    let participants = participant.query(page, &site.database).await?;
+    let participants = participant.query(page.into(), &site.database).await?;
 
     Ok(ResponseBuilder::ok().json(&participants))
 }

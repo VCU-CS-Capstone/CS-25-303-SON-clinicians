@@ -6,10 +6,9 @@ use axum::{
 };
 use chrono::Local;
 use cs25_303_core::database::{
-    tools::{
-        PageParams, PaginatedResponse, QueryTool, TableType, UpdateQueryBuilder, WhereableTool,
-    },
+    prelude::{DynEncodeType, ExprType, QueryTool, TableType, UpdateQueryBuilder, WhereableTool},
     user::{does_email_exist, does_username_exist, new::NewUser, User, UserColumn, UserType},
+    CSPageParams, PaginatedResponse,
 };
 use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
@@ -38,7 +37,7 @@ pub fn admin_user_routes() -> axum::Router<SiteState> {
     get,
     path = "/all",
     params(
-        PageParams
+        CSPageParams
     ),
     responses(
         (status = 200, description = "Participants Found", body = PaginatedResponse<User>),
@@ -52,10 +51,10 @@ pub fn admin_user_routes() -> axum::Router<SiteState> {
 #[instrument]
 pub async fn all_users(
     State(site): State<SiteState>,
-    Query(page): Query<PageParams>,
+    Query(page): Query<CSPageParams>,
     auth: Authentication,
 ) -> Result<Response, InternalError> {
-    let PageParams {
+    let CSPageParams {
         page_size,
         page_number,
     } = page;
@@ -150,15 +149,15 @@ pub async fn update_user(
 
     let mut update = UpdateQueryBuilder::new(User::table_name());
     update
-        .where_equals(UserColumn::Id, user_id)
-        .set(UserColumn::UpdatedAt, Local::now().fixed_offset());
+        .filter(UserColumn::Id.equals(user_id.value()))
+        .set(UserColumn::UpdatedAt, Local::now().fixed_offset().value());
     if let Some(username) = username {
         if !user_to_update.username.eq_ignore_ascii_case(&username) {
             if does_username_exist(&username, &site.database).await? {
                 debug!(?username, "Username already in use");
                 return ConflictResponse::from("username").response();
             }
-            update.set(UserColumn::Username, username);
+            update.set(UserColumn::Username, username.value());
         }
     }
     if let Some(email) = email {
@@ -167,14 +166,14 @@ pub async fn update_user(
                 debug!(?email, "Email already in use");
                 return ConflictResponse::from("email").response();
             }
-            update.set(UserColumn::Email, email);
+            update.set(UserColumn::Email, email.value());
         }
     }
     if let Some(first_name) = first_name {
-        update.set(UserColumn::FirstName, first_name);
+        update.set(UserColumn::FirstName, first_name.value());
     }
     if let Some(last_name) = last_name {
-        update.set(UserColumn::LastName, last_name);
+        update.set(UserColumn::LastName, last_name.value());
     }
 
     update.query().execute(&site.database).await?;

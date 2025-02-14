@@ -3,13 +3,10 @@ use utoipa::ToSchema;
 
 use super::{
     BloodPressureType, CaseNote, CaseNoteColumn, CaseNoteHealthMeasures,
-    CaseNoteHealthMeasuresColumn, HealthMeasureBloodPressure, SimpleInsertQueryBuilder,
+    CaseNoteHealthMeasuresColumn, HealthMeasureBloodPressure,
 };
 use crate::database::prelude::*;
-use crate::{
-    database::{tools::TableType, DBResult},
-    red_cap::VisitType,
-};
+use crate::{database::DBResult, red_cap::VisitType};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NewCaseNote {
@@ -43,23 +40,23 @@ impl NewCaseNote {
             last_synced_with_redcap,
         } = self;
 
-        let case_note = SimpleInsertQueryBuilder::new(CaseNote::table_name())
-            .insert(CaseNoteColumn::ParticipantId, participant)
-            .insert(CaseNoteColumn::Location, location)
-            .insert(CaseNoteColumn::VisitType, visit_type)
-            .insert(CaseNoteColumn::Age, age)
-            .insert(CaseNoteColumn::ReasonForVisit, reason_for_visit)
+        let case_note = InsertQueryBuilder::new(CaseNote::table_name())
+            .insert(CaseNoteColumn::ParticipantId, participant.value())
+            .insert(CaseNoteColumn::Location, location.value())
+            .insert(CaseNoteColumn::VisitType, visit_type.value())
+            .insert(CaseNoteColumn::Age, age.value())
+            .insert(CaseNoteColumn::ReasonForVisit, reason_for_visit.value())
             .insert(
                 CaseNoteColumn::InfoProvidedByCaregiver,
-                info_provided_by_caregiver,
+                info_provided_by_caregiver.value(),
             )
-            .insert(CaseNoteColumn::DateOfVisit, date_of_visit)
-            .insert(CaseNoteColumn::PushedToRedCap, pushed_to_redcap)
-            .insert(CaseNoteColumn::RedCapInstance, redcap_instance)
-            .insert(CaseNoteColumn::Completed, completed)
+            .insert(CaseNoteColumn::DateOfVisit, date_of_visit.value())
+            .insert(CaseNoteColumn::PushedToRedCap, pushed_to_redcap.value())
+            .insert(CaseNoteColumn::RedCapInstance, redcap_instance.value())
+            .insert(CaseNoteColumn::Completed, completed.value())
             .insert(
                 CaseNoteColumn::LastSyncedWithRedCap,
-                last_synced_with_redcap,
+                last_synced_with_redcap.value(),
             )
             .return_all()
             .query_as()
@@ -129,16 +126,22 @@ impl NewCaseNoteHealthMeasures {
             other,
         } = self;
 
-        let measure = SimpleInsertQueryBuilder::new(CaseNoteHealthMeasures::table_name())
-            .insert(CaseNoteHealthMeasuresColumn::CaseNoteId, case_note)
-            .insert(CaseNoteHealthMeasuresColumn::Weight, weight)
-            .insert(CaseNoteHealthMeasuresColumn::GlucoseTested, glucose_tested)
-            .insert(CaseNoteHealthMeasuresColumn::GlucoseResult, glucose_result)
+        let measure = InsertQueryBuilder::new(CaseNoteHealthMeasures::table_name())
+            .insert(CaseNoteHealthMeasuresColumn::CaseNoteId, case_note.value())
+            .insert(CaseNoteHealthMeasuresColumn::Weight, weight.value())
+            .insert(
+                CaseNoteHealthMeasuresColumn::GlucoseTested,
+                glucose_tested.value(),
+            )
+            .insert(
+                CaseNoteHealthMeasuresColumn::GlucoseResult,
+                glucose_result.value(),
+            )
             .insert(
                 CaseNoteHealthMeasuresColumn::FastedAtleast2Hours,
-                fasted_atleast_2_hours,
+                fasted_atleast_2_hours.value(),
             )
-            .insert(CaseNoteHealthMeasuresColumn::Other, other)
+            .insert(CaseNoteHealthMeasuresColumn::Other, other.value())
             .return_all()
             .query_as::<CaseNoteHealthMeasures>()
             .fetch_one(database)

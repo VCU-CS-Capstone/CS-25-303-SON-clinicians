@@ -12,7 +12,7 @@ use crate::{
 use super::{
     health_overview::{HealthOverview, HealthOverviewColumn},
     DBError, ParticipantDemograhics, ParticipantDemograhicsColumn, Participants,
-    ParticipantsColumn, SimpleInsertQueryBuilder, TableType,
+    ParticipantsColumn, TableType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -57,33 +57,36 @@ impl NewParticipant {
             last_synced_with_redcap,
         } = self;
 
-        let new_participant = SimpleInsertQueryBuilder::new(Participants::table_name())
-            .insert(ParticipantsColumn::RedCapId, red_cap_id)
-            .insert(ParticipantsColumn::FirstName, first_name)
-            .insert(ParticipantsColumn::LastName, last_name)
-            .insert(ParticipantsColumn::PhoneNumberOne, phone_number_one)
-            .insert(ParticipantsColumn::PhoneNumberTwo, phone_number_two)
-            .insert(ParticipantsColumn::OtherContact, other_contact)
-            .insert(ParticipantsColumn::Program, program)
-            .insert(ParticipantsColumn::VcuhsPatientStatus, vcuhs_patient_status)
-            .insert(ParticipantsColumn::Location, location)
-            .insert(ParticipantsColumn::Status, status)
+        let new_participant = InsertQueryBuilder::new(Participants::table_name())
+            .insert(ParticipantsColumn::RedCapId, red_cap_id.value())
+            .insert(ParticipantsColumn::FirstName, first_name.value())
+            .insert(ParticipantsColumn::LastName, last_name.value())
+            .insert(ParticipantsColumn::PhoneNumberOne, phone_number_one.value())
+            .insert(ParticipantsColumn::PhoneNumberTwo, phone_number_two.value())
+            .insert(ParticipantsColumn::OtherContact, other_contact.value())
+            .insert(ParticipantsColumn::Program, program.value())
+            .insert(
+                ParticipantsColumn::VcuhsPatientStatus,
+                vcuhs_patient_status.value(),
+            )
+            .insert(ParticipantsColumn::Location, location.value())
+            .insert(ParticipantsColumn::Status, status.value())
             .insert(
                 ParticipantsColumn::BehavioralRisksIdentified,
-                behavioral_risks_identified,
+                behavioral_risks_identified.value(),
             )
             .insert(
                 ParticipantsColumn::DateCareCoordinationConsentSigned,
-                date_care_coordination_consent_signed,
+                date_care_coordination_consent_signed.value(),
             )
             .insert(
                 ParticipantsColumn::DateHomeVisitConsentSigned,
-                date_home_visit_consent_signed,
+                date_home_visit_consent_signed.value(),
             )
-            .insert(ParticipantsColumn::SignedUpOn, signed_up_on)
+            .insert(ParticipantsColumn::SignedUpOn, signed_up_on.value())
             .insert(
                 ParticipantsColumn::LastSyncedWithRedCap,
-                last_synced_with_redcap,
+                last_synced_with_redcap.value(),
             )
             .return_all()
             .query_as::<Participants>()
@@ -133,26 +136,29 @@ impl NewDemographics {
             highest_education_level,
         } = self;
 
-        SimpleInsertQueryBuilder::new(ParticipantDemograhics::table_name())
-            .insert(ParticipantDemograhicsColumn::ParticipantId, participant_id)
-            .insert(ParticipantDemograhicsColumn::Age, age)
-            .insert(ParticipantDemograhicsColumn::Gender, gender)
-            .insert(ParticipantDemograhicsColumn::Race, race)
-            .insert(ParticipantDemograhicsColumn::RaceOther, race_other)
+        InsertQueryBuilder::new(ParticipantDemograhics::table_name())
+            .insert(
+                ParticipantDemograhicsColumn::ParticipantId,
+                participant_id.value(),
+            )
+            .insert(ParticipantDemograhicsColumn::Age, age.value())
+            .insert(ParticipantDemograhicsColumn::Gender, gender.value())
+            .insert(ParticipantDemograhicsColumn::Race, race.value())
+            .insert(ParticipantDemograhicsColumn::RaceOther, race_other.value())
             .insert(
                 ParticipantDemograhicsColumn::RaceMultiracialOther,
-                race_multiracial_other,
+                race_multiracial_other.value(),
             )
-            .insert(ParticipantDemograhicsColumn::Ethnicity, ethnicity)
-            .insert(ParticipantDemograhicsColumn::Language, language)
-            .insert(ParticipantDemograhicsColumn::IsVeteran, is_veteran)
+            .insert(ParticipantDemograhicsColumn::Ethnicity, ethnicity.value())
+            .insert(ParticipantDemograhicsColumn::Language, language.value())
+            .insert(ParticipantDemograhicsColumn::IsVeteran, is_veteran.value())
             .insert(
                 ParticipantDemograhicsColumn::HealthInsurance,
-                health_insurance,
+                health_insurance.value(),
             )
             .insert(
                 ParticipantDemograhicsColumn::HighestEducationLevel,
-                highest_education_level,
+                highest_education_level.value(),
             )
             .query()
             .execute(database)
@@ -176,10 +182,7 @@ pub struct NewHealthOverview {
     pub mobility_devices: Option<Vec<MobilityDevice>>,
 }
 impl NewHealthOverview {
-    fn insert_base(
-        self,
-        participant_id: i32,
-    ) -> SimpleInsertQueryBuilder<'static, HealthOverviewColumn> {
+    fn insert_base(self, participant_id: i32) -> InsertQueryBuilder<'static> {
         let Self {
             height,
             reported_health_conditions,
@@ -189,25 +192,28 @@ impl NewHealthOverview {
             mobility_devices,
         } = self;
 
-        let mut builder = SimpleInsertQueryBuilder::new(HealthOverview::table_name());
+        let mut builder = InsertQueryBuilder::new(HealthOverview::table_name());
 
         builder
-            .insert(HealthOverviewColumn::ParticipantId, participant_id)
-            .insert(HealthOverviewColumn::Height, height)
+            .insert(HealthOverviewColumn::ParticipantId, participant_id.value())
+            .insert(HealthOverviewColumn::Height, height.value())
             .insert(
                 HealthOverviewColumn::ReportedHealthConditions,
-                reported_health_conditions,
+                reported_health_conditions.value(),
             )
-            .insert(HealthOverviewColumn::Allergies, allergies)
+            .insert(HealthOverviewColumn::Allergies, allergies.value())
             .insert(
                 HealthOverviewColumn::HasBloodPressureCuff,
-                has_blood_pressure_cuff,
+                has_blood_pressure_cuff.value(),
             )
             .insert(
                 HealthOverviewColumn::TakesMoreThan5Medications,
-                takes_more_than_5_medications,
+                takes_more_than_5_medications.value(),
             )
-            .insert(HealthOverviewColumn::MobilityDevices, mobility_devices);
+            .insert(
+                HealthOverviewColumn::MobilityDevices,
+                mobility_devices.value(),
+            );
         builder
     }
     pub async fn insert_returning(

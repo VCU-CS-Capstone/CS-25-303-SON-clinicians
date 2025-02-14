@@ -232,22 +232,23 @@ pub(crate) fn expand(derive_input: DeriveInput) -> Result<TokenStream> {
                     sqlx::postgres::PgTypeInfo::array_of("VARCHAR")
                 }
             }
-            impl<'q, DB: sqlx::Database> sqlx::encode::Encode<'q, DB> for #ident
-            where
-                String: sqlx::encode::Encode<'q, DB>,
-            {
+            #[automatically_derived]
+            impl<'q> sqlx::encode::Encode<'q, sqlx::Postgres> for #ident {
                 fn encode_by_ref(
                     &self,
-                    buf: &mut <DB as sqlx::Database>::ArgumentBuffer<'q>,
+                    buf: &mut <sqlx::Postgres as sqlx::Database>::ArgumentBuffer<'q>,
                 ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
                     let val: &str = self.as_ref();
-                    let val: String = val.to_owned();
-                    val.encode(buf)
+                    <&str as sqlx::encode::Encode<'q, sqlx::Postgres>>::encode_by_ref(&val, buf)
                 }
                 fn size_hint(&self) -> usize {
-                    self.as_ref().size_hint()
+                    let val: &str = self.as_ref();
+
+                    <&str as sqlx::encode::Encode<'q, sqlx::Postgres>>::size_hint(&val)
                 }
             }
+
+
             #[automatically_derived]
             impl<'r> sqlx::decode::Decode<'r, ::sqlx::postgres::Postgres> for #ident {
                 fn decode(

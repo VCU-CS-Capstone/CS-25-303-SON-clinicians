@@ -1,6 +1,6 @@
 use std::{fmt::Debug, future::Future};
 
-use super::prelude::*;
+use super::{prelude::*, PaginatedResponse};
 use auth::UserAndPasswordAuth;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
@@ -27,8 +27,8 @@ pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Debug + T
     where
         Self: Sized,
     {
-        let result = SelectQueryBuilder::new(User::table_name(), Self::columns())
-            .where_equals(UserColumn::Id, id)
+        let result = SelectQueryBuilder::with_columns(User::table_name(), Self::columns())
+            .filter(UserColumn::Id.equals(id.value()))
             .query_as()
             .fetch_optional(database)
             .await?;
@@ -62,7 +62,8 @@ pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Debug + T
         async { Ok(true) }
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, FromRow, Serialize, Deserialize, ToSchema, Columns)]
+#[derive(Debug, Clone, PartialEq, Eq, FromRow, Serialize, Deserialize, ToSchema, TableType)]
+#[table(name = "users")]
 pub struct User {
     /// The ID of the user.
     pub id: i32,
@@ -82,12 +83,7 @@ impl UserType for User {
         self.id
     }
 }
-impl TableType for User {
-    type Columns = UserColumn;
-    fn table_name() -> &'static str {
-        "users"
-    }
-}
+
 impl User {
     pub async fn get_all_paginated(
         database: &sqlx::PgPool,
@@ -95,7 +91,7 @@ impl User {
         page: i32,
     ) -> DBResult<PaginatedResponse<User>> {
         let page = page - 1;
-        let mut query = SelectQueryBuilder::new(User::table_name(), User::columns());
+        let mut query = SelectQueryBuilder::with_columns(User::table_name(), User::columns());
         if page_size > 0 {
             query.limit(page_size);
         }

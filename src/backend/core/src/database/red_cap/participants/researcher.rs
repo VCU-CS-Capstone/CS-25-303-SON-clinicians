@@ -11,6 +11,7 @@ use crate::{
         prelude::*,
         queries::{ItemOrArray, NumberQuery},
         red_cap::case_notes::{CaseNote, CaseNoteColumn},
+        PaginatedResponse,
     },
     red_cap::{
         EducationLevel, Gender, HealthInsurance, PreferredLanguage, Programs, Race, SeenAtVCUHS,
@@ -171,10 +172,9 @@ impl ResearcherQuery {
                 "get_last_visited and get_visit_history are both true. This is really unnecessary"
             );
         }
-        let mut query = SelectQueryBuilder::new(
+        let mut query = SelectQueryBuilder::with_columns(
             Participants::table_name(),
             vec![
-                ParticipantsColumn::Id.alias("participant_id").dyn_column(),
                 ParticipantsColumn::RedCapId.dyn_column(),
                 ParticipantsColumn::FirstName.dyn_column(),
                 ParticipantsColumn::LastName.dyn_column(),
@@ -183,19 +183,16 @@ impl ResearcherQuery {
                 ParticipantsColumn::OtherContact.dyn_column(),
             ],
         );
+        query.select(ParticipantsColumn::Id.alias("participant_id"));
 
         query
             .join(
                 ParticipantDemograhics::table_name(),
                 JoinType::Inner,
                 |join| {
-                    join.on(|on| {
-                        on.equals(
-                            ParticipantsColumn::Id.dyn_column(),
-                            ParticipantDemograhicsColumn::ParticipantId.dyn_column(),
-                        )
-                        .build()
-                    })
+                    join.on(
+                        ParticipantsColumn::Id.equals(ParticipantDemograhicsColumn::ParticipantId)
+                    )
                 },
             )
             .total_count("total")
@@ -203,90 +200,75 @@ impl ResearcherQuery {
 
         if let Some(location) = location {
             match location {
-                ItemOrArray::Item(item) => query
-                    .where_column(ParticipantsColumn::Location, |builder| {
-                        builder.equals(item).build()
-                    }),
-                ItemOrArray::Array(items) => query
-                    .where_column(ParticipantsColumn::Location, |builder| {
-                        builder.equals(items.with_function("ANY")).build()
-                    }),
+                ItemOrArray::Item(item) => {
+                    query.filter(ParticipantsColumn::Location.equals(item.value()))
+                }
+                ItemOrArray::Array(items) => {
+                    query.filter(ParticipantsColumn::Location.equals(items.value().any()))
+                }
             };
         }
         if let Some(program) = program {
-            query.where_column(ParticipantsColumn::Program, |builder| {
-                builder.equals(program).build()
-            });
+            query.filter(ParticipantsColumn::Program.equals(program.value()));
         }
         if let Some(vcuhs_patient_status) = vcuhs_patient_status {
-            query.where_column(ParticipantsColumn::VcuhsPatientStatus, |builder| {
-                builder.equals(vcuhs_patient_status).build()
-            });
+            query.filter(
+                ParticipantsColumn::VcuhsPatientStatus.equals(vcuhs_patient_status.value()),
+            );
         }
         if let Some(status) = status {
-            query.where_column(ParticipantsColumn::Status, |builder| {
-                builder.equals(status).build()
-            });
+            query.filter(ParticipantsColumn::Status.equals(status.value()));
         }
 
-        if let Some(gender) = gender {
-            query.where_column(ParticipantDemograhicsColumn::Gender, |builder| {
-                builder.equals(gender).build()
-            });
-        };
-        if let Some(highest_level_of_education) = highest_level_of_education {
-            query.where_column(
-                ParticipantDemograhicsColumn::HighestEducationLevel,
-                |builder| builder.equals(highest_level_of_education).build(),
-            );
-        };
-        if let Some(language) = language {
-            query.where_column(ParticipantDemograhicsColumn::Language, |builder| {
-                builder.equals(language).build()
-            });
-        };
-        if let Some(health_insurance) = health_insurance {
-            query.where_column(ParticipantDemograhicsColumn::HealthInsurance, |builder| {
-                builder.equals(health_insurance).build()
-            });
-        };
         if let Some(age) = age {
-            query.where_column(ParticipantDemograhicsColumn::Age, |builder| {
-                builder.number_query(age).build()
-            });
+            query.filter(age.filter(ParticipantDemograhicsColumn::Age));
         };
-        if let Some(race) = race {
-            query.where_column(ParticipantDemograhicsColumn::Race, |builder| {
-                builder.equals(race).build()
-            });
+        if let Some(gender) = gender {
+            query.filter(ParticipantDemograhicsColumn::Gender.equals(gender.value()));
         }
-
+        if let Some(highest_level_of_education) = highest_level_of_education {
+            query.filter(
+                ParticipantDemograhicsColumn::HighestEducationLevel
+                    .equals(highest_level_of_education.value()),
+            );
+        }
+        if let Some(race) = race {
+            query.filter(ParticipantDemograhicsColumn::Race.equals(race.value()));
+        }
+        if let Some(language) = language {
+            query.filter(ParticipantDemograhicsColumn::Language.equals(language.value()));
+        }
+        if let Some(health_insurance) = health_insurance {
+            query.filter(
+                ParticipantDemograhicsColumn::HealthInsurance.equals(health_insurance.value()),
+            );
+        }
         if get_visit_history {
             trace!("Getting Visit History");
-            query.select_also(CaseNote::table_name(), |mut builder| {
-                builder
+            query.select(
+                SelectExprBuilder::new(CaseNote::table_name())
                     .column(CaseNoteColumn::DateOfVisit)
                     .limit(10)
-                    .wrap_in_function("ARRAY")
-                    .where_column(CaseNoteColumn::ParticipantId, |builder| {
-                        builder.equals(ParticipantsColumn::Id.dyn_column()).build()
-                    })
+                    .filter(
+                        CaseNoteColumn::ParticipantId.equals(ParticipantsColumn::Id.dyn_column()),
+                    )
                     .order_by(CaseNoteColumn::DateOfVisit, SQLOrder::Descending)
-                    .build_as("visit_history")
-            });
+                    .array()
+                    .alias("visit_history"),
+            );
         }
         if get_last_visited {
             trace!("Getting Last Visited Date");
-            query.select_also(CaseNote::table_name(), |mut builder| {
-                builder
+            query.select(
+                SelectExprBuilder::new(CaseNote::table_name())
                     .column(CaseNoteColumn::DateOfVisit)
                     .limit(1)
-                    .where_column(CaseNoteColumn::ParticipantId, |builder| {
-                        builder.equals(ParticipantsColumn::Id.dyn_column()).build()
-                    })
+                    .filter(
+                        CaseNoteColumn::ParticipantId.equals(ParticipantsColumn::Id.dyn_column()),
+                    )
                     .order_by(CaseNoteColumn::DateOfVisit, SQLOrder::Descending)
-                    .build_as("last_visited")
-            });
+                    .alias("last_visited"),
+            );
         }
         let mut total_count: Option<i64> = None;
         let result = query.query().fetch_all(database).await?;
@@ -313,8 +295,12 @@ impl ResearcherQuery {
             ?total_count,
             "Returning result"
         );
-
-        Ok(page_and_size.create_result(total_count.unwrap_or(0), resulting_items))
+        let result = PaginatedResponse::create_response(
+            resulting_items,
+            &page_and_size,
+            total_count.unwrap_or(0),
+        );
+        Ok(result)
     }
 }
 #[cfg(test)]
@@ -344,7 +330,13 @@ mod tests {
         for query in query {
             let result = query
                 .clone()
-                .query((10, 0).into(), &database)
+                .query(
+                    PageParams {
+                        page_number: 1,
+                        page_size: 10,
+                    },
+                    &database,
+                )
                 .await
                 .expect("Failed to Execute Researcher Query");
 

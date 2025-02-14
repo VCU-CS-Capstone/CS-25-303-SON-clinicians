@@ -2,14 +2,14 @@ use config::{
     AppLogger, AppLoggerType, ConsoleLogger, LoggingConfig, LoggingLevels, MetricsConfig,
     OtelConfig, RollingFileLogger,
 };
-use opentelemetry::{global, trace::TracerProvider as _};
+use opentelemetry::{global, trace::TracerProvider};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{LogExporter, MetricExporter, SpanExporter, WithExportConfig};
 use opentelemetry_sdk::{
-    logs::LoggerProvider,
+    logs::SdkLoggerProvider,
     metrics::{PeriodicReader, SdkMeterProvider},
     propagation::TraceContextPropagator,
-    trace::TracerProvider,
+    trace::SdkTracerProvider,
     Resource,
 };
 use tracing::debug;
@@ -21,8 +21,8 @@ use tracing_subscriber::{
 pub mod config;
 struct TracerResult {
     levels: LoggingLevels,
-    logging: Option<LoggerProvider>,
-    tracing: Option<TracerProvider>,
+    logging: Option<SdkLoggerProvider>,
+    tracing: Option<SdkTracerProvider>,
 }
 fn tracer(config: OtelConfig) -> anyhow::Result<Option<TracerResult>> {
     if !config.enabled {
@@ -35,9 +35,9 @@ fn tracer(config: OtelConfig) -> anyhow::Result<Option<TracerResult>> {
             .with_tonic()
             .with_protocol(config.protocol.into())
             .with_endpoint(&config.endpoint);
-        let provider = TracerProvider::builder()
+        let provider = SdkTracerProvider::builder()
             .with_resource(resources.clone())
-            .with_batch_exporter(exporter.build()?, opentelemetry_sdk::runtime::Tokio)
+            .with_batch_exporter(exporter.build()?)
             .build();
         Some(provider)
     } else {
@@ -48,9 +48,9 @@ fn tracer(config: OtelConfig) -> anyhow::Result<Option<TracerResult>> {
             .with_tonic()
             .with_protocol(config.protocol.into())
             .with_endpoint(&config.endpoint);
-        let provider = LoggerProvider::builder()
+        let provider = SdkLoggerProvider::builder()
             .with_resource(resources.clone())
-            .with_batch_exporter(exporter.build()?, opentelemetry_sdk::runtime::Tokio)
+            .with_batch_exporter(exporter.build()?)
             .build();
         Some(provider)
     } else {
@@ -74,7 +74,7 @@ fn metrics(config: MetricsConfig) -> anyhow::Result<SdkMeterProvider> {
         .with_protocol(config.protocol.into())
         .with_endpoint(&config.endpoint)
         .build()?;
-    let reader = PeriodicReader::builder(exporter, opentelemetry_sdk::runtime::Tokio).build();
+    let reader = PeriodicReader::builder(exporter).build();
 
     Ok(SdkMeterProvider::builder()
         .with_reader(reader)
@@ -224,7 +224,7 @@ impl LoggingState {
 }
 #[derive(Debug)]
 pub enum LoggingStateItem {
-    Logger(LoggerProvider),
-    Tracer(TracerProvider),
+    Logger(SdkLoggerProvider),
+    Tracer(SdkTracerProvider),
     Meter(SdkMeterProvider),
 }

@@ -3,12 +3,12 @@ use crate::database::{
     prelude::*,
     red_cap::questions::{DBQuestionResponse, QuestionDataValue, QuestionType},
 };
-use cs25_303_macros::Columns;
 use serde::{Deserialize, Serialize};
 
 use tracing::instrument;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, TableType)]
+#[table(name = "case_note_question_answers")]
 pub struct CaseNoteQuestionAnswers {
     pub id: i64,
     pub case_note_id: i32,
@@ -26,9 +26,12 @@ impl CaseNoteQuestionAnswers {
         option_id: i32,
         database: &sqlx::PgPool,
     ) -> DBResult<()> {
-        SimpleInsertQueryBuilder::new(QuestionAnswerMultiCheck::table_name())
-            .insert(QuestionAnswerMultiCheckColumn::QuestionAnswersId, self.id)
-            .insert(QuestionAnswerMultiCheckColumn::OptionId, option_id)
+        InsertQueryBuilder::new(QuestionAnswerMultiCheck::table_name())
+            .insert(
+                QuestionAnswerMultiCheckColumn::QuestionAnswersId,
+                self.id.value(),
+            )
+            .insert(QuestionAnswerMultiCheckColumn::OptionId, option_id.value())
             .query()
             .execute(database)
             .await?;
@@ -40,32 +43,23 @@ impl CaseNoteQuestionAnswers {
         case_note_id: i32,
         database: &sqlx::PgPool,
     ) -> sqlx::Result<Vec<Self>> {
-        SelectQueryBuilder::new(Self::table_name(), CaseNoteQuestionAnswersColumn::all())
-            .where_equals(CaseNoteQuestionAnswersColumn::CaseNoteId, case_note_id)
+        SelectQueryBuilder::with_columns(Self::table_name(), CaseNoteQuestionAnswersColumn::all())
+            .filter(CaseNoteQuestionAnswersColumn::CaseNoteId.equals(case_note_id.value()))
             .query_as()
             .fetch_all(database)
             .await
     }
 }
-impl TableType for CaseNoteQuestionAnswers {
-    type Columns = CaseNoteQuestionAnswersColumn;
-    fn table_name() -> &'static str {
-        "case_note_question_answers"
-    }
-}
+
 /// Table Name: question_answer_multi_check_box
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, Columns)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, TableType)]
+#[table(name = "case_note_question_answer_mcb")]
 pub struct QuestionAnswerMultiCheck {
     pub id: i64,
     pub question_answers_id: i64,
     pub option_id: i32,
 }
-impl TableType for QuestionAnswerMultiCheck {
-    type Columns = QuestionAnswerMultiCheckColumn;
-    fn table_name() -> &'static str {
-        "case_note_question_answer_mcb"
-    }
-}
+
 #[instrument]
 pub async fn add_question(
     question_id: i32,
@@ -74,19 +68,22 @@ pub async fn add_question(
     database: &sqlx::PgPool,
 ) -> DBResult<()> {
     // TODO: Handle cases where a question is already answered
-    let mut query = SimpleInsertQueryBuilder::new(CaseNoteQuestionAnswers::table_name());
+    let mut query = InsertQueryBuilder::new(CaseNoteQuestionAnswers::table_name());
 
     query
-        .insert(CaseNoteQuestionAnswersColumn::CaseNoteId, case_note)
-        .insert(CaseNoteQuestionAnswersColumn::QuestionId, question_id);
+        .insert(CaseNoteQuestionAnswersColumn::CaseNoteId, case_note.value())
+        .insert(
+            CaseNoteQuestionAnswersColumn::QuestionId,
+            question_id.value(),
+        );
     match value {
         QuestionDataValue::Text(text) => {
             query
                 .insert(
                     CaseNoteQuestionAnswersColumn::ResponseType,
-                    QuestionType::Text,
+                    QuestionType::Text.value(),
                 )
-                .insert(CaseNoteQuestionAnswersColumn::ValueText, text)
+                .insert(CaseNoteQuestionAnswersColumn::ValueText, text.value())
                 .query()
                 .execute(database)
                 .await?;
@@ -95,9 +92,9 @@ pub async fn add_question(
             query
                 .insert(
                     CaseNoteQuestionAnswersColumn::ResponseType,
-                    QuestionType::Number,
+                    QuestionType::Number.value(),
                 )
-                .insert(CaseNoteQuestionAnswersColumn::ValueNumber, number)
+                .insert(CaseNoteQuestionAnswersColumn::ValueNumber, number.value())
                 .query()
                 .execute(database)
                 .await?;
@@ -106,9 +103,9 @@ pub async fn add_question(
             query
                 .insert(
                     CaseNoteQuestionAnswersColumn::ResponseType,
-                    QuestionType::Float,
+                    QuestionType::Float.value(),
                 )
-                .insert(CaseNoteQuestionAnswersColumn::ValueFloat, value)
+                .insert(CaseNoteQuestionAnswersColumn::ValueFloat, value.value())
                 .query()
                 .execute(database)
                 .await?;
@@ -117,9 +114,9 @@ pub async fn add_question(
             query
                 .insert(
                     CaseNoteQuestionAnswersColumn::ResponseType,
-                    QuestionType::Boolean,
+                    QuestionType::Boolean.value(),
                 )
-                .insert(CaseNoteQuestionAnswersColumn::ValueBoolean, value)
+                .insert(CaseNoteQuestionAnswersColumn::ValueBoolean, value.value())
                 .query()
                 .execute(database)
                 .await?;
@@ -128,10 +125,10 @@ pub async fn add_question(
             query
                 .insert(
                     CaseNoteQuestionAnswersColumn::ResponseType,
-                    QuestionType::Radio,
+                    QuestionType::Radio.value(),
                 )
-                .insert(CaseNoteQuestionAnswersColumn::ValueText, other)
-                .insert(CaseNoteQuestionAnswersColumn::ValueRadio, option.id)
+                .insert(CaseNoteQuestionAnswersColumn::ValueText, other.value())
+                .insert(CaseNoteQuestionAnswersColumn::ValueRadio, option.id.value())
                 .query()
                 .execute(database)
                 .await?;
@@ -141,9 +138,9 @@ pub async fn add_question(
             let answer = query
                 .insert(
                     CaseNoteQuestionAnswersColumn::ResponseType,
-                    QuestionType::MultiCheckBox,
+                    QuestionType::MultiCheckBox.value(),
                 )
-                .insert(CaseNoteQuestionAnswersColumn::ValueText, other)
+                .insert(CaseNoteQuestionAnswersColumn::ValueText, other.value())
                 .return_all()
                 .query_as::<CaseNoteQuestionAnswers>()
                 .fetch_one(database)

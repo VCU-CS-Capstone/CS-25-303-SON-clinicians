@@ -1,5 +1,4 @@
 use crate::database::prelude::*;
-use cs25_303_macros::Columns;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
 use utoipa::ToSchema;
@@ -30,14 +29,16 @@ pub trait HealthOverviewType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync {
         participant_id: i32,
         database: impl Executor<'_, Database = Postgres>,
     ) -> DBResult<Option<Self>> {
-        let mut result = SelectQueryBuilder::new("participant_health_overview", Self::columns());
-        result.where_equals(HealthOverviewColumn::ParticipantId, participant_id);
+        let mut result =
+            SelectQueryBuilder::with_columns("participant_health_overview", Self::columns());
+        result.filter(HealthOverviewColumn::ParticipantId.equals(participant_id.value()));
         let result = result.query_as::<Self>().fetch_optional(database).await?;
         Ok(result)
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Columns, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, ToSchema, TableType)]
+#[table(name = "participant_health_overview")]
 pub struct HealthOverview {
     pub id: i32,
     /// 1:1 with [super::Participants]
@@ -55,12 +56,7 @@ pub struct HealthOverview {
 
     pub mobility_devices: Option<Vec<MobilityDevice>>,
 }
-impl TableType for HealthOverview {
-    type Columns = HealthOverviewColumn;
-    fn table_name() -> &'static str {
-        "participant_health_overview"
-    }
-}
+
 impl HealthOverviewType for HealthOverview {
     fn get_id(&self) -> i32 {
         self.id

@@ -18,7 +18,7 @@ use cs25_303_core::database::{
         ParticipantDemograhics, ParticipantDemograhicsType, ParticipantLookup,
         ParticipantLookupQuery, ParticipantType, Participants,
     },
-    tools::{PageParams, PaginatedResponse},
+    CSPageParams, PaginatedResponse,
 };
 
 use serde::Serialize;
@@ -30,7 +30,7 @@ use crate::app::{error::InternalError, SiteState};
 #[derive(OpenApi)]
 #[openapi(
     paths(look_up_participant, get_participants,get_health_overview, get_demographics),
-    components(schemas(PageParams, ParticipantLookup, ParticipantLookupQuery, PaginatedResponse<ParticipantLookup>, Participants, HealthOverview, ParticipantDemograhics, ParticipantPartNotFound)),
+    components(schemas(CSPageParams, ParticipantLookup, ParticipantLookupQuery, PaginatedResponse<ParticipantLookup>, Participants, HealthOverview, ParticipantDemograhics, ParticipantPartNotFound)),
     nest(
         (path = "/case_notes", api = case_note::CaseNoteAPI, tags=["Participant Case Notes"]),
         (path = "/stats", api = stats::ParticipantStatAPI, tags=["Participant Statistics"]),
@@ -62,7 +62,7 @@ pub fn participant_routes() -> axum::Router<SiteState> {
     post,
     path = "/lookup",
     params(
-        PageParams,
+        CSPageParams,
     ),
     request_body(content = ParticipantLookupQuery, content_type = "application/json"),
     responses(
@@ -75,7 +75,7 @@ pub fn participant_routes() -> axum::Router<SiteState> {
 #[instrument]
 pub async fn look_up_participant(
     State(site): State<SiteState>,
-    Query(page): Query<PageParams>,
+    Query(page): Query<CSPageParams>,
     auth: Authentication,
     Json(participant): Json<ParticipantLookupQuery>,
 ) -> Result<Response, InternalError> {
