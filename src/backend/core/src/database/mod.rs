@@ -6,7 +6,7 @@ use std::ops::Deref;
 pub use config::*;
 pub mod table_utils;
 use derive_more::{From, Into};
-use pg_extended_sqlx_queries::PageParams;
+use pg_extended_sqlx_queries::pagination::PageParams;
 use serde::{Deserialize, Serialize};
 use sqlx::{migrate::Migrator, postgres::PgConnectOptions, PgPool};
 use tracing::info;

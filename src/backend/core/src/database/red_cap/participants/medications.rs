@@ -2,7 +2,6 @@ use std::fmt::Debug;
 
 use crate::database::{prelude::*, PaginatedResponse};
 use chrono::{Local, NaiveDate};
-use pg_extended_sqlx_queries::many::InsertManyBuilder;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use tracing::{debug, instrument, trace, warn};
@@ -81,13 +80,12 @@ impl ParticipantMedications {
         trace!(?name, ?participant_id, ?params, "Searching for medications");
         let count = {
             let mut query = SelectCount::new(ParticipantMedications::table_name());
-            query
-                .filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id.value()));
+            query.filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id));
             if let Some(name) = &name {
                 query.filter(
                     ParticipantMedicationsColumn::Name
                         .lower()
-                        .like(name.value()),
+                        .like(name.as_str()),
                 );
             }
             query.execute(database).await?
@@ -111,13 +109,9 @@ impl ParticipantMedications {
             ParticipantMedications::table_name(),
             ParticipantMedicationsColumn::all(),
         );
-        query.filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id.value()));
+        query.filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id));
         if let Some(name) = name {
-            query.filter(
-                ParticipantMedicationsColumn::Name
-                    .lower()
-                    .like(name.value()),
-            );
+            query.filter(ParticipantMedicationsColumn::Name.lower().like(name));
         }
         query.page_params(params);
         let result = query.query_as().fetch_all(database).await?;
@@ -137,12 +131,12 @@ impl ParticipantMedications {
         name: Option<&str>,
     ) -> DBResult<i64> {
         let mut query = SelectCount::new(ParticipantMedications::table_name());
-        query.filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id.value()));
+        query.filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id));
         if let Some(name) = name {
             query.filter(
                 ParticipantMedicationsColumn::Name
                     .lower()
-                    .like(format!("%{}%", name.to_lowercase()).value()),
+                    .like(format!("%{}%", name.to_lowercase())),
             );
         }
         Ok(query.execute(database).await?)
@@ -154,7 +148,7 @@ impl ParticipantMedications {
         database: &PgPool,
     ) -> DBResult<i64> {
         let query = SelectCount::new(ParticipantMedications::table_name())
-            .filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id.value()))
+            .filter(ParticipantMedicationsColumn::ParticipantId.equals(participant_id))
             .execute(database)
             .await?;
 

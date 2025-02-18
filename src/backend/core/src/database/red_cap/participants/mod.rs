@@ -30,7 +30,7 @@ pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Ta
     #[tracing::instrument(level = "trace", fields(result))]
     async fn find_by_id(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
         let result = SelectQueryBuilder::with_columns(Participants::table_name(), Self::columns())
-            .filter(ParticipantsColumn::Id.equals(id.value()))
+            .filter(ParticipantsColumn::Id.equals(id))
             .query_as()
             .fetch_optional(database)
             .await?;
@@ -42,7 +42,7 @@ pub trait ParticipantType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Ta
         database: &sqlx::PgPool,
     ) -> DBResult<Option<Self>> {
         let result = SelectQueryBuilder::with_columns(Participants::table_name(), Self::columns())
-            .filter(ParticipantsColumn::RedCapId.equals(red_cap_id.value()))
+            .filter(ParticipantsColumn::RedCapId.equals(red_cap_id))
             .query_as()
             .fetch_optional(database)
             .await?;
@@ -106,7 +106,7 @@ impl Participants {
             .set(ParticipantsColumn::RedCapId, red_cap_id.value())
             .set(
                 ParticipantsColumn::LastSyncedWithRedCap,
-                ExprFunctionBuilder::now(),
+                SqlFunctionBuilder::now(),
             )
             .filter(ParticipantsColumn::Id.equals(self.id.value()))
             .query()

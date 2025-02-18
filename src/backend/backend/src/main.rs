@@ -11,6 +11,11 @@ use std::{
 use anyhow::Context;
 use clap::{Parser, Subcommand, ValueEnum};
 use logging::config::LoggingConfig;
+
+#[cfg(all(not(target_env = "msvc"), feature = "tikv-jemallocator"))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum ExportOptions {
     OpenAPI,

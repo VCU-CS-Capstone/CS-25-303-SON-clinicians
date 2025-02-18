@@ -53,7 +53,10 @@ human-panic = "2"
 
 rand = { version = "0.9", features = ["std"] }
 toml = "0.8"
-pg-extended-sqlx-queries = { git = "https://github.com/wyatt-herkamp/pg-extended-sqlx-queries.git" }
+pg-extended-sqlx-queries = { git = "https://github.com/wyatt-herkamp/pg-extended-sqlx-queries.git", features = [
+    "chrono",
+    "json",
+] }
 # Database
 [workspace.dependencies.sqlx]
 version = "0.8"

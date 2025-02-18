@@ -5,6 +5,9 @@ use crate::database::{
     red_cap::case_notes::{CaseNote, CaseNoteColumn},
     PaginatedResponse,
 };
+use pg_extended_sqlx_queries::pagination::{
+    PageParams, PaginationOwnedSupportingTool, PaginationSupportingTool,
+};
 use serde::{Deserialize, Serialize};
 use tabled::Tabled;
 use tracing::instrument;
@@ -81,17 +84,17 @@ impl ParticipantLookupQuery {
         query.filter(
             ParticipantsColumn::FirstName
                 .lower()
-                .like(format!("{}%", first_name.to_lowercase()).value()),
+                .like(format!("{}%", first_name.to_lowercase())),
         );
         if !last_name.is_empty() {
             query.filter(
                 ParticipantsColumn::LastName
                     .lower()
-                    .like(format!("{}%", last_name.to_lowercase()).value()),
+                    .like(format!("{}%", last_name.to_lowercase())),
             );
         }
         if let Some(location) = location {
-            query.filter(ParticipantsColumn::Location.equals((*location).value()));
+            query.filter(ParticipantsColumn::Location.equals(*location));
         }
         if let Some(program) = program {
             query.filter(ParticipantsColumn::Program.equals((*program).value()));
@@ -137,6 +140,7 @@ impl ParticipantLookupQuery {
 #[cfg(test)]
 mod tests {
 
+    use pg_extended_sqlx_queries::pagination::PageParams;
     use tabled::Table;
 
     use crate::{

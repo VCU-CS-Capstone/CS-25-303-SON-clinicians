@@ -35,7 +35,7 @@ pub async fn add_login_attempt(
     let id = InsertQueryBuilder::new(UserLoginAttempt::table_name())
         .insert(UserLoginAttemptColumn::UserId, user_id.value())
         .insert(UserLoginAttemptColumn::IpAddress, ip_address.value())
-        .insert(UserLoginAttemptColumn::Success, success.value())
+        .insert(UserLoginAttemptColumn::Success, success)
         .insert(
             UserLoginAttemptColumn::AdditionalFootprint,
             additional_footprint.map(Json).value(),

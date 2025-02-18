@@ -4,6 +4,7 @@
 //! This prevents a ton of tables and columns with null values.
 pub mod requirements;
 use crate::database::prelude::*;
+use pg_extended_sqlx_queries::pagination::PaginationSupportingTool;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
 use strum::{Display, EnumIs};

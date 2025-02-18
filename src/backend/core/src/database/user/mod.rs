@@ -2,6 +2,7 @@ use std::{fmt::Debug, future::Future};
 
 use super::{prelude::*, PaginatedResponse};
 use auth::UserAndPasswordAuth;
+use pg_extended_sqlx_queries::pagination::PaginationSupportingTool;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use utoipa::ToSchema;
@@ -28,7 +29,7 @@ pub trait UserType: for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + Debug + T
         Self: Sized,
     {
         let result = SelectQueryBuilder::with_columns(User::table_name(), Self::columns())
-            .filter(UserColumn::Id.equals(id.value()))
+            .filter(UserColumn::Id.equals(id))
             .query_as()
             .fetch_optional(database)
             .await?;

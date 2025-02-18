@@ -5,7 +5,7 @@ use std::str::FromStr;
 use chumsky::label::LabelError;
 use chumsky::prelude::*;
 use chumsky::text::int;
-use pg_extended_sqlx_queries::{ColumnType, DynEncodeType, ExprType, FilterConditionBuilder};
+use pg_extended_sqlx_queries::prelude::*;
 use tracing::warn;
 use utoipa::ToSchema;
 
@@ -48,20 +48,28 @@ pub enum NumberQuery<I = i32> {
 }
 impl<'args, I> NumberQuery<I>
 where
-    I: DynEncodeType<'args>,
+    I: ExprType<'args> + 'args,
 {
-    pub fn filter(self, column: impl ColumnType + 'static) -> FilterConditionBuilder<'args> {
+    pub fn filter(
+        self,
+        column: impl ColumnType + 'static,
+    ) -> FilterConditionBuilder<'args, DynExpr<'args>, DynExpr<'args>> {
         match self {
-            NumberQuery::GreaterThan(n) => column.dyn_column().greater_than(n.value()),
-            NumberQuery::LessThan(n) => column.dyn_column().less_than(n.value()),
-            NumberQuery::EqualTo(n) => column.dyn_column().equals(n.value()),
-            NumberQuery::GreaterThanOrEqualTo(n) => {
-                column.dyn_column().greater_than_or_equals(n.value())
-            }
-            NumberQuery::LessThanOrEqualTo(n) => column.dyn_column().less_than_or_equals(n.value()),
-            NumberQuery::Range { start, end } => {
-                column.dyn_column().between(start.value(), end.value())
-            }
+            NumberQuery::GreaterThan(n) => column.dyn_column().greater_than(n).dyn_expression(),
+            NumberQuery::LessThan(n) => column.dyn_column().less_than(n).dyn_expression(),
+            NumberQuery::EqualTo(n) => column.dyn_column().equals(n).dyn_expression(),
+            NumberQuery::GreaterThanOrEqualTo(n) => column
+                .dyn_column()
+                .greater_than_or_equals(n)
+                .dyn_expression(),
+            NumberQuery::LessThanOrEqualTo(n) => column
+                .dyn_column()
+                .less_than_or_equals(n)
+                .dyn_expression(),
+            NumberQuery::Range { start, end } => column
+                .dyn_column()
+                .between(start, end)
+                .dyn_expression(),
         }
     }
 }

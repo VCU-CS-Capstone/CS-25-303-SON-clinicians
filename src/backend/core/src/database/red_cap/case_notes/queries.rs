@@ -1,6 +1,6 @@
 use ahash::HashMap;
 use chrono::NaiveDate;
-use pg_extended_sqlx_queries::TableQuery;
+use pg_extended_sqlx_queries::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{
     prelude::{FromRow, Type},
@@ -307,7 +307,7 @@ impl BloodPressureHistory {
 #[cfg(test)]
 mod tests {
     use chrono::{Duration, Local};
-    use pg_extended_sqlx_queries::PageParams;
+    use pg_extended_sqlx_queries::pagination::PageParams;
     use rand::Rng;
 
     use crate::{

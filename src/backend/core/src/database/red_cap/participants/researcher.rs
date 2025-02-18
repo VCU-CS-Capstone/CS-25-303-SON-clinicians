@@ -1,5 +1,8 @@
 use std::fmt::Debug;
 
+use pg_extended_sqlx_queries::pagination::{
+    PageParams, PaginationOwnedSupportingTool, PaginationSupportingTool,
+};
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, PgPool};
 use tabled::Tabled;
@@ -200,48 +203,42 @@ impl ResearcherQuery {
 
         if let Some(location) = location {
             match location {
-                ItemOrArray::Item(item) => {
-                    query.filter(ParticipantsColumn::Location.equals(item.value()))
-                }
+                ItemOrArray::Item(item) => query.filter(ParticipantsColumn::Location.equals(item)),
                 ItemOrArray::Array(items) => {
-                    query.filter(ParticipantsColumn::Location.equals(items.value().any()))
+                    query.filter(ParticipantsColumn::Location.equals(items.any()))
                 }
             };
         }
         if let Some(program) = program {
-            query.filter(ParticipantsColumn::Program.equals(program.value()));
+            query.filter(ParticipantsColumn::Program.equals(program));
         }
         if let Some(vcuhs_patient_status) = vcuhs_patient_status {
-            query.filter(
-                ParticipantsColumn::VcuhsPatientStatus.equals(vcuhs_patient_status.value()),
-            );
+            query.filter(ParticipantsColumn::VcuhsPatientStatus.equals(vcuhs_patient_status));
         }
         if let Some(status) = status {
-            query.filter(ParticipantsColumn::Status.equals(status.value()));
+            query.filter(ParticipantsColumn::Status.equals(status));
         }
 
         if let Some(age) = age {
             query.filter(age.filter(ParticipantDemograhicsColumn::Age));
         };
         if let Some(gender) = gender {
-            query.filter(ParticipantDemograhicsColumn::Gender.equals(gender.value()));
+            query.filter(ParticipantDemograhicsColumn::Gender.equals(gender));
         }
         if let Some(highest_level_of_education) = highest_level_of_education {
             query.filter(
                 ParticipantDemograhicsColumn::HighestEducationLevel
-                    .equals(highest_level_of_education.value()),
+                    .equals(highest_level_of_education),
             );
         }
         if let Some(race) = race {
-            query.filter(ParticipantDemograhicsColumn::Race.equals(race.value()));
+            query.filter(ParticipantDemograhicsColumn::Race.equals(race));
         }
         if let Some(language) = language {
-            query.filter(ParticipantDemograhicsColumn::Language.equals(language.value()));
+            query.filter(ParticipantDemograhicsColumn::Language.equals(language));
         }
         if let Some(health_insurance) = health_insurance {
-            query.filter(
-                ParticipantDemograhicsColumn::HealthInsurance.equals(health_insurance.value()),
-            );
+            query.filter(ParticipantDemograhicsColumn::HealthInsurance.equals(health_insurance));
         }
         if get_visit_history {
             trace!("Getting Visit History");
@@ -306,6 +303,7 @@ impl ResearcherQuery {
 #[cfg(test)]
 mod tests {
 
+    use pg_extended_sqlx_queries::pagination::PageParams;
     use tabled::Table;
 
     use crate::utils::testing::config::testing::{get_testing_config, no_testing_config};

@@ -27,13 +27,10 @@ impl NewParticipantGoal {
             red_cap_index,
         } = self;
         InsertQueryBuilder::new(ParticipantGoals::table_name())
-            .insert(
-                ParticipantGoalsColumn::ParticipantId,
-                participant_id.value(),
-            )
-            .insert(ParticipantGoalsColumn::Goal, goal.value())
-            .insert(ParticipantGoalsColumn::IsActive, is_active.value())
-            .insert(ParticipantGoalsColumn::RedCapIndex, red_cap_index.value())
+            .insert(ParticipantGoalsColumn::ParticipantId, participant_id)
+            .insert(ParticipantGoalsColumn::Goal, goal)
+            .insert(ParticipantGoalsColumn::IsActive, is_active)
+            .insert(ParticipantGoalsColumn::RedCapIndex, red_cap_index)
             .return_all()
             .query_as()
             .fetch_one(database)
@@ -61,7 +58,7 @@ impl ParticipantGoals {
             ParticipantGoals::table_name(),
             ParticipantGoalsColumn::all(),
         )
-        .filter(ParticipantGoalsColumn::Id.equals(goal_id.value()))
+        .filter(ParticipantGoalsColumn::Id.equals(goal_id))
         .query_as()
         .fetch_optional(database)
         .await
@@ -91,7 +88,7 @@ impl ParticipantGoals {
             ParticipantGoals::table_name(),
             ParticipantGoalsColumn::all(),
         )
-        .filter(ParticipantGoalsColumn::ParticipantId.equals(participant_id.value()))
+        .filter(ParticipantGoalsColumn::ParticipantId.equals(participant_id))
         .query_as()
         .fetch_all(database)
         .await
@@ -148,26 +145,20 @@ impl NewParticipantGoalsSteps {
             red_cap_index,
         } = self;
         InsertQueryBuilder::new(ParticipantGoalsSteps::table_name())
-            .insert(
-                ParticipantGoalsStepsColumn::ParticipantId,
-                participant_id.value(),
-            )
-            .insert(ParticipantGoalsStepsColumn::GoalId, goal_id.value())
-            .insert(ParticipantGoalsStepsColumn::Step, step.value())
+            .insert(ParticipantGoalsStepsColumn::ParticipantId, participant_id)
+            .insert(ParticipantGoalsStepsColumn::GoalId, goal_id)
+            .insert(ParticipantGoalsStepsColumn::Step, step)
             .insert(
                 ParticipantGoalsStepsColumn::ConfidenceLevel,
-                confidence_level.value(),
+                confidence_level,
             )
-            .insert(ParticipantGoalsStepsColumn::DateSet, date_set.value())
+            .insert(ParticipantGoalsStepsColumn::DateSet, date_set)
             .insert(
                 ParticipantGoalsStepsColumn::DateToBeCompleted,
-                date_to_be_completed.value(),
+                date_to_be_completed,
             )
-            .insert(ParticipantGoalsStepsColumn::ActionStep, action_step.value())
-            .insert(
-                ParticipantGoalsStepsColumn::RedCapIndex,
-                red_cap_index.value(),
-            )
+            .insert(ParticipantGoalsStepsColumn::ActionStep, action_step)
+            .insert(ParticipantGoalsStepsColumn::RedCapIndex, red_cap_index)
             .query()
             .execute(database)
             .await?;

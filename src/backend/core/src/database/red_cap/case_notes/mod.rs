@@ -9,7 +9,8 @@ use crate::red_cap::converter::case_notes::{
 use crate::red_cap::VisitType;
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use new::NewBloodPressure;
-use pg_extended_sqlx_queries::many::InsertManyBuilder;
+use pg_extended_sqlx_queries::pagination::{PageParams, PaginationSupportingTool};
+use pg_extended_sqlx_queries::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use strum::EnumIter;
@@ -162,7 +163,7 @@ impl CaseNote {
             .set(CaseNoteColumn::RedCapInstance, instance_id.value())
             .set(
                 CaseNoteColumn::LastSyncedWithRedCap,
-                ExprFunctionBuilder::now(),
+                SqlFunctionBuilder::now(),
             )
             .filter(CaseNoteColumn::Id.equals(self.id.value()))
             .query()
@@ -213,22 +214,13 @@ pub struct CaseNoteHealthMeasures {
 impl CaseNoteHealthMeasures {
     pub async fn add_bp(&self, bp: NewBloodPressure, db: &PgPool) -> DBResult<()> {
         InsertQueryBuilder::new(HealthMeasureBloodPressure::table_name())
-            .insert(
-                HealthMeasureBloodPressureColumn::HealthMeasureId,
-                self.id.value(),
-            )
+            .insert(HealthMeasureBloodPressureColumn::HealthMeasureId, self.id)
             .insert(
                 HealthMeasureBloodPressureColumn::BloodPressureType,
                 bp.blood_pressure_type.value(),
             )
-            .insert(
-                HealthMeasureBloodPressureColumn::Systolic,
-                bp.systolic.value(),
-            )
-            .insert(
-                HealthMeasureBloodPressureColumn::Diastolic,
-                bp.diastolic.value(),
-            )
+            .insert(HealthMeasureBloodPressureColumn::Systolic, bp.systolic)
+            .insert(HealthMeasureBloodPressureColumn::Diastolic, bp.diastolic)
             .query()
             .execute(db)
             .await?;
@@ -246,22 +238,27 @@ impl CaseNoteHealthMeasures {
         );
         // On Conflict we will update the values
         query.set_on_conflict(OnConflict {
-            columns: vec![
-                HealthMeasureBloodPressureColumn::HealthMeasureId,
-                HealthMeasureBloodPressureColumn::BloodPressureType,
-            ],
-            action: OnConflictAction::update(vec![
-                HealthMeasureBloodPressureColumn::Systolic,
-                HealthMeasureBloodPressureColumn::Diastolic,
+            conflict_target: ConflictTarget::columns(vec![
+                HealthMeasureBloodPressureColumn::HealthMeasureId.dyn_column(),
+                HealthMeasureBloodPressureColumn::BloodPressureType.dyn_column(),
             ]),
+            action: ConflictAction::DoUpdate(
+                vec![
+                    HealthMeasureBloodPressureColumn::Systolic,
+                    HealthMeasureBloodPressureColumn::Diastolic,
+                ]
+                .into_iter()
+                .map(|column| SetColumm::from(column))
+                .collect(),
+            ),
         });
 
         for bp in bp {
             query.insert_row_ordered(|row| {
-                row.insert(self.id.value())
+                row.insert(self.id)
                     .insert(bp.blood_pressure_type.value())
-                    .insert(bp.systolic.value())
-                    .insert(bp.diastolic.value());
+                    .insert(bp.systolic)
+                    .insert(bp.diastolic);
             });
         }
 

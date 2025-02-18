@@ -311,6 +311,21 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
                     <&str as sqlx::encode::Encode<'q, sqlx::Postgres>>::size_hint(&val)
                 }
             }
+            impl<'args> pg_extended_sqlx_queries::expr::ExprType<'args> for #ident {
+                fn process(self: Box<Self>, args: &mut pg_extended_sqlx_queries::expr::arguments::ArgumentHolder<'args>) -> pg_extended_sqlx_queries::expr::Expr
+                where
+                    Self: 'args,
+                {
+                    pg_extended_sqlx_queries::expr::Expr::ArgumentIndex(args.push_argument(*self))
+                }
+
+                fn process_unboxed(self, args: &mut pg_extended_sqlx_queries::expr::arguments::ArgumentHolder<'args>) -> pg_extended_sqlx_queries::expr::Expr
+                where
+                    Self: 'args,
+                {
+                    pg_extended_sqlx_queries::expr::Expr::ArgumentIndex(args.push_argument(self))
+                }
+            }
         };
     };
     Ok(result)

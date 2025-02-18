@@ -48,7 +48,7 @@ impl Locations {
     ) -> Result<Option<Locations>, sqlx::Error> {
         let result =
             SelectQueryBuilder::with_columns(Locations::table_name(), LocationsColumn::all())
-                .filter(LocationsColumn::Name.equals(name.value()))
+                .filter(LocationsColumn::Name.equals(name))
                 .query_as()
                 .fetch_optional(database)
                 .await?;
@@ -67,7 +67,7 @@ impl Locations {
         database: &sqlx::PgPool,
     ) -> Result<Vec<Locations>, DBError> {
         SelectQueryBuilder::with_columns(Locations::table_name(), LocationsColumn::all())
-            .filter(LocationsColumn::ParentLocation.equals(parent_id.value()))
+            .filter(LocationsColumn::ParentLocation.equals(parent_id))
             .query_as()
             .fetch_all(database)
             .await
@@ -89,7 +89,7 @@ impl Locations {
         database: &sqlx::PgPool,
     ) -> Result<Vec<Locations>, DBError> {
         SelectQueryBuilder::with_columns(Locations::table_name(), LocationsColumn::all())
-            .filter(LocationsColumn::Program.equals(program.value()))
+            .filter(LocationsColumn::Program.equals(program))
             .query_as()
             .fetch_all(database)
             .await
@@ -103,7 +103,7 @@ impl Locations {
     ) -> Result<Option<Locations>, sqlx::Error> {
         let result =
             SelectQueryBuilder::with_columns(Locations::table_name(), LocationsColumn::all())
-                .filter(LocationsColumn::Id.equals(id.value()))
+                .filter(LocationsColumn::Id.equals(id))
                 .query_as()
                 .fetch_optional(database)
                 .await?;
