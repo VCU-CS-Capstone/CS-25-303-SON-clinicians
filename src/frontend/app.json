@@ -7,8 +7,7 @@
     "scheme": "cs25-clinicians-capstone",
     "web": {
       "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/favicon.png"
+      "output": "static"
     },
     "plugins": [
       "expo-router"
@@ -18,10 +17,8 @@
       "tsconfigPaths": true
     },
     "orientation": "landscape",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -35,10 +32,6 @@
     },
     "android": {
       "jsEngine": "hermes",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
       "package": "edu.vcu.capstone.cs25.clinicians"
     },
     "extra": {
