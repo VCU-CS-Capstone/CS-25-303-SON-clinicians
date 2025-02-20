@@ -3,15 +3,15 @@ use std::net::SocketAddr;
 use axum::extract::{ConnectInfo, FromRef, FromRequestParts, MatchedPath};
 use derive_more::derive::From;
 use http::{
+    HeaderMap, HeaderName, Request,
     header::{REFERER, USER_AGENT},
     request::Parts,
-    HeaderMap, HeaderName, Request,
 };
 use opentelemetry::{global, propagation::Extractor, trace::TraceContextExt};
-use tracing::{field::Empty, info_span};
+use tracing::{Level, event, field::Empty, info_span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
-use crate::app::{error::MissingInternelExtension, SiteState};
+use crate::app::{SiteState, error::MissingInternelExtension};
 
 use super::{RequestId, X_FORWARDED_FOR_HEADER};
 
@@ -33,9 +33,16 @@ where
 }
 pub fn extract_header_as_str(headers: &HeaderMap, header: HeaderName) -> Option<String> {
     headers
-        .get(header)
+        .get(&header)
         .and_then(|v| v.to_str().ok())
-        .map(ToString::to_string)
+        .and_then(|v| {
+            if v.is_empty() {
+                event!(Level::WARN, ?header, "Empty header Value",);
+                None
+            } else {
+                Some(v.to_owned())
+            }
+        })
 }
 
 pub struct HeaderMapCarrier<'a>(pub &'a HeaderMap);
@@ -99,7 +106,11 @@ pub fn on_request<B>(request: &Request<B>, span: &tracing::Span) {
                 .get::<ConnectInfo<SocketAddr>>()
                 .map(|ConnectInfo(c)| c.to_string())
         })
-        .unwrap_or_else(|| "<unknown>".to_string());
+        .unwrap_or_else(|| {
+            let _guard = span.enter();
+            event!(Level::WARN, "Failed to get client IP");
+            "<unknown>".to_string()
+        });
 
     span.record("http.path", path);
     span.record("otel.name", format!("{method} {path}"));
