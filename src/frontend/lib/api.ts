@@ -1,5 +1,5 @@
 import { BloodPressureStats, GlucoseEntry, WeightEntry } from './types/stats';
-import { PaginatedResponse } from './RequestTypes';
+import { PaginatedResponse, SiteInfo } from './RequestTypes';
 import {
   Participant,
   ParticipantDemographics,
@@ -12,7 +12,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Location } from './types/locations';
 import { MedicationEntry } from './types/medications';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://cs-25-303.wyatt-herkamp.dev/api';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://cs-25-303.wyatt-herkamp.dev/api';
 
 const api = {
   get: async (endpoint: string) => {
@@ -31,19 +31,30 @@ const api = {
     return await response.json();
   },
   getSecure: async (endpoint: string) => {
-    const session = await SecureStore.getItemAsync('session');
-    const authHeader = session ? `Session ${session}` : undefined;
-    const url = appendEndpoint(endpoint);
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(authHeader && { Authorization: authHeader }),
-      },
-      credentials: 'include',
-    });
-    console.debug('Secure Get Response', response);
-    return response;
+    try {
+      const session = await SecureStore.getItemAsync('session');
+      const authHeader = session ? `Session ${session}` : undefined;
+      const url = appendEndpoint(endpoint);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authHeader && { Authorization: authHeader }),
+        },
+        credentials: 'include',
+      });
+      // Get "x-request-id" header from response
+      const requestId = response.headers.get('x-request-id');
+      if (requestId) {
+        console.debug('Request ID:', requestId);
+      } else {
+        console.warn('No Request ID');
+      }
+      console.debug('Secure Get Response', response);
+      return response;
+    } catch (e) {
+      throw e;
+    }
   },
   post: async (endpoint: string, data: any) => {
     const url = appendEndpoint(endpoint);
@@ -60,20 +71,39 @@ const api = {
     return await response.json();
   },
   postSecure: async (endpoint: string, data: any) => {
-    const session = await SecureStore.getItemAsync('session');
-    const authHeader = session ? `Session ${session}` : undefined;
+    try {
+      const session = await SecureStore.getItemAsync('session');
+      const authHeader = session ? `Session ${session}` : undefined;
 
-    const url = appendEndpoint(endpoint);
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(authHeader && { Authorization: authHeader }),
-      },
-      body: JSON.stringify(data),
-      credentials: 'include',
-    });
-    return response;
+      const url = appendEndpoint(endpoint);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authHeader && { Authorization: authHeader }),
+        },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+      // Get "x-request-id" header from response
+      const requestId = response.headers.get('x-request-id');
+      if (requestId) {
+        console.debug('Request ID:', requestId);
+      } else {
+        console.warn('No Request ID');
+      }
+      console.debug('Secure Get Response', response);
+      return response;
+    } catch (e) {
+      throw e;
+    }
+  },
+  // Fetch site info
+  // Scalar: https://cs-25-303.wyatt-herkamp.dev/scalar#tag/api/GET/api/info
+  siteInfo: async () => {
+    const response = await api.get('/info');
+    return response as SiteInfo;
   },
   participants: {
     fetchById: async (id: number) => {

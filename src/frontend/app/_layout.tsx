@@ -11,6 +11,11 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  //To understand this.
+  // Inside the Stack we have (drawer) and [participant_id] as the screen names.
+  // Drawer is the default. But once you go to search-participants and select a participant,
+  // the screen name changes to [participant_id] and it will be stacked on top of the drawer.
+  // This is how the navigation works in the app.
   return (
     <SessionProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>

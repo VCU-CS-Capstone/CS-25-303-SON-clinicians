@@ -3,7 +3,6 @@ import { FlatList, Text, View } from 'react-native';
 import ProtectedRoute from '~/components/ProtectedRoute';
 import api from '~/lib/api';
 import {
-  Location,
   LocationWithParentItem,
   organizeLocationsToWithParents,
   Program,
@@ -31,9 +30,16 @@ export default function ShowLocations() {
 
   return (
     <ProtectedRoute>
-      <View className="px-2">
-        <View className="mb-4 border-b px-2">
-          <Text className="text-lg">Lists all the locations in the system. </Text>
+      <View style={styles.parent}>
+        <View style={styles.header}>
+          <Text
+            style={{
+              fontWeight: 'bold',
+              fontSize: 18,
+            }}
+          >
+            Lists all the locations in the system.
+          </Text>
         </View>
         <FlatList
           data={locations || []}
@@ -47,14 +53,32 @@ export default function ShowLocations() {
 
 function LocationSummary({ location }: { location: LocationWithParentItem }) {
   return (
-    <View className="mb-4 border-2 border-solid border-red-100">
-      <Text className="text-xl">
+    <View style={styles.SummaryBox}>
+      <Text style={{ fontWeight: 'bold' }}>
         {location.name} - ID# {location.id}
       </Text>
       <Text>Program: {Program.fullName(location.program)}</Text>
       {location.parent_location ? (
-        <Text className="text-lg">Parent Location: {location.parent_location.name}</Text>
+        <Text>Parent Location: {location.parent_location.name}</Text>
       ) : null}
     </View>
   );
 }
+
+const styles = {
+  parent: {
+    paddingLeft: 0.5,
+    paddingRight: 0.5,
+  },
+  header: {
+    marginBottom: 4,
+    borderBottomWidth: 1,
+    padding: 2,
+  },
+
+  SummaryBox: {
+    padding: 4,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+};
