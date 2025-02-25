@@ -41,22 +41,20 @@ export default function SearchParticipant() {
 
   return (
     <ProtectedRoute>
-      <View className="flex flex-row">
+      <View style={styles.row}>
         <TextInput
-          className="w-1/4"
-          style={styles.input}
+          style={[styles.input, styles.quarterWidth]}
           value={firstName}
           onChangeText={setFirstName}
           placeholder="First name"
         ></TextInput>
         <TextInput
-          className="w-1/4"
-          style={styles.input}
+          style={[styles.input, styles.quarterWidth]}
           value={lastName}
           onChangeText={setLastName}
           placeholder="Last name"
         ></TextInput>
-        <View className="flex-1">
+        <View style={styles.flexOne}>
           <ProgramSelector
             onChange={(value) => {
               setProgramValue(value);
@@ -65,7 +63,7 @@ export default function SearchParticipant() {
           />
         </View>
       </View>
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={styles.flexOne}>
         <FlatList
           data={participants}
           renderItem={({ item }) => <ParticipantLookupItem participant={item} />}
@@ -83,6 +81,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 10,
   },
+  flexOne: {
+    flex: 1,
+  },
+  row: {
+    flexDirection: 'row',
+  },
+  quarterWidth: {
+    width: '25%',
+  },
+  LookupItem: {
+    marginBottom: 4,
+    borderWidth: 2,
+    padding: 4,
+    width: '25%',
+  },
+  LookupItemLabel: {
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
 });
 
 function ParticipantLookupItem({ participant }: { participant: ParticipantLookupResponse }) {
@@ -95,8 +112,8 @@ function ParticipantLookupItem({ participant }: { participant: ParticipantLookup
         params: { participant_id: participant.id },
       }}
     >
-      <View className="mb-4 w-1/4 border-2 border-solid border-red-100">
-        <Text className="text-xl font-bold">
+      <View style={styles.LookupItem}>
+        <Text style={styles.LookupItemLabel}>
           {participant.first_name} {participant.last_name}
         </Text>
         <Text>{participant.program}</Text>

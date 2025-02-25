@@ -8,6 +8,8 @@ import { HamburgerMenu } from '~/components/menus/hamburger';
 import { HamburgerOption } from '~/components/menus/hamburger/HamburgerOption';
 import { ShowInsurances } from '~/components/participant/HealthInsurance';
 import api from '~/lib/api';
+
+import { StyleSheet } from 'react-native';
 import {
   Participant,
   ParticipantDemographics,
@@ -75,12 +77,12 @@ function ParticipantView({
   }
   return (
     <View>
-      <View className="w-full">
-        <Text className="text-4xl font-bold">
+      <View style={styles.fullWidth}>
+        <Text style={styles.participantName}>
           {participant.first_name} {participant.last_name}
         </Text>
       </View>
-      <View className="flex flex-row flex-wrap">
+      <View style={styles.flexRowWrap}>
         <ParticipantBox {...participant} />
         <HealthOverviewBox healthOverview={healthOverview} />
         <DemographicsBox demographics={demographics} />
@@ -90,8 +92,8 @@ function ParticipantView({
 }
 function BoxHeader({ title }: { title: string }) {
   return (
-    <View className="flex flex-row justify-between border-b p-4">
-      <Text className="text-2xl font-bold">{title}</Text>
+    <View style={styles.boxHeader}>
+      <Text style={styles.boxHeaderText}>{title}</Text>
       <HamburgerMenu iconWidth={36} iconHeight={36}>
         <HamburgerOption title="Open Page" />
         <HamburgerOption title="Edit Page" />
@@ -101,9 +103,9 @@ function BoxHeader({ title }: { title: string }) {
 }
 function ParticipantBox(participant: Participant) {
   return (
-    <View className="basis-1/2 border px-4">
+    <View style={styles.box}>
       <BoxHeader title="Participant" />
-      <View className="mb-4">
+      <View style={styles.marginBottom}>
         <LabelAndItem label="Contact Info">
           <Text>{participant.phone_number_one}</Text>
         </LabelAndItem>
@@ -128,7 +130,7 @@ function HealthOverviewBox({
     );
   }
   return (
-    <View className="basis-1/2 border px-4">
+    <View style={styles.box}>
       <BoxHeader title="Health Overview" />
       <View>
         <YesOrNo
@@ -151,8 +153,8 @@ function HealthOverviewBox({
 }
 function YesOrNo({ label, value }: { label: string; value?: boolean }) {
   return (
-    <View className="mb-4">
-      <Text className="text-2xl font-bold">
+    <View style={styles.marginBottom}>
+      <Text style={styles.yesOrNoText}>
         {label}: {value ? 'Yes' : 'No'}
       </Text>
     </View>
@@ -167,10 +169,10 @@ function DemographicsBox({ demographics }: { demographics: ParticipantDemographi
     );
   }
   return (
-    <View className="w-1/2 border px-4">
+    <View style={styles.halfWidthBox}>
       <BoxHeader title="Demographics" />
 
-      <View className="flex flex-row justify-between">
+      <View style={styles.flexRowBetween}>
         <LabelAndItem label="Age">
           <Text>{demographics.age}</Text>
         </LabelAndItem>
@@ -182,3 +184,48 @@ function DemographicsBox({ demographics }: { demographics: ParticipantDemographi
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  fullWidth: {
+    width: '100%',
+  },
+  participantName: {
+    fontSize: 32,
+    fontWeight: 'bold',
+  },
+  flexRowWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  boxHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    padding: 16,
+  },
+  boxHeaderText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  box: {
+    flexBasis: '50%',
+    borderWidth: 1,
+    padding: 16,
+  },
+  marginBottom: {
+    marginBottom: 16,
+  },
+  yesOrNoText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  halfWidthBox: {
+    width: '50%',
+    borderWidth: 1,
+    padding: 16,
+  },
+  flexRowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+});

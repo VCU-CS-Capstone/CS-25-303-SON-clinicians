@@ -8,10 +8,6 @@
       "options": {
         "type": "drawer + tabs"
       }
-    },
-    {
-      "name": "nativewind",
-      "type": "styling"
     }
   ],
   "flags": {

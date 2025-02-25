@@ -6,6 +6,7 @@ import { LocationName } from '~/components/LocationName';
 import ProtectedRoute from '~/components/ProtectedRoute';
 import api from '~/lib/api';
 import { RecentVisit } from '~/lib/types/participant';
+import { StyleSheet } from 'react-native';
 
 export default function participant_visit_history() {
   const { participant_id } = useLocalSearchParams<{ participant_id: string }>();
@@ -41,10 +42,19 @@ export default function participant_visit_history() {
 }
 function VisitSummary({ visit }: { visit: RecentVisit }) {
   return (
-    <View className="mb-4 border-2 border-solid border-red-100">
+    <View style={styles.visitContainer}>
       <Text>{visit.date_of_visit}</Text>
       <Text>{visit.visit_type}</Text>
       <LocationName locationId={visit.location} />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  visitContainer: {
+    marginBottom: 16,
+    borderWidth: 2,
+    borderStyle: 'solid',
+    borderColor: '#FFCCCC',
+  },
+});

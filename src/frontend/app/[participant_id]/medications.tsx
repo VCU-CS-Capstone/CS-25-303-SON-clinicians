@@ -44,21 +44,21 @@ export default function MedicationList() {
 function ListMedications({ medications }: { medications: MedicationEntry[] | undefined }) {
   if (!medications) {
     return (
-      <View className="flex flex-row items-center justify-center">
+      <View style={styles.LoadingContainer}>
         <ActivityIndicator />
-        <Text className="text-2xl font-bold">Loading...</Text>
+        <Text style={styles.LoadingMessage}>Loading...</Text>
       </View>
     );
   }
   if (medications.length === 0) {
     return (
-      <View className="flex flex-row items-center justify-center">
-        <Text className="text-2xl font-bold">No medications found</Text>;
+      <View style={styles.LoadingContainer}>
+        <Text style={styles.LoadingMessage}>No medications found</Text>;
       </View>
     );
   }
   return (
-    <View className="mx-4">
+    <View style={styles.ListContainer}>
       <FlatList
         data={medications || []}
         renderItem={({ item }) => <MedicationItem medication={item} />}
@@ -69,14 +69,30 @@ function ListMedications({ medications }: { medications: MedicationEntry[] | und
 }
 function MedicationItem({ medication }: { medication: MedicationEntry }) {
   return (
-    <View className="mb-4 border-2 border-solid border-red-100">
-      <Text className="text-2xl font-bold">
+    <View style={styles.MedicationItemContainer}>
+      <Text style={styles.MedicationItemLabel}>
         {medication.name} - {medication.dosage}
       </Text>
       <Text>Frequency {medication.frequency}</Text>
       <DateOrUnknown date={medication.date_prescribed} name="Date Prescribed" />
       <DateOrUnknown date={medication.date_entered_into_system} name="Date Entered" />
     </View>
+  );
+}
+
+function DateOrUnknown({ date, name }: { date?: string; name: string }) {
+  if (!date) {
+    return (
+      <View style={styles.container}>
+        <Ionicons name="alert-circle" size={24} color="red" />
+        <Text style={styles.DateOrUnknownTextUnknown}>{name}: Unknown</Text>
+      </View>
+    );
+  }
+  return (
+    <Text>
+      {name}: {new Date(date).toLocaleDateString()}
+    </Text>
   );
 }
 
@@ -90,20 +106,36 @@ const styles = StyleSheet.create({
     fontSize: 42,
     padding: 12,
   },
+  DateOrUnknownContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  DateOrUnknownTextUnknown: {
+    color: 'red',
+  },
+  MedicationItemContainer: {
+    marginBottom: 16,
+    borderWidth: 2,
+    borderStyle: 'solid',
+    borderColor: '#FFCDD2',
+  },
+  MedicationItemLabel: {
+    fontSize: 24,
+    color: 'black',
+    fontWeight: 'bold',
+  },
+  LoadingContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  LoadingMessage: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  ListContainer: {
+    marginLeft: 20,
+    marginRight: 20,
+  },
 });
-
-function DateOrUnknown({ date, name }: { date?: string; name: string }) {
-  if (!date) {
-    return (
-      <View className="flex flex-row items-center">
-        <Ionicons name="alert-circle" size={24} color="red" />
-        <Text className="color-red-600">{name}: Unknown</Text>
-      </View>
-    );
-  }
-  return (
-    <Text>
-      {name}: {new Date(date).toLocaleDateString()}
-    </Text>
-  );
-}

@@ -68,6 +68,17 @@ const DrawerLayout = () => {
             ),
           }}
         />
+        <Drawer.Screen
+          name="goals"
+          initialParams={{ participant_id: participant_id }}
+          options={{
+            headerTitle: 'Goals',
+            drawerLabel: 'Goals',
+            drawerIcon: ({ size, color }) => (
+              <Ionicons name="flag-outline" size={size} color={color} />
+            ),
+          }}
+        />
       </Drawer>
     </>
   );

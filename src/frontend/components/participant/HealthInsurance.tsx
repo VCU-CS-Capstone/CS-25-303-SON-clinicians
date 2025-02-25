@@ -1,11 +1,10 @@
 import { AntDesign } from '@expo/vector-icons';
 import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Dropdown, MultiSelect } from 'react-native-element-dropdown';
+import { MultiSelect } from 'react-native-element-dropdown';
 import { HealthInsurance } from '~/lib/types/participant';
 
 export interface InsuranceSelectorOptions {
-  className?: string;
   value: HealthInsurance[];
   onChange?: (value: HealthInsurance[] | null) => void;
 }
