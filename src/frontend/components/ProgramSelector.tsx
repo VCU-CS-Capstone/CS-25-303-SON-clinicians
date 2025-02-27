@@ -24,14 +24,17 @@ export const ProgramSelector = ({ allowNone, onChange }: ProgramSelectorProps) =
   const [value, setValue] = useState(null);
   const [isFocus, setIsFocus] = useState(false);
 
-  const renderLabel = () => {
-    if (value || isFocus) {
-      return (
-        <Text style={[styles.label, isFocus && { color: 'blue' }]}>Search Within Program</Text>
-      );
-    }
-    return null;
-  };
+const renderLabel = () => {
+  if (!value && isFocus) {
+    return (
+      <Text style={[styles.label, isFocus && { color: 'blue' }]}>
+        Filter By Program
+      </Text>
+    );
+  }
+  return null; // Hide label after selection
+};
+
   return (
     <>
       {renderLabel()}
@@ -66,11 +69,13 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   dropdown: {
-    height: 50,
+    height: 45, // Matches input field height in SearchParticipant.tsx
     borderColor: 'gray',
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12, // Matches input padding
+    justifyContent: 'center', // Ensures text is vertically aligned
+    backgroundColor: 'white',
   },
   icon: {
     marginRight: 5,
@@ -86,9 +91,11 @@ const styles = StyleSheet.create({
   },
   placeholderStyle: {
     fontSize: 16,
+    textAlignVertical: 'center', // Ensures text aligns vertically
   },
   selectedTextStyle: {
     fontSize: 16,
+    textAlignVertical: 'center', // Aligns text inside dropdown
   },
   iconStyle: {
     width: 20,
@@ -99,3 +106,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+

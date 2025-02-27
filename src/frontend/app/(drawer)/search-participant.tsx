@@ -43,18 +43,18 @@ export default function SearchParticipant() {
     <ProtectedRoute>
       <View style={styles.row}>
         <TextInput
-          style={[styles.input, styles.quarterWidth]}
+          style={[styles.input, styles.inputWidth]}
           value={firstName}
           onChangeText={setFirstName}
           placeholder="First name"
-        ></TextInput>
+        />
         <TextInput
-          style={[styles.input, styles.quarterWidth]}
+          style={[styles.input, styles.inputWidth]}
           value={lastName}
           onChangeText={setLastName}
           placeholder="Last name"
-        ></TextInput>
-        <View style={styles.flexOne}>
+        />
+        <View style={styles.inputWidth}>
           <ProgramSelector
             onChange={(value) => {
               setProgramValue(value);
@@ -77,8 +77,9 @@ export default function SearchParticipant() {
 const styles = StyleSheet.create({
   input: {
     height: 40,
-    margin: 12,
+    marginVertical:8,
     borderWidth: 1,
+    borderRadius: 8,
     padding: 10,
   },
   flexOne: {
@@ -86,9 +87,12 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    alignItems: 'center',  // Ensures elements are aligned vertically
+    justifyContent: 'space-between',  // Keeps spacing even
+    paddingHorizontal: 12,  // Adjusts spacing
   },
-  quarterWidth: {
-    width: '25%',
+  inputWidth: {
+    width: '30%',  // Ensures all inputs and dropdown are the same width
   },
   LookupItem: {
     marginBottom: 4,
