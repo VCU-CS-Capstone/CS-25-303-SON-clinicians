@@ -4,17 +4,17 @@ use pg_extended_sqlx_queries::pagination::{
     PageParams, PaginationOwnedSupportingTool, PaginationSupportingTool,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, PgPool};
+use sqlx::{PgPool, prelude::FromRow};
 use tabled::Tabled;
-use tracing::{debug, error, event, instrument, trace, warn, Level};
+use tracing::{Level, debug, error, event, instrument, trace, warn};
 use utoipa::ToSchema;
 
 use crate::{
     database::{
+        PaginatedResponse,
         prelude::*,
         queries::{ItemOrArray, NumberQuery},
         red_cap::case_notes::{CaseNote, CaseNoteColumn},
-        PaginatedResponse,
     },
     red_cap::{
         EducationLevel, Gender, HealthInsurance, PreferredLanguage, Programs, Race, SeenAtVCUHS,
@@ -198,7 +198,11 @@ impl ResearcherQuery {
                     )
                 },
             )
-            .total_count("total")
+            .select(
+                SqlFunctionBuilder::count_all()
+                    .then(SqlFunctionBuilder::over())
+                    .alias("total"),
+            )
             .page_params(page_and_size);
 
         if let Some(location) = location {
