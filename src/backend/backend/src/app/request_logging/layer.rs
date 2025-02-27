@@ -8,7 +8,10 @@ use axum::{
     body::{Body, HttpBody},
     extract::MatchedPath,
 };
-use http::{header::InvalidHeaderValue, HeaderValue, Request, Response};
+use http::{
+    HeaderValue, Request, Response,
+    header::{InvalidHeaderValue, USER_AGENT},
+};
 use opentelemetry::KeyValue;
 use pin_project::pin_project;
 use tower_http::{
@@ -19,9 +22,9 @@ use tower_http::{
 use tower_service::Service;
 use tracing::debug;
 
-use crate::app::{request_logging::response_body::ResponseBody, SiteState};
+use crate::app::{SiteState, request_logging::response_body::ResponseBody};
 
-use super::{request_id::RequestId, RequestSpan, X_REQUEST_ID};
+use super::{RequestSpan, X_REQUEST_ID, request_id::RequestId};
 
 /// Middleware that handles the authentication of the user
 #[derive(Debug, Clone)]
@@ -53,11 +56,14 @@ where
             .get::<MatchedPath>()
             .map_or(req.uri().path(), |p| p.as_str());
         let request_id = RequestId::new_random();
-        let attributes = vec![
+        let mut attributes = vec![
             KeyValue::new("http.route", path.to_owned()),
             KeyValue::new("http.request.method", req.method().as_str().to_string()),
             KeyValue::new("request_id", request_id.to_string()),
         ];
+        if let Some(user_agent) = super::extract_header_as_str(req.headers(), USER_AGENT) {
+            attributes.push(KeyValue::new("http.request.user_agent", user_agent));
+        }
         let site: SiteState = self.site.clone();
         let body_size = req.body().size_hint().lower();
 

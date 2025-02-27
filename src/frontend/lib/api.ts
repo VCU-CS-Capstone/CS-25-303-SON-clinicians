@@ -12,6 +12,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Location } from './types/locations';
 import { MedicationEntry } from './types/medications';
 import { Platform } from 'react-native';
+import { Goal, GoalStep } from './types/goals';
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://cs-25-303.wyatt-herkamp.dev/api';
 
@@ -217,6 +218,18 @@ const api = {
       }
       return (await response.json()) as PaginatedResponse<ParticipantLookupResponse>;
     },
+    fetchGoalsForParticipant: async(
+      participant_id: number,
+    ) => {
+      const response = await api.getSecure(`/participant/goals/${participant_id}/all`);
+      return (await response.json()) as Goal[];
+    },
+    fetchStepsForGoal: async(
+      goal_id: number,
+    ) => {
+      const response = await api.getSecure(`/participant/goals/${goal_id}/steps`);
+      return (await response.json()) as GoalStep[];
+    }
   },
 
   locations: {
