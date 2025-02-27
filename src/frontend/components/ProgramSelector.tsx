@@ -24,16 +24,12 @@ export const ProgramSelector = ({ allowNone, onChange }: ProgramSelectorProps) =
   const [value, setValue] = useState(null);
   const [isFocus, setIsFocus] = useState(false);
 
-const renderLabel = () => {
-  if (!value && isFocus) {
-    return (
-      <Text style={[styles.label, isFocus && { color: 'blue' }]}>
-        Filter By Program
-      </Text>
-    );
-  }
-  return null; // Hide label after selection
-};
+  const renderLabel = () => {
+    if (!value && isFocus) {
+      return <Text style={[styles.label, isFocus && { color: 'blue' }]}>Filter By Program</Text>;
+    }
+    return null; // Hide label after selection
+  };
 
   return (
     <>
@@ -106,4 +102,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-

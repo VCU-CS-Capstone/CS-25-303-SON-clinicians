@@ -77,7 +77,7 @@ export default function SearchParticipant() {
 const styles = StyleSheet.create({
   input: {
     height: 40,
-    marginVertical:8,
+    marginVertical: 8,
     borderWidth: 1,
     borderRadius: 8,
     padding: 10,
@@ -87,12 +87,12 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',  // Ensures elements are aligned vertically
-    justifyContent: 'space-between',  // Keeps spacing even
-    paddingHorizontal: 12,  // Adjusts spacing
+    alignItems: 'center', // Ensures elements are aligned vertically
+    justifyContent: 'space-between', // Keeps spacing even
+    paddingHorizontal: 12, // Adjusts spacing
   },
   inputWidth: {
-    width: '30%',  // Ensures all inputs and dropdown are the same width
+    width: '30%', // Ensures all inputs and dropdown are the same width
   },
   LookupItem: {
     marginBottom: 4,

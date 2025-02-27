@@ -11,15 +11,20 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import { Location } from './types/locations';
 import { MedicationEntry } from './types/medications';
+import { Platform } from 'react-native';
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://cs-25-303.wyatt-herkamp.dev/api';
 
 const api = {
+  userAgent: () => {
+    return `CS25-303 Frontend / React Native(Expo) / ${Platform.OS}`;
+  },
   get: async (endpoint: string) => {
     const url = appendEndpoint(endpoint);
     const response = await fetch(url, {
       method: 'GET',
       headers: {
+        'User-Agent': api.userAgent(),
         'Content-Type': 'application/json',
       },
       credentials: 'include',
@@ -38,6 +43,7 @@ const api = {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
+          'User-Agent': api.userAgent(),
           'Content-Type': 'application/json',
           ...(authHeader && { Authorization: authHeader }),
         },
@@ -60,7 +66,7 @@ const api = {
     const url = appendEndpoint(endpoint);
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'User-Agent': api.userAgent(), 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
       credentials: 'include',
     });
@@ -80,6 +86,7 @@ const api = {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
+          'User-Agent': api.userAgent(),
           'Content-Type': 'application/json',
           ...(authHeader && { Authorization: authHeader }),
         },

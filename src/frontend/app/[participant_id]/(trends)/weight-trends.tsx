@@ -6,7 +6,7 @@ import { BarChart, LineChart, lineDataItem } from 'react-native-gifted-charts';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ProtectedRoute from '~/components/ProtectedRoute';
 import api from '~/lib/api';
-import {  WeightEntry } from '~/lib/types/stats';
+import { WeightEntry } from '~/lib/types/stats';
 
 export default function PatientInfo() {
   const { participant_id } = useLocalSearchParams<{ participant_id: string }>();

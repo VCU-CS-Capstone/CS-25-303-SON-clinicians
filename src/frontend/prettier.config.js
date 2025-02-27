@@ -4,8 +4,5 @@ module.exports = {
   singleQuote: true,
   bracketSameLine: false,
   trailingComma: 'es5',
-
-  plugins: [require.resolve('prettier-plugin-tailwindcss')],
-  tailwindAttributes: ['className'],
   endOfLine: 'lf',
 };

@@ -5,6 +5,7 @@ import { View, Text, Alert, TextInput, Button } from 'react-native';
 
 import { useSession } from '~/contexts/SessionContext';
 import api from '~/lib/api';
+import { StyleSheet } from 'react-native';
 
 const LoginScreen = () => {
   const [username, setUsername] = useState('');
@@ -27,11 +28,11 @@ const LoginScreen = () => {
   };
 
   return (
-    <View className={styles.container}>
-      <Text className={styles.title}>Login</Text>
-      <View className={styles.inputContainer}>
+    <View style={styles.container}>
+      <Text style={styles.title}>Login</Text>
+      <View style={styles.inputContainer}>
         <TextInput
-          className={styles.input}
+          style={styles.input}
           placeholder="Username"
           value={username}
           autoCorrect={false}
@@ -41,7 +42,7 @@ const LoginScreen = () => {
           autoCapitalize="none"
         />
         <TextInput
-          className={styles.input}
+          style={styles.input}
           placeholder="Password"
           value={password}
           autoCorrect={false}
@@ -56,11 +57,33 @@ const LoginScreen = () => {
   );
 };
 
-const styles = {
-  container: 'flex-1 justify-center items-center bg-gray-100 px-4',
-  title: 'mb-8 text-2xl font-bold text-gray-800',
-  inputContainer: 'w-full max-w-md',
-  input: 'mb-4 rounded border p-2',
-};
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f7fafc',
+    paddingHorizontal: 16,
+  },
+  title: {
+    marginBottom: 32,
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2d3748',
+  },
+  inputContainer: {
+    width: '100%',
+    maxWidth: 400,
+  },
+  input: {
+    marginBottom: 16,
+    borderRadius: 4,
+    borderWidth: 1,
+    padding: 14,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderColor: '#e2e8f0',
+  },
+});
 
 export default LoginScreen;
