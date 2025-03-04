@@ -23,7 +23,6 @@ http-body = "1"
 http-body-util.workspace = true
 # API Documentation
 utoipa = { workspace = true, features = ["axum_extras"] }
-# TODO: When axum 0.8 support is released move this back to a stable version
 utoipa-scalar = { version = "0.3", features = ["axum"], optional = true }
 # Async utilities
 pin-project = "1"
