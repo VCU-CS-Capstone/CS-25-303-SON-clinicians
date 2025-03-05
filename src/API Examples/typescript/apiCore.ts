@@ -93,6 +93,8 @@ export class CS25Client {
   }
   /// Logs a user in. Responds with the user object.
   // Throws an error if the login fails.
+  // Once the login is successful the sessionKey is safe to use for 24 hours
+  // But we are only storing this in memory so it will be lost when the program is closed
   async login(username: string, password: string): Promise<User> {
     const response = await this.postJson("/api/auth/login/password", {
       username,
