@@ -1,0 +1,13 @@
+{
+  "tasks": {
+    "researcher": "deno run --allow-net researcher-example.ts",
+    "stats": "deno run --allow-net stats.ts",
+    "participant-info": "deno run --allow-net participant-info.ts",
+    "search": "deno run --allow-net search.ts"
+  },
+  "imports": {
+    "@cliffy/flags": "jsr:@cliffy/flags@^1.0.0-rc.7",
+    "@cliffy/prompt": "jsr:@cliffy/prompt@^1.0.0-rc.7",
+    "@std/assert": "jsr:@std/assert@1"
+  }
+}
