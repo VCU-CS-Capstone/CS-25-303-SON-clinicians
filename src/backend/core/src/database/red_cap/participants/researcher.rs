@@ -253,9 +253,6 @@ impl ResearcherQuery {
                 .join(Participants::table_name(), JoinType::Full, |join| {
                     join.on(ParticipantsColumn::Id.equals(CaseNoteColumn::ParticipantId))
                 })
-                .join(HealthOverview::table_name(), JoinType::Full, |join| {
-                    join.on(HealthOverviewColumn::ParticipantId.equals(ParticipantsColumn::Id))
-                })
                 .filter(
                     CaseNoteHealthMeasuresColumn::Weight
                         .is_not_null()
