@@ -2,8 +2,8 @@ use std::{
     fmt::Debug,
     path::PathBuf,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
     time::Duration as StdDuration,
 };
@@ -11,21 +11,21 @@ use std::{
 use axum::response::{IntoResponse, Response};
 use chrono::{Duration, Local};
 use http::StatusCode;
-use rand::{distr::Alphanumeric, rngs::StdRng, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, distr::Alphanumeric, rngs::StdRng};
 use redb::{CommitError, Database, Error, ReadableTable, ReadableTableMetadata, TableDefinition};
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
 use thiserror::Error;
 use tokio::task::JoinHandle;
 use tracing::{
-    debug, error,
-    field::{display, Empty},
-    info, instrument, span, Level,
+    Level, debug, error,
+    field::{Empty, display},
+    info, instrument, span,
 };
 use tuxs_config_types::chrono_types::duration::ConfigDuration;
 mod data;
 use crate::{
-    app::{error::IntoErrorResponse, SiteStateInner},
+    app::{SiteStateInner, error::IntoErrorResponse},
     config::Mode,
 };
 pub use data::*;

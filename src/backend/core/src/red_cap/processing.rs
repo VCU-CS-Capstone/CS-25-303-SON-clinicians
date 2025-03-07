@@ -3,8 +3,8 @@ use serde_json::Value;
 use tracing::error;
 
 use super::{
-    api::utils::{is_check_box_item, CheckboxValue, FieldNameAndIndex},
     MultiSelect, RedCapExportDataType,
+    api::utils::{CheckboxValue, FieldNameAndIndex, is_check_box_item},
 };
 /// Removes all multi select items and returns them as a new HashMap of MultiSelect
 pub fn find_and_extract_multi_selects(

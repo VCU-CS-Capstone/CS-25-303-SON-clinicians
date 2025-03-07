@@ -7,8 +7,8 @@ use cs25_303_core::{
     database::red_cap::{
         case_notes::new::{NewCaseNote, NewCaseNoteHealthMeasures},
         participants::{
-            goals::{ParticipantGoals, ParticipantGoalsSteps},
             NewMedication, NewParticipant, ParticipantMedications, Participants,
+            goals::{ParticipantGoals, ParticipantGoalsSteps},
         },
     },
     red_cap::SeenAtVCUHS,
@@ -16,9 +16,9 @@ use cs25_303_core::{
 use data::load_random_sets;
 pub mod data;
 pub mod utils;
-use rand::{seq::IndexedRandom, Rng};
+use rand::{Rng, seq::IndexedRandom};
 use set::RandomSets;
-use sqlx::{types::chrono::NaiveDate, PgPool};
+use sqlx::{PgPool, types::chrono::NaiveDate};
 use tracing::info;
 
 use crate::config::DataToolConfig;

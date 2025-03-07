@@ -46,7 +46,9 @@ enum SubCommands {
 }
 fn info() {
     println!("Welcome to the capstone project for CS-25-303 at VCU.");
-    println!("This project source is available at https://github.com/VCU-CS-Capstone/CS-25-303-SON-clinicians");
+    println!(
+        "This project source is available at https://github.com/VCU-CS-Capstone/CS-25-303-SON-clinicians"
+    );
 }
 fn main() -> anyhow::Result<()> {
     let command = Command::parse();
@@ -71,7 +73,9 @@ fn start_app(config: PathBuf) -> anyhow::Result<()> {
         .install_default()
         .is_err()
     {
-        eprintln!("Default Crypto Provider already installed. This is not an error. But it should be reported.");
+        eprintln!(
+            "Default Crypto Provider already installed. This is not an error. But it should be reported."
+        );
     }
     // Initlaize the tokio runtime
 

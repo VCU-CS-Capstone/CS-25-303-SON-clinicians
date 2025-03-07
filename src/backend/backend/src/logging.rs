@@ -6,16 +6,16 @@ use opentelemetry::{global, trace::TracerProvider};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{LogExporter, MetricExporter, SpanExporter, WithExportConfig};
 use opentelemetry_sdk::{
+    Resource,
     logs::SdkLoggerProvider,
     metrics::{PeriodicReader, SdkMeterProvider},
     propagation::TraceContextPropagator,
     trace::SdkTracerProvider,
-    Resource,
 };
 use tracing::debug;
 use tracing_appender::rolling::RollingFileAppender;
 use tracing_subscriber::{
-    filter::Targets, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry,
+    Layer, Registry, filter::Targets, layer::SubscriberExt, util::SubscriberInitExt,
 };
 
 pub mod config;

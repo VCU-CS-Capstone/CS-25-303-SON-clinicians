@@ -11,8 +11,8 @@ use tracing::instrument;
 use utoipa::OpenApi;
 
 use crate::app::{
-    authentication::Authentication, error::InternalError,
-    utils::response::builder::ResponseBuilder, SiteState,
+    SiteState, authentication::Authentication, error::InternalError,
+    utils::response::builder::ResponseBuilder,
 };
 
 #[derive(OpenApi)]

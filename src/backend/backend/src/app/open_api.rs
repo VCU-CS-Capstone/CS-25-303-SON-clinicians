@@ -2,20 +2,20 @@ use crate::app::api::{auth::AuthApi, researcher::ResearcherAPI};
 
 use super::api::{self, admin::AdminAPI, location::LocationsAPI, participant::ParticipantAPI};
 use axum::{
-    response::{IntoResponse, Response},
     Json, Router,
+    response::{IntoResponse, Response},
 };
 
 use cs25_303_core::{
     database::red_cap::{
-        case_notes::{queries::CaseNoteIDAndDate, BloodPressureType, CaseNote},
-        participants::{health_overview::HealthOverview, ParticipantDemograhics, Participants},
-        questions::{
-            queries::QuestionOverview, AdditionalOptionSettings, AdditionalQuestionSettings,
-            BooleanQuestionSettings, FloatSettings, NumberSettings, QuestionOptions, QuestionType,
-            TextBoxSize, TextQuestionSettings,
-        },
         Locations,
+        case_notes::{BloodPressureType, CaseNote, queries::CaseNoteIDAndDate},
+        participants::{ParticipantDemograhics, Participants, health_overview::HealthOverview},
+        questions::{
+            AdditionalOptionSettings, AdditionalQuestionSettings, BooleanQuestionSettings,
+            FloatSettings, NumberSettings, QuestionOptions, QuestionType, TextBoxSize,
+            TextQuestionSettings, queries::QuestionOverview,
+        },
     },
     red_cap::{
         EducationLevel, Ethnicity, Gender, HealthInsurance, MedicationFrequency, MobilityDevice,
@@ -23,8 +23,8 @@ use cs25_303_core::{
     },
 };
 use utoipa::{
-    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
     Modify, OpenApi,
+    openapi::security::{ApiKey, ApiKeyValue, Http, SecurityScheme},
 };
 #[derive(OpenApi)]
 #[openapi(
@@ -69,11 +69,19 @@ impl Modify for SecurityAddon {
         if let Some(components) = openapi.components.as_mut() {
             let mut session_value = ApiKeyValue::new("session");
             session_value.description = Some(r#"A cookie with the session_id.
-            However, you are also able pass it in as a header using Header Name of Authorization then putting `Session` as the schema and the session_id as the next parameter
-            Authorization: Session {session_id}"#.to_string());
+                However, you are also able pass it in as a header using Header Name of Authorization then putting `Session` as the schema and the session_id as the next parameter
+                Authorization: Session {session_id}"#.to_string());
             components.add_security_scheme(
                 "session",
                 SecurityScheme::ApiKey(ApiKey::Cookie(session_value)),
+            );
+            components.add_security_scheme(
+                "token",
+                SecurityScheme::Http(
+                    Http::builder()
+                        .description(Some("Bearer Token Or session_key"))
+                        .build(),
+                ),
             );
         }
     }

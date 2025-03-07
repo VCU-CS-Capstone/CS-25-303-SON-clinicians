@@ -1,10 +1,10 @@
 use axum::{
+    Json,
     extract::{Request, State},
     response::Response,
-    Json,
 };
 use http::Uri;
-use serde::{ser::SerializeStruct, Serialize};
+use serde::{Serialize, ser::SerializeStruct};
 use tower_http::cors::CorsLayer;
 use tracing::instrument;
 use utoipa::ToSchema;
@@ -17,7 +17,7 @@ pub mod researcher;
 pub mod user;
 use crate::config::EnabledFeatures;
 
-use super::{error::APIErrorResponse, utils::response::builder::ResponseBuilder, SiteState};
+use super::{SiteState, error::APIErrorResponse, utils::response::builder::ResponseBuilder};
 #[derive(Debug, Clone, Serialize, ToSchema)]
 #[schema(examples(Instance::example))]
 pub struct Instance {

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::database::{prelude::*, PaginatedResponse};
+use crate::database::{PaginatedResponse, prelude::*};
 use chrono::{Local, NaiveDate};
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
@@ -326,8 +326,8 @@ mod tests {
 
     use crate::{
         database::{
-            red_cap::participants::{NewMedication, NewParticipant, ParticipantMedications},
             DBError,
+            red_cap::participants::{NewMedication, NewParticipant, ParticipantMedications},
         },
         utils::testing::config::testing::{get_testing_db, no_db_connection},
     };

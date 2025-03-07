@@ -5,18 +5,20 @@ use tracing::{debug, error, info, instrument, warn};
 use crate::{
     database::red_cap::{
         case_notes::{
-            new::{NewCaseNote, NewCaseNoteHealthMeasures},
             CaseNote,
+            new::{NewCaseNote, NewCaseNoteHealthMeasures},
         },
         participants::{
-            goals::{NewParticipantGoal, NewParticipantGoalsSteps},
             NewDemographics, NewHealthOverview, NewMedication, NewParticipant, ParticipantType,
             Participants,
+            goals::{NewParticipantGoal, NewParticipantGoalsSteps},
         },
     },
     red_cap::{
+        RedCapExportDataType,
         api::{ExportOptions, Fields, Forms, RedcapClient},
         converter::{
+            RedCapConverter,
             case_notes::{
                 OtherCaseNoteData, RedCapBloodPressureReadings, RedCapCaseNoteBase,
                 RedCapHealthMeasures,
@@ -26,10 +28,8 @@ use crate::{
             participants::{
                 RedCapHealthOverview, RedCapParticipant, RedCapParticipantDemographics,
             },
-            RedCapConverter,
         },
         processing::process_flat_json,
-        RedCapExportDataType,
     },
 };
 

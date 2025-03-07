@@ -1,9 +1,9 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
+    Data, DeriveInput, Ident, LitInt, LitStr, Result, Variant,
     parse::{Parse, ParseStream},
     spanned::Spanned,
-    Data, DeriveInput, Ident, LitInt, LitStr, Result, Variant,
 };
 mod kw {
     syn::custom_keyword!(enum_index);

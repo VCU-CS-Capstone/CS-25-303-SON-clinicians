@@ -1,4 +1,4 @@
-use sqlx::{prelude::FromRow, PgPool};
+use sqlx::{PgPool, prelude::FromRow};
 
 use crate::database::prelude::*;
 pub mod token;

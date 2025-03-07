@@ -2,8 +2,8 @@ use sqlx::PgPool;
 use thiserror::Error;
 
 use crate::database::{
-    red_cap::locations::{Locations, RedCapLocationRules},
     DBError,
+    red_cap::locations::{Locations, RedCapLocationRules},
 };
 pub mod case_notes;
 pub mod goals;

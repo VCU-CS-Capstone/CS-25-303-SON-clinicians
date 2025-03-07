@@ -52,11 +52,7 @@ mod chrono_utils {
 
     pub fn days_in_month(year: i32, month: u32) -> u32 {
         if month == 2 {
-            if is_leap_year(year) {
-                29
-            } else {
-                28
-            }
+            if is_leap_year(year) { 29 } else { 28 }
         } else if month == 4 || month == 6 || month == 9 || month == 11 {
             30
         } else {
@@ -71,8 +67,8 @@ mod chrono_utils {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::rngs::StdRng;
     use rand::SeedableRng;
+    use rand::rngs::StdRng;
 
     #[test]
     fn test_rand_date_with_range() {

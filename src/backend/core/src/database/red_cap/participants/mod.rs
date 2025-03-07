@@ -1,13 +1,14 @@
 use crate::{
     database::prelude::*,
     red_cap::{
+        EducationLevel, Ethnicity, Gender, HealthInsurance, PreferredLanguage, Programs, Race,
+        SeenAtVCUHS, Status,
         converter::participants::{
             RedCapHealthOverview, RedCapParticipant, RedCapParticipantDemographics,
         },
-        EducationLevel, Ethnicity, Gender, HealthInsurance, PreferredLanguage, Programs, Race,
-        SeenAtVCUHS, Status,
     },
 };
+pub mod stats;
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
 pub mod goals;

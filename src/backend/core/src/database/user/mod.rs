@@ -1,6 +1,6 @@
 use std::{fmt::Debug, future::Future};
 
-use super::{prelude::*, PaginatedResponse};
+use super::{PaginatedResponse, prelude::*};
 use auth::UserAndPasswordAuth;
 use pg_extended_sqlx_queries::pagination::PaginationSupportingTool;
 use serde::{Deserialize, Serialize};

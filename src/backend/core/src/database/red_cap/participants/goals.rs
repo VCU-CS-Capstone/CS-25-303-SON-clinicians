@@ -7,7 +7,7 @@
 use crate::database::prelude::*;
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, Executor};
+use sqlx::{Executor, prelude::FromRow};
 use utoipa::ToSchema;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct NewParticipantGoal {

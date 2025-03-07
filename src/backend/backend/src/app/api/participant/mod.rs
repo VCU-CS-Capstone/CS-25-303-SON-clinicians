@@ -7,25 +7,25 @@ pub mod goals;
 pub mod medications;
 pub mod stats;
 use axum::{
+    Json,
     extract::{Path, Query, State},
     response::Response,
     routing::{get, post},
-    Json,
 };
 use cs25_303_core::database::{
+    CSPageParams, PaginatedResponse,
     red_cap::participants::{
-        health_overview::{HealthOverview, HealthOverviewType},
         ParticipantDemograhics, ParticipantDemograhicsType, ParticipantLookup,
         ParticipantLookupQuery, ParticipantType, Participants,
+        health_overview::{HealthOverview, HealthOverviewType},
     },
-    CSPageParams, PaginatedResponse,
 };
 
 use serde::Serialize;
 use tracing::instrument;
 use utoipa::{OpenApi, ToSchema};
 
-use crate::app::{error::InternalError, SiteState};
+use crate::app::{SiteState, error::InternalError};
 
 #[derive(OpenApi)]
 #[openapi(

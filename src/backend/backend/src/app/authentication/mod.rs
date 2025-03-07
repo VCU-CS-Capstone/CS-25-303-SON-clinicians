@@ -17,7 +17,7 @@
 
 use std::future::Future;
 
-use super::{error::IntoErrorResponse, utils::response::MissingPermission, SiteState};
+use super::{SiteState, error::IntoErrorResponse, utils::response::MissingPermission};
 use axum::{
     body::Body,
     extract::{FromRef, FromRequestParts},
@@ -25,8 +25,8 @@ use axum::{
 };
 use axum_extra::extract::cookie::Cookie;
 use cs25_303_core::database::{
-    user::{User, UserType},
     DBError,
+    user::{User, UserType},
 };
 use cs25_303_core::user::Permissions;
 use derive_more::derive::From;
@@ -245,19 +245,21 @@ impl AuthenticationRaw {
             AuthorizationHeader::Session { session } => {
                 AuthenticationRaw::session_cookie(&session, site)
             }
-            _ => AuthenticationRaw::NoIdentification,
+            AuthorizationHeader::Bearer { token } => {
+                AuthenticationRaw::session_cookie(&token, site)
+            }
         }
     }
 }
 
 pub mod utils {
     use cs25_303_core::database::user::{
+        User,
         auth::UserAndPasswordAuth,
         find_user_by_email_or_username_with_password_auth,
-        login::{add_login_attempt, AdditionalFootprint},
-        User,
+        login::{AdditionalFootprint, add_login_attempt},
     };
-    use sqlx::{types::Uuid, PgPool};
+    use sqlx::{PgPool, types::Uuid};
     use tracing::{debug, instrument};
 
     use super::AuthenticationError;
@@ -332,10 +334,10 @@ pub mod utils {
 
     pub mod password {
         use argon2::{
-            password_hash::{Salt, SaltString},
             Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+            password_hash::{Salt, SaltString},
         };
-        use rand::{rngs::OsRng, TryRngCore};
+        use rand::{TryRngCore, rngs::OsRng};
         use tracing::{debug, error, instrument};
 
         use crate::app::authentication::AuthenticationError;

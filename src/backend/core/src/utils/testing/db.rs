@@ -96,7 +96,7 @@ mod tests {
     use tracing::warn;
 
     use crate::{
-        database::{red_cap::Locations, DatabaseConfig},
+        database::{DatabaseConfig, red_cap::Locations},
         utils::testing::config::testing::{get_testing_config, no_testing_config},
     };
     #[ignore = "This is just a test to see if the testing is working"]

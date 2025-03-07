@@ -1,15 +1,16 @@
 mod config;
 pub mod red_cap;
 pub mod user;
-use std::ops::Deref;
-
 pub use config::*;
+use sqlx::Row;
+use std::ops::Deref;
 pub mod table_utils;
 use derive_more::{From, Into};
 use pg_extended_sqlx_queries::pagination::PageParams;
 use serde::{Deserialize, Serialize};
-use sqlx::{migrate::Migrator, postgres::PgConnectOptions, PgPool};
-use tracing::info;
+use sqlx::{FromRow, PgPool, migrate::Migrator, postgres::PgConnectOptions};
+use sqlx_postgres::PgRow;
+use tracing::{Span, debug, error, info, instrument};
 use utoipa::{IntoParams, ToSchema};
 pub mod queries;
 /// A bunch of re-exports to make it easier to use the database module.
@@ -19,7 +20,7 @@ pub mod prelude {
     pub use super::{DBError, DBResult};
     pub use chrono::{DateTime, FixedOffset, Local, NaiveDate};
 
-    pub use sqlx::{postgres::PgRow, prelude::*, FromRow, PgPool, Postgres, QueryBuilder};
+    pub use sqlx::{FromRow, PgPool, Postgres, QueryBuilder, postgres::PgRow, prelude::*};
 }
 pub static MIGRATOR: Migrator = sqlx::migrate!();
 #[derive(thiserror::Error, Debug)]
@@ -111,6 +112,46 @@ impl<T> PaginatedResponse<T> {
             total,
             data,
         }
+    }
+    #[instrument(
+        skip(result, page_params, total_entries_column),
+        fields(total_count, returned_items)
+    )]
+    pub fn from_rows(
+        result: Vec<PgRow>,
+        page_params: &PageParams,
+        total_entries_column: &str,
+    ) -> Result<PaginatedResponse<T>, sqlx::Error>
+    where
+        T: for<'r> FromRow<'r, PgRow>,
+    {
+        let mut total_count: Option<i64> = None;
+        let mut resulting_items: Vec<T> = Vec::with_capacity(result.len());
+        for item in result {
+            if total_count.is_none() {
+                let total_count_value = item.try_get(total_entries_column);
+                match total_count_value {
+                    Err(err) => {
+                        error!(?err, "Failed to get total count");
+                    }
+                    Ok(ok) => {
+                        debug!(?ok, "Got total count");
+                        total_count = Some(ok);
+                    }
+                }
+            }
+            let item = T::from_row(&item)?;
+            resulting_items.push(item);
+        }
+        Span::current().record("total_count", &total_count);
+        Span::current().record("returned_items", &resulting_items.len());
+        let result: PaginatedResponse<T> = PaginatedResponse::create_response(
+            resulting_items,
+            &page_params,
+            total_count.unwrap_or(0),
+        );
+
+        Ok(result)
     }
 }
 

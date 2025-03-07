@@ -1,9 +1,5 @@
 pub fn sanitize_string(s: String) -> Option<String> {
-    if s.trim().is_empty() {
-        None
-    } else {
-        Some(s)
-    }
+    if s.trim().is_empty() { None } else { Some(s) }
 }
 pub fn sanitize_string_return_trimmed(s: String) -> Option<String> {
     let s = s.trim();

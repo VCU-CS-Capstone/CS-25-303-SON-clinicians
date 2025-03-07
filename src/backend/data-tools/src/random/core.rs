@@ -2,12 +2,12 @@ use super::utils::RandDate;
 use chrono::{Duration, Local, NaiveDate};
 use cs25_303_core::{
     database::red_cap::participants::{
-        goals::{NewParticipantGoal, NewParticipantGoalsSteps},
         NewMedication,
+        goals::{NewParticipantGoal, NewParticipantGoalsSteps},
     },
     red_cap::{Gender, MedicationFrequency},
 };
-use rand::{seq::IndexedRandom, Rng};
+use rand::{Rng, seq::IndexedRandom};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tracing::{error, info};

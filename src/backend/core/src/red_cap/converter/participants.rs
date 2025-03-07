@@ -6,8 +6,8 @@ use crate::{
     database::red_cap::{
         locations::RedCapLocationRules,
         participants::{
-            health_overview::HealthOverview, NewDemographics, NewHealthOverview, NewParticipant,
-            ParticipantDemograhics, Participants,
+            NewDemographics, NewHealthOverview, NewParticipant, ParticipantDemograhics,
+            Participants, health_overview::HealthOverview,
         },
     },
     red_cap::{

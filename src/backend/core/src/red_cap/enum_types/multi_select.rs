@@ -1,5 +1,5 @@
 use crate::red_cap::RedCapExportDataType;
-use crate::red_cap::{utils::is_all_none, MultiSelectType, RedCapDataSet, RedCapEnum, RedCapType};
+use crate::red_cap::{MultiSelectType, RedCapDataSet, RedCapEnum, RedCapType, utils::is_all_none};
 use crate::utils::InvalidVariant;
 use chumsky::container::Seq;
 use cs25_303_macros::RedCapEnum;

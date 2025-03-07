@@ -1,7 +1,7 @@
 use ahash::{HashMap, HashMapExt};
 use reqwest::{
-    header::{HeaderValue, CONTENT_TYPE},
     Response, StatusCode, Url,
+    header::{CONTENT_TYPE, HeaderValue},
 };
 use serde_json::Value;
 use std::{fmt::Debug, num::ParseIntError};
@@ -185,13 +185,13 @@ mod tests {
         red_cap::{
             api::{ExportOptions, Fields, Forms, RedcapClient},
             converter::{
+                RedCapConverter,
                 case_notes::{OtherCaseNoteData, RedCapCaseNoteBase, RedCapHealthMeasures},
                 goals::RedCapCompleteGoals,
                 medications::RedCapMedication,
                 participants::{
                     RedCapHealthOverview, RedCapParticipant, RedCapParticipantDemographics,
                 },
-                RedCapConverter,
             },
             processing::process_flat_json,
         },

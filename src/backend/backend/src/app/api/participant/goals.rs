@@ -4,15 +4,15 @@ use axum::{
     routing::get,
 };
 use cs25_303_core::database::red_cap::participants::{
-    goals::{ParticipantGoals, ParticipantGoalsSteps},
     Participants,
+    goals::{ParticipantGoals, ParticipantGoalsSteps},
 };
 use tracing::instrument;
 use utoipa::OpenApi;
 
 use crate::app::{
-    authentication::Authentication, error::InternalError,
-    utils::response::builder::ResponseBuilder, SiteState,
+    SiteState, authentication::Authentication, error::InternalError,
+    utils::response::builder::ResponseBuilder,
 };
 
 #[derive(OpenApi)]
@@ -36,7 +36,7 @@ pub fn participant_goals() -> axum::Router<SiteState> {
     get,
     path = "/{participant_id}/all",
     params(
-        ("participant_id", Path,  description = "Participant ID"),
+        ("participant_id" = i32, Path,  description = "Participant ID"),
     ),
     responses(
         (status = 200, description = "goals for participant", body = Vec<ParticipantGoals>),
@@ -67,7 +67,7 @@ pub async fn get_participants_goals(
     get,
     path = "/{goal_id}/steps",
     params(
-        ("goal_id", Path,  description = "Goal ID"),
+        ("goal_id"= i32, Path,  description = "Goal ID"),
     ),
     responses(
         (status = 200, description = "Steps for Goal", body = Vec<ParticipantGoalsSteps>),
@@ -97,9 +97,9 @@ pub async fn get_steps_for_goal(
 /// These should be flagged for review
 #[utoipa::path(
     get,
-    path = "/{id}/steps/without_goal",
+    path = "/{participant_id}/steps/without_goal",
     params(
-        ("id", Path,  description = "Participant ID"),
+        ("participant_id" = i32, Path,  description = "Participant ID"),
     ),
     responses(
         (status = 200, description = "Steps without goal", body = Vec<ParticipantGoalsSteps>),
@@ -107,7 +107,6 @@ pub async fn get_steps_for_goal(
     ),
     security(
         ("session" = []),
-
     )
 )]
 #[instrument]

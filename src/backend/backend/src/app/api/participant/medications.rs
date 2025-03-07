@@ -4,16 +4,16 @@ use axum::{
     routing::get,
 };
 use cs25_303_core::database::{
-    red_cap::participants::{ParticipantMedications, Participants},
     CSPageParams, PaginatedResponse,
+    red_cap::participants::{ParticipantMedications, Participants},
 };
 use serde::Deserialize;
 use tracing::instrument;
 use utoipa::{IntoParams, OpenApi};
 
 use crate::app::{
-    authentication::Authentication, error::InternalError,
-    utils::response::builder::ResponseBuilder, SiteState,
+    SiteState, authentication::Authentication, error::InternalError,
+    utils::response::builder::ResponseBuilder,
 };
 
 #[derive(OpenApi)]
@@ -34,7 +34,7 @@ pub fn participant_medications() -> axum::Router<SiteState> {
     summary = "Get all medications for a participant",
     description = "Returns all medications for a participant. Please use the search endpoint to get a paginated list of medications",
     params(
-        ("participant_id", Path,  description = "Participant ID"),
+        ("participant_id" = i32, Path,  description = "Participant ID"),
     ),
     responses(
         (status = 200, description = "medications for participant", body = Vec<ParticipantMedications>),
@@ -76,7 +76,7 @@ pub struct MedicationSearch {
     path = "/{participant_id}/search",
     summary = "Search for medications for a participant",
     params(
-        ("participant_id", Path,  description = "Participant ID"),
+        ("participant_id" = i32, Path,  description = "Participant ID"),
         CSPageParams,
         MedicationSearch
     ),

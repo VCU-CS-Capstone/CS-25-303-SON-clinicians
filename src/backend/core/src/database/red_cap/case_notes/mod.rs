@@ -2,11 +2,11 @@ pub mod new;
 pub mod queries;
 use std::fmt::Debug;
 
-use crate::database::{prelude::*, PaginatedResponse};
+use crate::database::{PaginatedResponse, prelude::*};
+use crate::red_cap::VisitType;
 use crate::red_cap::converter::case_notes::{
     OtherCaseNoteData, RedCapCaseNoteBase, RedCapHealthMeasures,
 };
-use crate::red_cap::VisitType;
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use new::NewBloodPressure;
 use pg_extended_sqlx_queries::pagination::{PageParams, PaginationSupportingTool};
@@ -292,9 +292,22 @@ impl CaseNoteHealthMeasures {
             .map_err(DBError::from)
     }
 }
-#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Type, ToSchema, EnumIter)]
+#[derive(
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+    Type,
+    ToSchema,
+    EnumIter,
+    Default,
+    ValueExprType,
+)]
 #[sqlx(type_name = "VARCHAR")]
 pub enum BloodPressureType {
+    #[default]
     Sit,
     /// Orthostatic Blood Pressure
     Stand,

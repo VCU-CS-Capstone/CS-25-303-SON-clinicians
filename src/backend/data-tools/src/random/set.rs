@@ -2,23 +2,23 @@ use ahash::HashMap;
 use chrono::{Local, NaiveDate};
 use cs25_303_core::{
     database::red_cap::{
-        case_notes::{new::NewBloodPressure, BloodPressureType},
+        case_notes::{BloodPressureType, new::NewBloodPressure},
         locations::Locations,
         participants::{
-            goals::{NewParticipantGoal, NewParticipantGoalsSteps},
             NewDemographics, NewHealthOverview, NewMedication,
+            goals::{NewParticipantGoal, NewParticipantGoalsSteps},
         },
     },
     red_cap::{
         Ethnicity, Gender, HealthInsurance, PreferredLanguage, Programs, Race, Status, VisitType,
     },
 };
-use rand::{seq::IndexedRandom, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, seq::IndexedRandom};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::{info, warn};
 
-use super::{utils::RandDate, RandomCompleteGoal, RandomMedication, RandomParticipant};
+use super::{RandomCompleteGoal, RandomMedication, RandomParticipant, utils::RandDate};
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, Default)]
 pub enum WeightCategory {
     Underweight,

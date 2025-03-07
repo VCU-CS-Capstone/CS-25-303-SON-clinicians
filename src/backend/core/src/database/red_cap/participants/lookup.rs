@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
 use crate::database::{
+    PaginatedResponse,
     prelude::*,
     red_cap::case_notes::{CaseNote, CaseNoteColumn},
-    PaginatedResponse,
 };
 use pg_extended_sqlx_queries::pagination::{
     PageParams, PaginationOwnedSupportingTool, PaginationSupportingTool,

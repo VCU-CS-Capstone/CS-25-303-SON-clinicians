@@ -2,10 +2,10 @@ use std::fmt::Display;
 
 use axum::extract::{FromRef, FromRequestParts};
 use derive_more::derive::{From, Into};
-use http::{header::InvalidHeaderValue, request::Parts, HeaderValue};
+use http::{HeaderValue, header::InvalidHeaderValue, request::Parts};
 use sqlx::types::Uuid;
 
-use crate::app::{error::MissingInternelExtension, SiteState};
+use crate::app::{SiteState, error::MissingInternelExtension};
 
 #[derive(Debug, Clone, Copy, From, Into)]
 pub struct RequestId(pub Uuid);

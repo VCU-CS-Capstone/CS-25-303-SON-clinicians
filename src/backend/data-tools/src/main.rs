@@ -6,7 +6,7 @@ use human_panic::setup_panic;
 use pull::PullParticipant;
 use random::RandomParticipantsCommand;
 use tracing::{info, level_filters::LevelFilter};
-use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt, Layer};
+use tracing_subscriber::{Layer, filter, layer::SubscriberExt, util::SubscriberInitExt};
 pub mod config;
 pub mod pull;
 pub mod push;

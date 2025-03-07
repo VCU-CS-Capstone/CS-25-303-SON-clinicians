@@ -3,11 +3,11 @@ mod requests;
 mod response;
 pub use response::*;
 
-pub use header::HeaderValueExt;
+pub use header::*;
 pub use requests::*;
 
 pub mod base64_utils {
-    use base64::{engine::general_purpose::STANDARD, DecodeError, Engine};
+    use base64::{DecodeError, Engine, engine::general_purpose::STANDARD};
     use tracing::instrument;
     #[instrument(skip(input), name = "base64_utils::decode")]
     #[inline(always)]

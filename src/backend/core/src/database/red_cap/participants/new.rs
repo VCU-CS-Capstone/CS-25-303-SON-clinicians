@@ -10,9 +10,9 @@ use crate::{
 };
 
 use super::{
-    health_overview::{HealthOverview, HealthOverviewColumn},
     DBError, ParticipantDemograhics, ParticipantDemograhicsColumn, Participants,
     ParticipantsColumn, TableType,
+    health_overview::{HealthOverview, HealthOverviewColumn},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]

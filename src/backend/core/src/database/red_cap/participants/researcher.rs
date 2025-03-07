@@ -1,5 +1,24 @@
 use std::fmt::Debug;
 
+use crate::{
+    database::{
+        PaginatedResponse,
+        prelude::*,
+        queries::{ItemOrArray, NumberQuery},
+        red_cap::{
+            case_notes::{
+                BloodPressureType, CaseNote, CaseNoteColumn, CaseNoteHealthMeasures,
+                CaseNoteHealthMeasuresColumn, HealthMeasureBloodPressure,
+                HealthMeasureBloodPressureColumn,
+            },
+            participants::health_overview::{HealthOverview, HealthOverviewColumn},
+        },
+    },
+    red_cap::{
+        EducationLevel, Gender, HealthInsurance, PreferredLanguage, Programs, Race, SeenAtVCUHS,
+        Status,
+    },
+};
 use pg_extended_sqlx_queries::pagination::{
     PageParams, PaginationOwnedSupportingTool, PaginationSupportingTool,
 };
@@ -8,19 +27,6 @@ use sqlx::{PgPool, prelude::FromRow};
 use tabled::Tabled;
 use tracing::{Level, debug, error, event, instrument, trace, warn};
 use utoipa::ToSchema;
-
-use crate::{
-    database::{
-        PaginatedResponse,
-        prelude::*,
-        queries::{ItemOrArray, NumberQuery},
-        red_cap::case_notes::{CaseNote, CaseNoteColumn},
-    },
-    red_cap::{
-        EducationLevel, Gender, HealthInsurance, PreferredLanguage, Programs, Race, SeenAtVCUHS,
-        Status,
-    },
-};
 
 use super::{
     ParticipantDemograhics, ParticipantDemograhicsColumn, Participants, ParticipantsColumn,
@@ -68,13 +74,20 @@ impl TableQuery for ResearcherQueryResult {
         ]
     }
 }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema, Default)]
+pub struct ResearcherQueryBloodPressure {
+    #[serde(alias = "type", default)]
+    pub reading_type: BloodPressureType,
+    pub systolic: Option<NumberQuery<i16>>,
+    pub diastolic: Option<NumberQuery<i16>>,
+}
 /// The researcher query
 ///
 /// # TODO
 /// - Add any of filter for Race, Gender, Education, Language, Health Insurance
 /// - Mobility Devices Parameters
 /// - (LOW Priority) Medication Parameters
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
 #[schema(examples(
     ResearcherQuery::example_one,
     ResearcherQuery::example_two,
@@ -106,6 +119,13 @@ pub struct ResearcherQuery {
     pub get_visit_history: bool,
     /// Get the last visited date
     pub get_last_visited: bool,
+
+    /// BMI Query
+    ///
+    /// Note: This is very expensive
+    pub bmi: Option<NumberQuery<f32>>,
+    /// Blood Pressure Query
+    pub blood_pressure: Option<ResearcherQueryBloodPressure>,
 }
 impl ResearcherQuery {
     fn example_one() -> Self {
@@ -146,6 +166,8 @@ impl Default for ResearcherQuery {
             get_visit_history: false,
             get_last_visited: false,
             race: None,
+            bmi: None,
+            blood_pressure: None,
         }
     }
 }
@@ -169,24 +191,104 @@ impl ResearcherQuery {
             get_visit_history,
             get_last_visited,
             race,
+            bmi,
+            blood_pressure,
         } = self;
+        // TODO: Improve this. This is very messy
+        let mut query = if let Some(ResearcherQueryBloodPressure {
+            reading_type,
+            systolic,
+            diastolic,
+        }) =
+            blood_pressure.filter(|bp| bp.systolic.is_some() || bp.diastolic.is_some())
+        {
+            let mut query = SelectQueryBuilder::new(HealthMeasureBloodPressure::table_name());
+
+            query
+                .distinct()
+                .join(
+                    CaseNoteHealthMeasures::table_name(),
+                    JoinType::Full,
+                    |join| {
+                        join.on(CaseNoteHealthMeasuresColumn::Id
+                            .equals(HealthMeasureBloodPressureColumn::HealthMeasureId))
+                    },
+                )
+                .join(CaseNote::table_name(), JoinType::Full, |join| {
+                    join.on(CaseNoteColumn::Id.equals(CaseNoteHealthMeasuresColumn::CaseNoteId))
+                })
+                .join(Participants::table_name(), JoinType::Full, |join| {
+                    join.on(ParticipantsColumn::Id.equals(CaseNoteColumn::ParticipantId))
+                })
+                .filter(HealthMeasureBloodPressureColumn::BloodPressureType.equals(reading_type));
+            if let Some(systolic) = systolic {
+                query.filter(systolic.filter(HealthMeasureBloodPressureColumn::Systolic));
+            }
+            if let Some(diastolic) = diastolic {
+                query.filter(diastolic.filter(HealthMeasureBloodPressureColumn::Diastolic));
+            }
+            if let Some(bmi) = bmi {
+                query
+                    .filter(
+                        CaseNoteHealthMeasuresColumn::Weight
+                            .is_not_null()
+                            .and(HealthOverviewColumn::Height.is_not_null()),
+                    )
+                    .filter(
+                        bmi.complex_value_filter(
+                            CaseNoteHealthMeasuresColumn::Weight
+                                .multiply(703f32)
+                                .divide(HealthOverviewColumn::Height.pow(2)),
+                        ),
+                    );
+            }
+            query
+        } else if let Some(bmi) = bmi {
+            let mut query = SelectQueryBuilder::new(CaseNoteHealthMeasures::table_name());
+            query
+                .distinct()
+                .join(CaseNote::table_name(), JoinType::Full, |join| {
+                    join.on(CaseNoteColumn::Id.equals(CaseNoteHealthMeasuresColumn::CaseNoteId))
+                })
+                .join(Participants::table_name(), JoinType::Full, |join| {
+                    join.on(ParticipantsColumn::Id.equals(CaseNoteColumn::ParticipantId))
+                })
+                .join(HealthOverview::table_name(), JoinType::Full, |join| {
+                    join.on(HealthOverviewColumn::ParticipantId.equals(ParticipantsColumn::Id))
+                })
+                .filter(
+                    CaseNoteHealthMeasuresColumn::Weight
+                        .is_not_null()
+                        .and(HealthOverviewColumn::Height.is_not_null()),
+                )
+                .filter(
+                    bmi.complex_value_filter(
+                        CaseNoteHealthMeasuresColumn::Weight
+                            .multiply(703f32)
+                            .divide(HealthOverviewColumn::Height.pow(2)),
+                    ),
+                );
+
+            query
+        } else {
+            SelectQueryBuilder::new(Participants::table_name())
+        };
         if get_last_visited && get_visit_history {
             warn!(
                 "get_last_visited and get_visit_history are both true. This is really unnecessary"
             );
         }
-        let mut query = SelectQueryBuilder::with_columns(
-            Participants::table_name(),
-            vec![
+
+        query
+            .select_many(vec![
                 ParticipantsColumn::RedCapId.dyn_column(),
                 ParticipantsColumn::FirstName.dyn_column(),
                 ParticipantsColumn::LastName.dyn_column(),
                 ParticipantsColumn::PhoneNumberOne.dyn_column(),
                 ParticipantsColumn::PhoneNumberTwo.dyn_column(),
                 ParticipantsColumn::OtherContact.dyn_column(),
-            ],
-        );
-        query.select(ParticipantsColumn::Id.alias("participant_id"));
+            ])
+            .select(ParticipantsColumn::Id.alias("participant_id"));
 
         query
             .join(
@@ -198,6 +300,11 @@ impl ResearcherQuery {
                     )
                 },
             )
+            .join(HealthOverview::table_name(), JoinType::Inner, |join| {
+                join.on(
+                    HealthOverviewColumn::ParticipantId.equals(ParticipantsColumn::Id.dyn_column())
+                )
+            })
             .select(
                 SqlFunctionBuilder::count_all()
                     .then(SqlFunctionBuilder::over())
@@ -271,6 +378,7 @@ impl ResearcherQuery {
                     .alias("last_visited"),
             );
         }
+
         let mut total_count: Option<i64> = None;
         let result = query.query().fetch_all(database).await?;
         let mut resulting_items = Vec::with_capacity(result.len());
@@ -368,26 +476,101 @@ mod tests {
         }];
 
         for query in query {
-            let result = query
-                .clone()
-                .query(
-                    PageParams {
-                        page_number: 1,
-                        page_size: 10,
-                    },
-                    &database,
-                )
-                .await
-                .expect("Failed to Execute Researcher Query");
-
-            if result.is_empty() {
-                eprintln!("No participant found. But it might be expected");
-                continue;
-            }
-            println!("Found {} participants from {:?}", result.len(), query);
-            println!("{}", Table::new(result.iter()));
+            execute_query(query, &database).await?;
         }
 
+        Ok(())
+    }
+
+    #[ignore]
+    #[tokio::test]
+    async fn test_blood_pressure() -> anyhow::Result<()> {
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
+        let database = config.connect_to_db().await?;
+        let query: Vec<ResearcherQuery> = vec![ResearcherQuery {
+            blood_pressure: Some(ResearcherQueryBloodPressure {
+                reading_type: BloodPressureType::Sit,
+                systolic: Some(">=120".parse().unwrap()),
+                diastolic: Some(">=80".parse().unwrap()),
+            }),
+            ..Default::default()
+        }];
+
+        for query in query {
+            execute_query(query, &database).await?;
+        }
+
+        Ok(())
+    }
+    #[ignore]
+    #[tokio::test]
+    async fn test_bmi() -> anyhow::Result<()> {
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
+        let database = config.connect_to_db().await?;
+        let query: Vec<ResearcherQuery> = vec![ResearcherQuery {
+            bmi: Some(">=25".parse().unwrap()),
+            ..Default::default()
+        }];
+
+        for query in query {
+            execute_query(query, &database).await?;
+        }
+
+        Ok(())
+    }
+
+    #[ignore]
+    #[tokio::test]
+    async fn bmi_and_bp() -> anyhow::Result<()> {
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
+        let database = config.connect_to_db().await?;
+        let query: Vec<ResearcherQuery> = vec![ResearcherQuery {
+            bmi: Some(">=25".parse().unwrap()),
+            blood_pressure: Some(ResearcherQueryBloodPressure {
+                reading_type: BloodPressureType::Sit,
+                systolic: Some(">=120".parse().unwrap()),
+                diastolic: Some(">=80".parse().unwrap()),
+            }),
+            ..Default::default()
+        }];
+
+        for query in query {
+            execute_query(query, &database).await?;
+        }
+
+        Ok(())
+    }
+    async fn execute_query(query: ResearcherQuery, database: &PgPool) -> anyhow::Result<()> {
+        let result = query
+            .clone()
+            .query(
+                PageParams {
+                    page_number: 1,
+                    page_size: 10,
+                },
+                &database,
+            )
+            .await
+            .expect("Failed to Execute Researcher Query");
+
+        if result.is_empty() {
+            eprintln!("No participant found. But it might be expected");
+            return Ok(());
+        }
+        println!("Found {} participants from {:?}", result.len(), query);
+        println!("{}", Table::new(result.iter()));
         Ok(())
     }
 }

@@ -1,26 +1,24 @@
-use std::net::SocketAddr;
-
 use axum::{
-    extract::{ConnectInfo, State},
-    response::{IntoResponse, Response},
     Json,
+    extract::State,
+    response::{IntoResponse, Response},
 };
 use axum_extra::{
+    TypedHeader,
     extract::cookie::{Cookie, Expiration},
     headers::UserAgent,
-    TypedHeader,
 };
 use cs25_303_core::database::user::login::AdditionalFootprint;
-use http::{header::SET_COOKIE, StatusCode};
+use http::{StatusCode, header::SET_COOKIE};
 use tracing::{debug, instrument};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::app::{
-    authentication::{utils::verify_login, Authentication, MeWithSession},
+    SiteState,
+    authentication::{Authentication, MeWithSession, utils::verify_login},
     error::InternalError,
     request_logging::RequestId,
-    utils::response::builder::ResponseBuilder,
-    SiteState,
+    utils::{ip_addr::ConnectionIpAddr, response::builder::ResponseBuilder},
 };
 
 #[derive(OpenApi)]
@@ -63,7 +61,7 @@ pub async fn login(
     State(site): State<SiteState>,
     TypedHeader(user_agent): TypedHeader<UserAgent>,
     request_id: RequestId,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    ConnectionIpAddr(ip_addr): ConnectionIpAddr,
     Json(login): axum::Json<LoginPasswordBody>,
 ) -> Result<Response, InternalError> {
     if site.authentication.password.is_none() {
@@ -72,6 +70,12 @@ pub async fn login(
             .body("Password Authentication is not enabled".into())
             .unwrap());
     }
+    let Some(addr) = ip_addr else {
+        return Ok(Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body("Unable to extract requesting IP address".into())
+            .unwrap());
+    };
     let LoginPasswordBody {
         email_or_username,
         password,

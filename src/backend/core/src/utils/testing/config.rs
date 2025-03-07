@@ -7,10 +7,10 @@ use serde::{Deserialize, Serialize};
 use tracing::error;
 use tracing::info;
 use tracing::level_filters::LevelFilter;
+use tracing_subscriber::Layer;
 use tracing_subscriber::filter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::Layer;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CoreTestingConfig {
     pub database: Option<DBTestingConfig>,

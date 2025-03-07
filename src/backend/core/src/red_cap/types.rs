@@ -10,7 +10,7 @@ use ahash::{HashMap, HashMapExt};
 use strum::IntoEnumIterator;
 use tracing::warn;
 
-use super::{api::utils::CheckboxValue, MultiSelect, RedCapDataSet};
+use super::{MultiSelect, RedCapDataSet, api::utils::CheckboxValue};
 
 pub trait RedCapEnum {
     /// To Prevent Obscure Bugs. It will return None

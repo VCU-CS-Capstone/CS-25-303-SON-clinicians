@@ -75,7 +75,7 @@ pub struct Record {
     pub value: String,
 }
 pub mod fix_red_cap_bad_data_format {
-    use serde::{de::Visitor, Deserialize, Deserializer};
+    use serde::{Deserialize, Deserializer, de::Visitor};
 
     pub struct ValueVisitor;
     impl Visitor<'_> for ValueVisitor {

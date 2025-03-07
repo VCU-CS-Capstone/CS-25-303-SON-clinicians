@@ -1,5 +1,5 @@
 use chrono::{DateTime, Duration, FixedOffset, Local};
-use cs25_303_core::database::{self, user::User, DBError};
+use cs25_303_core::database::{self, DBError, user::User};
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
 use tracing::error;

@@ -6,7 +6,7 @@ mod multi_select;
 pub use multi_select::*;
 use utoipa::ToSchema;
 
-use crate::red_cap::{utils::is_all_none, RedCapDataSet, RedCapEnum, RedCapType};
+use crate::red_cap::{RedCapDataSet, RedCapEnum, RedCapType, utils::is_all_none};
 
 /// The two Program Types that are available
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, RedCapEnum, ToSchema)]

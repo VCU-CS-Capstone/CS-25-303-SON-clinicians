@@ -4,7 +4,7 @@ use axum::{body::Body, response::IntoResponse};
 use http::header::CONTENT_TYPE;
 use thiserror::Error;
 mod api;
-use super::utils::response::{builder::ResponseBuilder, PLAIN_TEXT_MEDIA_TYPE};
+use super::utils::response::{PLAIN_TEXT_MEDIA_TYPE, builder::ResponseBuilder};
 pub use api::APIErrorResponse;
 pub mod bad_request;
 pub trait IntoErrorResponse: Error + Send + Sync {

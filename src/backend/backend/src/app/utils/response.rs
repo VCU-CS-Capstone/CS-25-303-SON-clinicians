@@ -7,8 +7,8 @@ use http::HeaderValue;
 use serde::Serialize;
 use thiserror::Error;
 use utoipa::{
-    openapi::{example::ExampleBuilder, response, schema::RefBuilder},
     ToSchema,
+    openapi::{example::ExampleBuilder, response, schema::RefBuilder},
 };
 
 use crate::app::{authentication::PermissionCheck, error::APIErrorResponse};
@@ -92,8 +92,8 @@ where
     }
 }
 /// Generate examples for each permission required by the PermissionCheck
-fn examples_from_permission_check<P: PermissionCheck>(
-) -> impl Iterator<Item = (String, ExampleBuilder)> {
+fn examples_from_permission_check<P: PermissionCheck>()
+-> impl Iterator<Item = (String, ExampleBuilder)> {
     P::permissions_required().iter().map(|permission| {
         let response: APIErrorResponse<&Permissions, ()> = APIErrorResponse {
             message: MISSING_PERMISSION_MESSAGE.into(),

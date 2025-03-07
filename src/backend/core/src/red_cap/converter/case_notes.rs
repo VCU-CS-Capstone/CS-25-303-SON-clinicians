@@ -7,8 +7,8 @@ use tracing::{debug, error, info, warn};
 use crate::{
     database::red_cap::{
         case_notes::{
-            new::{NewBloodPressure, NewCaseNote, NewCaseNoteHealthMeasures},
             BloodPressureType, CaseNote, CaseNoteHealthMeasures, HealthMeasureBloodPressure,
+            new::{NewBloodPressure, NewCaseNote, NewCaseNoteHealthMeasures},
         },
         locations::RedCapLocationRules,
         questions::{Question, QuestionDataValue, QuestionOptions, QuestionType},

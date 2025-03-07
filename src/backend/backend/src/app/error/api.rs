@@ -3,7 +3,7 @@ use std::{
     fmt::{Debug, Display},
 };
 
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{Serialize, Serializer, ser::SerializeMap};
 use utoipa::ToSchema;
 
 #[derive(Debug, ToSchema)]

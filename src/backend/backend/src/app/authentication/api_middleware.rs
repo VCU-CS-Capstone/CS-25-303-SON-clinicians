@@ -1,8 +1,8 @@
 use super::header::{AuthorizationHeader, InvalidAuthorizationHeader};
+use crate::app::SiteState;
 use crate::app::authentication::AuthenticationRaw;
 use crate::app::error::InternalError;
 use crate::app::request_logging::{RequestId, RequestSpan};
-use crate::app::SiteState;
 use crate::utils::HeaderValueExt;
 use axum::body::Body;
 use axum_extra::extract::CookieJar;
@@ -20,7 +20,7 @@ use std::{
 use tower::Layer;
 use tower_service::Service;
 use tracing::field::Empty;
-use tracing::{info, info_span, trace, Span};
+use tracing::{Span, info, info_span, trace};
 #[derive(Debug, Clone, From)]
 pub struct AuthenticationLayer(pub SiteState);
 

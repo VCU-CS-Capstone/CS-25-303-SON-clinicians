@@ -1,14 +1,16 @@
 use axum::{
+    Json,
     extract::{Query, State},
     response::Response,
     routing::post,
-    Json,
 };
 use cs25_303_core::{
     database::{
-        queries::{ItemOrArray, NumberQuery},
-        red_cap::participants::{ResearcherQuery, ResearcherQueryResult},
         CSPageParams, PaginatedResponse,
+        queries::{ItemOrArray, NumberQuery},
+        red_cap::participants::{
+            ResearcherQuery, ResearcherQueryBloodPressure, ResearcherQueryResult,
+        },
     },
     red_cap::{EducationLevel, PreferredLanguage, Programs},
 };
@@ -16,8 +18,8 @@ use tracing::instrument;
 use utoipa::OpenApi;
 
 use crate::app::{
-    authentication::Authentication, error::InternalError,
-    utils::response::builder::ResponseBuilder, SiteState,
+    SiteState, authentication::Authentication, error::InternalError,
+    utils::response::builder::ResponseBuilder,
 };
 
 #[derive(OpenApi)]
@@ -32,7 +34,8 @@ use crate::app::{
          PreferredLanguage,
          EducationLevel,
          Programs,
-         ItemOrArray<i32>
+         ItemOrArray<i32>,
+         ResearcherQueryBloodPressure
         )
     ),
 )]

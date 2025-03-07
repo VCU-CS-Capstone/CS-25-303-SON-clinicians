@@ -3,12 +3,12 @@ use std::borrow::Cow;
 use chrono::{DateTime, FixedOffset};
 use rust_embed::Embed;
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, PgPool};
+use sqlx::{PgPool, prelude::FromRow};
 use tracing::{debug, error, info};
 
 use super::{
-    new::{NewQuestion, NewQuestionCategory, NewQuestionOptions},
     DBResult,
+    new::{NewQuestion, NewQuestionCategory, NewQuestionOptions},
 };
 /// Table name: _default_questions
 #[derive(Debug, FromRow)]

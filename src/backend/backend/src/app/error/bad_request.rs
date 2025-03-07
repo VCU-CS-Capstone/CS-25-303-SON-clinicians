@@ -1,7 +1,7 @@
 use axum::body::Body;
 use axum::response::Response;
-use http::header::ToStrError;
 use http::StatusCode;
+use http::header::ToStrError;
 use thiserror::Error;
 
 use super::IntoErrorResponse;

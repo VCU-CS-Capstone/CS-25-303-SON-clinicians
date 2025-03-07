@@ -8,7 +8,7 @@ use ahash::{HashMap, HashMapExt};
 use derive_more::derive::From;
 pub use otel::*;
 use serde::{Deserialize, Serialize};
-use tracing::{level_filters::LevelFilter, Level};
+use tracing::{Level, level_filters::LevelFilter};
 use tracing_appender::rolling::Rotation;
 use tracing_subscriber::{
     filter::Targets,

@@ -4,14 +4,14 @@ use axum::{
     routing::get,
 };
 use cs25_303_core::database::red_cap::{
-    case_notes::{queries::CaseNoteListItem, CaseNoteType},
+    case_notes::{CaseNoteType, queries::CaseNoteListItem},
     participants::Participants,
 };
 use tracing::instrument;
 use utoipa::OpenApi;
 
 use crate::{
-    app::{authentication::Authentication, error::InternalError, SiteState},
+    app::{SiteState, authentication::Authentication, error::InternalError},
     utils::{not_found_response, ok_json_response},
 };
 

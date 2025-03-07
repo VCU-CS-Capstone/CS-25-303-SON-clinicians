@@ -1,5 +1,5 @@
-use http::{header::ToStrError, HeaderValue};
-use tracing::error;
+use http::{HeaderName, HeaderValue, header::ToStrError};
+use tracing::{error, warn};
 
 /// Extension trait for [http::HeaderValue]
 pub trait HeaderValueExt {
@@ -36,5 +36,23 @@ impl HeaderValueExt for HeaderValue {
     {
         let value = self.to_string()?;
         T::try_from(value)
+    }
+}
+pub trait HeaderMapExt {
+    fn get_string(&self, key: HeaderName) -> Option<String>;
+}
+
+impl HeaderMapExt for http::HeaderMap {
+    fn get_string(&self, header: HeaderName) -> Option<String> {
+        self.get(&header)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| {
+                if v.is_empty() {
+                    warn!(?header, "Empty header Value",);
+                    None
+                } else {
+                    Some(v.to_owned())
+                }
+            })
     }
 }

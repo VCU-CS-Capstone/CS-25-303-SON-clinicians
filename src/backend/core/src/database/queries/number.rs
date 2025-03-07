@@ -1,13 +1,12 @@
 use std::fmt::Display;
-use std::num::ParseIntError;
 use std::str::FromStr;
 
 use chumsky::label::LabelError;
 use chumsky::prelude::*;
-use chumsky::text::int;
+use parse::ParseNumber;
 use pg_extended_sqlx_queries::prelude::*;
-use tracing::warn;
 use utoipa::ToSchema;
+pub mod parse;
 
 pub type ErrType = chumsky::extra::Err<chumsky::error::Cheap>;
 pub enum NumberQueryType {
@@ -62,14 +61,28 @@ where
                 .dyn_column()
                 .greater_than_or_equals(n)
                 .dyn_expression(),
-            NumberQuery::LessThanOrEqualTo(n) => column
-                .dyn_column()
-                .less_than_or_equals(n)
-                .dyn_expression(),
-            NumberQuery::Range { start, end } => column
-                .dyn_column()
-                .between(start, end)
-                .dyn_expression(),
+            NumberQuery::LessThanOrEqualTo(n) => {
+                column.dyn_column().less_than_or_equals(n).dyn_expression()
+            }
+            NumberQuery::Range { start, end } => {
+                column.dyn_column().between(start, end).dyn_expression()
+            }
+        }
+    }
+
+    pub fn complex_value_filter<E: ExprType<'args> + 'args>(
+        self,
+        value: E,
+    ) -> FilterConditionBuilder<'args, DynExpr<'args>, DynExpr<'args>> {
+        match self {
+            NumberQuery::GreaterThan(n) => value.greater_than(n).dyn_expression(),
+            NumberQuery::LessThan(n) => value.less_than(n).dyn_expression(),
+            NumberQuery::EqualTo(n) => value.equals(n).dyn_expression(),
+            NumberQuery::GreaterThanOrEqualTo(n) => {
+                value.greater_than_or_equals(n).dyn_expression()
+            }
+            NumberQuery::LessThanOrEqualTo(n) => value.less_than_or_equals(n).dyn_expression(),
+            NumberQuery::Range { start, end } => value.between(start, end).dyn_expression(),
         }
     }
 }
@@ -90,7 +103,7 @@ where
 }
 impl<I> FromStr for NumberQuery<I>
 where
-    I: FromStrRadix,
+    I: ParseNumber,
 {
     type Err = Vec<Cheap>;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -100,10 +113,10 @@ where
 
 fn number_query<'a, I>() -> impl Parser<'a, &'a str, NumberQuery<I>, ErrType>
 where
-    I: FromStrRadix,
+    I: ParseNumber,
 {
     choice((
-        parse_symbol_type().then(number()).map(|(t, n)| match t {
+        parse_symbol_type().then(I::parser()).map(|(t, n)| match t {
             NumberQueryType::GreaterThan => NumberQuery::GreaterThan(n),
             NumberQueryType::LessThan => NumberQuery::LessThan(n),
             NumberQueryType::EqualTo => NumberQuery::EqualTo(n),
@@ -111,17 +124,17 @@ where
             NumberQueryType::LessThanOrEqualTo => NumberQuery::LessThanOrEqualTo(n),
         }),
         range(),
-        number().map(NumberQuery::EqualTo),
+        I::parser().map(NumberQuery::EqualTo),
     ))
 }
 
 fn range<'a, I>() -> impl Parser<'a, &'a str, NumberQuery<I>, ErrType>
 where
-    I: FromStrRadix,
+    I: ParseNumber,
 {
-    number()
+    I::parser()
         .then(just(".."))
-        .then(number())
+        .then(I::parser())
         .map(|((start, _), end)| NumberQuery::Range { start, end })
         .labelled("range")
 }
@@ -166,47 +179,12 @@ fn symbol<'a>() -> impl Parser<'a, &'a str, Symbol, ErrType> {
         just('<').map(|_| Symbol::LessThan),
     ))
 }
-fn number<'a, I>() -> impl Parser<'a, &'a str, I, ErrType>
-where
-    I: FromStrRadix,
-{
-    int(10).try_map(|n: &str, span| {
-        I::from_radix(n, 10).map_err(|err| {
-            warn!(
-                ?err,
-                "Failed to parse number however, chumsky should have caught this"
-            );
-            <Cheap as LabelError<'a, &'a str, _>>::expected_found(vec![""], None, span)
-        })
-    })
-}
-pub trait FromStrRadix: Sized {
-    fn from_radix(str: &str, radix: u32) -> Result<Self, ParseIntError>;
-}
-
-macro_rules! impl_from_radix {
-    (
-        $(
-            $t:ty
-        ),*
-    ) => {
-        $(
-            impl FromStrRadix for $t {
-                fn from_radix(str: &str, radix: u32) -> Result<Self, ParseIntError> {
-                    <$t>::from_str_radix(str, radix)
-                }
-            }
-        )*
-    };
-}
-
-impl_from_radix!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize);
 mod _serde {
     use std::fmt::Display;
 
     use serde::Serialize;
 
-    use super::{FromStrRadix, NumberQuery};
+    use super::{NumberQuery, parse::AnySerdeNumber, parse::ParseNumber};
 
     impl<I> Serialize for NumberQuery<I>
     where
@@ -235,26 +213,17 @@ mod _serde {
                 where
                     E: serde::de::Error,
                 {
-                    match I::try_from(v) {
-                        Ok(ok) => Ok(NumberQuery::EqualTo(ok)),
-                        Err(err) => Err(serde::de::Error::custom(err)),
-                    }
+                    let any_number = AnySerdeNumber::from(v);
+                    I::from_any_number(any_number)
+                    .map_err(|err| E::custom(format!("{}", err)))
+                    .map(|num| NumberQuery::EqualTo(num))
                 }
             )*
         };
     }
     impl<'de, I> serde::de::Visitor<'de> for NumberQueryVisitor<I>
     where
-        I: FromStrRadix,
-        I: TryFrom<i64>,
-        <I as TryFrom<i64>>::Error: std::fmt::Display,
-        I: TryFrom<i32>,
-        <I as TryFrom<i32>>::Error: std::fmt::Display,
-
-        I: TryFrom<u64>,
-        <I as TryFrom<u64>>::Error: std::fmt::Display,
-        I: TryFrom<u32>,
-        <I as TryFrom<u32>>::Error: std::fmt::Display,
+        I: ParseNumber,
     {
         type Value = NumberQuery<I>;
         fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -295,21 +264,14 @@ mod _serde {
             visit_i32(i32),
             visit_i64(i64),
             visit_u32(u32),
-            visit_u64(u64)
+            visit_u64(u64),
+            visit_f32(f32),
+            visit_f64(f64)
         );
     }
     impl<'de, I> serde::Deserialize<'de> for NumberQuery<I>
     where
-        I: FromStrRadix,
-        I: TryFrom<i64>,
-        <I as TryFrom<i64>>::Error: std::fmt::Display,
-        I: TryFrom<i32>,
-        <I as TryFrom<i32>>::Error: std::fmt::Display,
-
-        I: TryFrom<u64>,
-        <I as TryFrom<u64>>::Error: std::fmt::Display,
-        I: TryFrom<u32>,
-        <I as TryFrom<u32>>::Error: std::fmt::Display,
+        I: ParseNumber,
     {
         fn deserialize<D>(deserializer: D) -> Result<NumberQuery<I>, D::Error>
         where
@@ -383,5 +345,29 @@ mod tests {
         let result: super::NumberQuery<i32> = query.parse().unwrap();
         assert_eq!(result, super::NumberQuery::Range { start: 10, end: 20 });
         assert_eq!(result.to_string(), "10..20");
+    }
+    #[test]
+    fn test_range_f32() {
+        let query = "10..20";
+        let result: super::NumberQuery<f32> = query.parse().unwrap();
+        assert_eq!(
+            result,
+            super::NumberQuery::Range {
+                start: 10.0,
+                end: 20.0
+            }
+        );
+        assert_eq!(result.to_string(), "10..20");
+
+        let query = "10.5..20.5";
+        let result: super::NumberQuery<f32> = query.parse().unwrap();
+        assert_eq!(
+            result,
+            super::NumberQuery::Range {
+                start: 10.5,
+                end: 20.5
+            }
+        );
+        assert_eq!(result.to_string(), "10.5..20.5");
     }
 }

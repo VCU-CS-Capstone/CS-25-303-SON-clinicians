@@ -67,7 +67,7 @@ impl QuestionScriptData {
                 return self
                     .options
                     .iter()
-                    .any(|x| x.option_string_id.as_deref() == Some(key))
+                    .any(|x| x.option_string_id.as_deref() == Some(key));
             }
             QuestionType::Radio => {
                 if let Some(radio) = &self.value_radio {

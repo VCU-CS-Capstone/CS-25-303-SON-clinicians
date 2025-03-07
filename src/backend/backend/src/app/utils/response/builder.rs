@@ -1,5 +1,5 @@
 use axum::response::{IntoResponse, Response};
-use http::{header::CONTENT_TYPE, HeaderName, HeaderValue, StatusCode};
+use http::{HeaderName, HeaderValue, StatusCode, header::CONTENT_TYPE};
 
 use crate::app::error::ResponseBuildError;
 

@@ -41,6 +41,8 @@ pub struct HealthOverview {
     /// 1:1 with [super::Participants]
     pub participant_id: i32,
     /// Red Cap: height
+    ///
+    /// Measured in inches
     pub height: Option<i32>,
     /// Red Cap: health_conditions
     pub reported_health_conditions: Option<String>,

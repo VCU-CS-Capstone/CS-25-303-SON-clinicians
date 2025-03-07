@@ -1,22 +1,22 @@
 use axum::{
+    Json,
     extract::{Path, Query, State},
     response::Response,
     routing::{get, post},
-    Json,
 };
 use chrono::Local;
 use cs25_303_core::database::{
-    prelude::*,
-    user::{does_email_exist, does_username_exist, new::NewUser, User, UserColumn, UserType},
     CSPageParams, PaginatedResponse,
+    prelude::*,
+    user::{User, UserColumn, UserType, does_email_exist, does_username_exist, new::NewUser},
 };
 use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
-    app::{authentication::Authentication, error::InternalError, SiteState},
-    utils::{not_found_response, ok_json_response, ConflictResponse},
+    app::{SiteState, authentication::Authentication, error::InternalError},
+    utils::{ConflictResponse, not_found_response, ok_json_response},
 };
 
 #[derive(OpenApi)]
