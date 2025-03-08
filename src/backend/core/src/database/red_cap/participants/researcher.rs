@@ -81,6 +81,12 @@ pub struct ResearcherQueryBloodPressure {
     pub systolic: Option<NumberQuery<i16>>,
     pub diastolic: Option<NumberQuery<i16>>,
 }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema, Default)]
+pub struct ResearcherQueryGlucose {
+    pub glucose: NumberQuery<f32>,
+    /// Undefined will tell the query you do not want to filter by this
+    pub fasted_atleast_2_hours: Option<bool>,
+}
 /// The researcher query
 ///
 /// # TODO
@@ -121,11 +127,11 @@ pub struct ResearcherQuery {
     pub get_last_visited: bool,
 
     /// BMI Query
-    ///
-    /// Note: This is very expensive
     pub bmi: Option<NumberQuery<f32>>,
     /// Blood Pressure Query
     pub blood_pressure: Option<ResearcherQueryBloodPressure>,
+    /// Glucose Query
+    pub glucose: Option<ResearcherQueryGlucose>,
 }
 impl ResearcherQuery {
     fn example_one() -> Self {
@@ -168,6 +174,7 @@ impl Default for ResearcherQuery {
             race: None,
             bmi: None,
             blood_pressure: None,
+            glucose: None,
         }
     }
 }
@@ -193,6 +200,7 @@ impl ResearcherQuery {
             race,
             bmi,
             blood_pressure,
+            glucose,
         } = self;
         // TODO: Improve this. This is very messy
         let mut query = if let Some(ResearcherQueryBloodPressure {
@@ -227,23 +235,8 @@ impl ResearcherQuery {
             if let Some(diastolic) = diastolic {
                 query.filter(diastolic.filter(HealthMeasureBloodPressureColumn::Diastolic));
             }
-            if let Some(bmi) = bmi {
-                query
-                    .filter(
-                        CaseNoteHealthMeasuresColumn::Weight
-                            .is_not_null()
-                            .and(HealthOverviewColumn::Height.is_not_null()),
-                    )
-                    .filter(
-                        bmi.complex_value_filter(
-                            CaseNoteHealthMeasuresColumn::Weight
-                                .multiply(703f32)
-                                .divide(HealthOverviewColumn::Height.pow(2)),
-                        ),
-                    );
-            }
             query
-        } else if let Some(bmi) = bmi {
+        } else if bmi.is_some() || glucose.is_some() {
             let mut query = SelectQueryBuilder::new(CaseNoteHealthMeasures::table_name());
             query
                 .distinct()
@@ -257,15 +250,7 @@ impl ResearcherQuery {
                     CaseNoteHealthMeasuresColumn::Weight
                         .is_not_null()
                         .and(HealthOverviewColumn::Height.is_not_null()),
-                )
-                .filter(
-                    bmi.complex_value_filter(
-                        CaseNoteHealthMeasuresColumn::Weight
-                            .multiply(703f32)
-                            .divide(HealthOverviewColumn::Height.pow(2)),
-                    ),
                 );
-
             query
         } else {
             SelectQueryBuilder::new(Participants::table_name())
@@ -275,8 +260,8 @@ impl ResearcherQuery {
                 "get_last_visited and get_visit_history are both true. This is really unnecessary"
             );
         }
-
         query
+            .select(ParticipantsColumn::Id.alias("participant_id"))
             .select_many(vec![
                 ParticipantsColumn::RedCapId.dyn_column(),
                 ParticipantsColumn::FirstName.dyn_column(),
@@ -285,9 +270,6 @@ impl ResearcherQuery {
                 ParticipantsColumn::PhoneNumberTwo.dyn_column(),
                 ParticipantsColumn::OtherContact.dyn_column(),
             ])
-            .select(ParticipantsColumn::Id.alias("participant_id"));
-
-        query
             .join(
                 ParticipantDemograhics::table_name(),
                 JoinType::Inner,
@@ -308,6 +290,26 @@ impl ResearcherQuery {
                     .alias("total"),
             )
             .page_params(page_and_size);
+
+        if let Some(bmi) = bmi {
+            query.filter(
+                bmi.complex_value_filter(
+                    CaseNoteHealthMeasuresColumn::Weight
+                        .multiply(703f32)
+                        .divide(HealthOverviewColumn::Height.pow(2)),
+                ),
+            );
+        }
+        if let Some(glucose) = glucose {
+            query.filter(
+                glucose
+                    .glucose
+                    .filter(CaseNoteHealthMeasuresColumn::GlucoseResult),
+            );
+            if let Some(fasted) = glucose.fasted_atleast_2_hours {
+                query.filter(CaseNoteHealthMeasuresColumn::FastedAtleast2Hours.equals(fasted));
+            }
+        }
 
         if let Some(location) = location {
             match location {
@@ -523,10 +525,41 @@ mod tests {
 
         Ok(())
     }
-
     #[ignore]
     #[tokio::test]
-    async fn bmi_and_bp() -> anyhow::Result<()> {
+    async fn test_glucose() -> anyhow::Result<()> {
+        let Some(config) = get_testing_config() else {
+            no_testing_config()?;
+            return Ok(());
+        };
+        config.init_logger();
+        let database = config.connect_to_db().await?;
+        let query: Vec<ResearcherQuery> = vec![
+            ResearcherQuery {
+                glucose: Some(ResearcherQueryGlucose {
+                    glucose: ">=100".parse().unwrap(),
+                    fasted_atleast_2_hours: Some(true),
+                }),
+                ..Default::default()
+            },
+            ResearcherQuery {
+                glucose: Some(ResearcherQueryGlucose {
+                    glucose: ">=100".parse().unwrap(),
+                    fasted_atleast_2_hours: None,
+                }),
+                ..Default::default()
+            },
+        ];
+
+        for query in query {
+            execute_query(query, &database).await?;
+        }
+
+        Ok(())
+    }
+    #[ignore]
+    #[tokio::test]
+    async fn bmi_bp_and_glucose() -> anyhow::Result<()> {
         let Some(config) = get_testing_config() else {
             no_testing_config()?;
             return Ok(());
@@ -540,6 +573,12 @@ mod tests {
                 systolic: Some(">=120".parse().unwrap()),
                 diastolic: Some(">=80".parse().unwrap()),
             }),
+            glucose: Some(ResearcherQueryGlucose {
+                glucose: ">=100".parse().unwrap(),
+                fasted_atleast_2_hours: Some(true),
+            }),
+            get_visit_history: true,
+            get_last_visited: true,
             ..Default::default()
         }];
 

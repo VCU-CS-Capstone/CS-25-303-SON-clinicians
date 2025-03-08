@@ -45,6 +45,11 @@ pub enum NumberQuery<I = i32> {
     LessThanOrEqualTo(I),
     Range { start: I, end: I },
 }
+impl<I: Default> Default for NumberQuery<I> {
+    fn default() -> Self {
+        NumberQuery::EqualTo(I::default())
+    }
+}
 impl<'args, I> NumberQuery<I>
 where
     I: ExprType<'args> + 'args,
