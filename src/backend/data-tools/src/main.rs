@@ -7,6 +7,7 @@ use pull::PullParticipant;
 use random::RandomParticipantsCommand;
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::{Layer, filter, layer::SubscriberExt, util::SubscriberInitExt};
+pub mod admin;
 pub mod config;
 pub mod pull;
 pub mod push;
@@ -40,6 +41,7 @@ pub enum Commands {
     ///
     /// You must be connected to the VCU VPN to push to redcap
     PushParticipant(push::PushParticipant),
+    CreateUser(admin::CreateUserCommand),
     SaveDefaultConfig,
 }
 
@@ -69,6 +71,9 @@ async fn main() -> anyhow::Result<()> {
             let toml = toml::to_string(&default_config)?;
             std::fs::write(&cli.config, toml)?;
             info!("Default config saved to {}", cli.config.display());
+        }
+        Commands::CreateUser(command) => {
+            command.run(config_file).await?;
         }
     }
     Ok(())

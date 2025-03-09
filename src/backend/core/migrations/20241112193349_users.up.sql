@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS role_permissions(
             REFERENCES roles(id)
             ON DELETE CASCADE,
     permission VARCHAR(255) NOT NULL,
+    CONSTRAINT unique_role_id_permission UNIQUE (role_id, permission),
     created_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP
 );
 INSERT INTO roles(name, description)
@@ -47,8 +48,7 @@ CREATE TABLE IF NOT EXISTS users(
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO users(username, email, first_name, last_name)
-    VALUES ('admin','admin@example.com', 'Admin', 'User');
+
 
 CREATE TABLE IF NOT EXISTS user_permissions(
     id serial PRIMARY KEY,
@@ -76,12 +76,10 @@ CREATE TABLE IF NOT EXISTS user_roles(
             FOREIGN KEY (role_id)
             REFERENCES roles(id)
             ON DELETE CASCADE,
+    CONSTRAINT unique_user_id_role_id UNIQUE (user_id, role_id),
     created_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO user_roles(user_id, role_id)
-    VALUES
-    ((SELECT id FROM users WHERE username = 'admin'), (SELECT id FROM roles WHERE name = 'Admin'));
 
 CREATE TABLE IF NOT EXISTS user_authentication_password(
     id serial PRIMARY KEY,
@@ -91,15 +89,12 @@ CREATE TABLE IF NOT EXISTS user_authentication_password(
             FOREIGN KEY (user_id)
             REFERENCES users(id)
             ON DELETE CASCADE,
+        CONSTRAINT unique_user_id_password UNIQUE (user_id),
     password TEXT,
     requires_reset BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE  DEFAULT CURRENT_TIMESTAMP
 );
-
-INSERT INTO user_authentication_password(user_id, password)
-    VALUES
-    ((SELECT id FROM users WHERE username = 'admin'), '$argon2i$v=19$m=16,t=2,p=1$VjJ1RHZic2l4VXFxbUNaMA$ewDhK5UqOdofv+BhAs+FUg');
 
 
 CREATE TABLE IF NOT EXISTS user_login_attempts(

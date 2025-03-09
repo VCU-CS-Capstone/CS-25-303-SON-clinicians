@@ -1,8 +1,12 @@
 use crate::database::prelude::*;
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 use utoipa::ToSchema;
 
-use super::{User, UserColumn};
+use super::{
+    User, UserColumn,
+    auth::{UserPasswordAuthentication, UserPasswordAuthenticationColumn},
+};
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewUser {
@@ -26,7 +30,10 @@ impl NewUser {
         super::does_username_exist(&self.username, database).await
     }
 
-    pub async fn insert_return_user(self, database: &sqlx::PgPool) -> DBResult<User> {
+    pub async fn insert_return_user(
+        self,
+        database: impl Executor<'_, Database = sqlx::Postgres>,
+    ) -> DBResult<User> {
         let user = InsertQueryBuilder::new(User::table_name())
             .insert(UserColumn::Username, self.username.value())
             .insert(UserColumn::Email, self.email.value())
@@ -38,4 +45,31 @@ impl NewUser {
             .await?;
         Ok(user)
     }
+}
+#[instrument]
+pub async fn create_or_update_user_password(
+    user_id: i32,
+    password: &str,
+    database: impl Executor<'_, Database = sqlx::Postgres>,
+) -> DBResult<()> {
+    InsertQueryBuilder::new(UserPasswordAuthentication::table_name())
+        .insert(UserPasswordAuthenticationColumn::UserId, user_id)
+        .insert(UserPasswordAuthenticationColumn::Password, password)
+        .on_conflict(
+            ConflictTarget::Constraint("unique_user_id_password"),
+            ConflictActionBuilder::do_update()
+                .set_column_to_excluded(UserPasswordAuthenticationColumn::Password)
+                .set_column(
+                    UserPasswordAuthenticationColumn::UpdatedAt.dyn_column(),
+                    DynExpr::new(SqlFunctionBuilder::now()),
+                )
+                .set_column(
+                    UserPasswordAuthenticationColumn::RequiresReset.dyn_column(),
+                    DynExpr::new(false),
+                ),
+        )
+        .query()
+        .execute(database)
+        .await?;
+    Ok(())
 }

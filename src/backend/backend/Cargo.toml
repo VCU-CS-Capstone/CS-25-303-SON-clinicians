@@ -63,7 +63,7 @@ opentelemetry-appender-tracing = "0.28"
 sqlx.workspace = true
 chrono.workspace = true
 anyhow.workspace = true
-argon2 = { version = "0.5", features = ["std"] }
+argon2.workspace = true
 rand.workspace = true
 thiserror.workspace = true
 cs25-303-core.workspace = true

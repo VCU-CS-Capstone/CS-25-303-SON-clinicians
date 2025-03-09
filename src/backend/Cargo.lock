@@ -891,6 +891,7 @@ version = "0.1.0-beta"
 dependencies = [
  "ahash",
  "anyhow",
+ "argon2",
  "chrono",
  "clap",
  "cs25-303-core",

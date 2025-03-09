@@ -20,6 +20,8 @@ RUN apt-get update -y && apt-get -y install libssl-dev openssl
 
 RUN mkdir -p /opt/cs_25_303
 RUN mkdir -p /app
+# Copy the data-tools binary to the final image so we can run it.
+COPY --from=build /home/build/target/release/cs25-303-data-tools /app/cs25-303-data-tools
 COPY --from=build /home/build/target/release/cs25-303-backend /app/cs25-303-backend
 COPY --from=build /home/build/entrypoint.sh /app/entrypoint.sh
 

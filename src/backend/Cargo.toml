@@ -57,6 +57,8 @@ pg-extended-sqlx-queries = { git = "https://github.com/wyatt-herkamp/pg-extended
     "chrono",
     "json",
 ] }
+argon2 = { version = "0.5", features = ["std"] }
+
 # Database
 [workspace.dependencies.sqlx]
 version = "0.8"

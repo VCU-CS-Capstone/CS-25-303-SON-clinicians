@@ -24,3 +24,4 @@ ahash.workspace = true
 rust-embed = { version = "8", features = ["interpolate-folder-path"] }
 thiserror.workspace = true
 toml.workspace = true
+argon2.workspace = true
