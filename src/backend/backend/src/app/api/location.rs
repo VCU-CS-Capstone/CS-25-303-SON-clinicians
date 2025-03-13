@@ -1,3 +1,10 @@
+use crate::{
+    app::{
+        SiteState, authentication::Authentication, error::InternalError,
+        request_logging::ErrorReason,
+    },
+    utils::builder::ResponseBuilder,
+};
 use axum::{
     extract::{Path, State},
     response::Response,
@@ -9,11 +16,6 @@ use cs25_303_core::{
 };
 use tracing::instrument;
 use utoipa::OpenApi;
-
-use crate::app::{
-    SiteState, authentication::Authentication, error::InternalError,
-    utils::response::builder::ResponseBuilder,
-};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -69,7 +71,9 @@ pub async fn get_location_by_id(
     auth: Authentication,
 ) -> Result<Response, InternalError> {
     let Some(location) = Locations::find_by_id(id, &site.database).await? else {
-        return Ok(ResponseBuilder::not_found().empty());
+        return Ok(ResponseBuilder::not_found()
+            .extension(ErrorReason::from("Location not found"))
+            .empty());
     };
 
     Ok(ResponseBuilder::ok().json(&location))

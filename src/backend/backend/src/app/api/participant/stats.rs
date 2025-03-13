@@ -15,13 +15,10 @@ use cs25_303_core::database::{
 use serde::Deserialize;
 use tracing::instrument;
 use utoipa::{IntoParams, OpenApi};
+use crate::utils::response::ResponseBuilder;
 
-use crate::{
-    app::{
-        SiteState, authentication::Authentication, error::InternalError,
-        utils::response::builder::ResponseBuilder,
-    },
-    utils::{not_found_response, ok_json_response},
+use crate::app::{
+    SiteState, authentication::Authentication, error::InternalError, request_logging::ErrorReason,
 };
 
 #[derive(OpenApi)]
@@ -87,7 +84,9 @@ pub async fn participant_weight_history(
     if weights.is_empty()
         && !Participants::does_participant_id_exist(participant_id, &site.database).await?
     {
-        return Ok(ResponseBuilder::not_found().empty());
+        return Ok(ResponseBuilder::not_found()
+            .extension(ErrorReason::from("Participant Not Found"))
+            .empty());
     }
     Ok(ResponseBuilder::ok().json(&weights))
 }
@@ -123,9 +122,11 @@ pub async fn bp_history(
     if readings.is_empty()
         && !Participants::does_participant_id_exist(participant_id, &site.database).await?
     {
-        return not_found_response();
+        return Ok(ResponseBuilder::not_found()
+            .extension(ErrorReason::from("Participant Not Found"))
+            .empty());
     }
-    ok_json_response(readings)
+    Ok(ResponseBuilder::ok().json(&readings))
 }
 #[utoipa::path(
     get,
@@ -157,7 +158,9 @@ pub async fn glucose_history(
     if readings.is_empty()
         && !Participants::does_participant_id_exist(participant_id, &site.database).await?
     {
-        return not_found_response();
+        return Ok(ResponseBuilder::not_found()
+            .extension(ErrorReason::from("Participant Not Found"))
+            .empty());
     }
-    ok_json_response(readings)
+    Ok(ResponseBuilder::ok().json(&readings))
 }

@@ -1,8 +1,8 @@
 mod header;
-mod requests;
-mod response;
+pub mod requests;
+pub mod response;
 pub use response::*;
-
+pub mod other;
 pub use header::*;
 pub use requests::*;
 

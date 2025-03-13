@@ -38,13 +38,15 @@ impl HeaderValueExt for HeaderValue {
         T::try_from(value)
     }
 }
+
 pub trait HeaderMapExt {
-    fn get_string(&self, key: HeaderName) -> Option<String>;
+    fn get_string_ignore_empty(&self, key: &HeaderName) -> Option<String>;
+    fn get_str_ignore_empty<'headers>(&'headers self, key: &HeaderName) -> Option<&'headers str>;
 }
 
 impl HeaderMapExt for http::HeaderMap {
-    fn get_string(&self, header: HeaderName) -> Option<String> {
-        self.get(&header)
+    fn get_string_ignore_empty(&self, header: &HeaderName) -> Option<String> {
+        self.get(header)
             .and_then(|v| v.to_str().ok())
             .and_then(|v| {
                 if v.is_empty() {
@@ -54,5 +56,16 @@ impl HeaderMapExt for http::HeaderMap {
                     Some(v.to_owned())
                 }
             })
+    }
+
+    fn get_str_ignore_empty<'headers>(&'headers self, key: &HeaderName) -> Option<&'headers str> {
+        self.get(key).and_then(|v| v.to_str().ok()).and_then(|v| {
+            if v.is_empty() {
+                warn!(?key, "Empty header Value",);
+                None
+            } else {
+                Some(v)
+            }
+        })
     }
 }

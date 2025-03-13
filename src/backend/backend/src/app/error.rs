@@ -4,8 +4,10 @@ use axum::{body::Body, response::IntoResponse};
 use http::header::CONTENT_TYPE;
 use thiserror::Error;
 mod api;
-use super::utils::response::{PLAIN_TEXT_MEDIA_TYPE, builder::ResponseBuilder};
+use crate::utils::{other::PLAIN_TEXT_MEDIA_TYPE, response::builder::ResponseBuilder};
 pub use api::APIErrorResponse;
+
+use super::request_logging::ErrorReason;
 pub mod bad_request;
 pub trait IntoErrorResponse: Error + Send + Sync {
     /// Converts the error into a response
@@ -36,8 +38,10 @@ fn internal_service_error_response(
     err: impl Error,
     source: &'static str,
 ) -> axum::response::Response {
+    let reason = ErrorReason::from(err.to_string());
     let body = internal_error_message(err, source);
     axum::response::Response::builder()
+        .extension(reason)
         .status(http::StatusCode::INTERNAL_SERVER_ERROR)
         .body(body)
         .unwrap()
@@ -54,6 +58,7 @@ fn json_error_response(err: impl Error, source: &'static str) -> axum::response:
     }) {
         Ok(ok) => axum::response::Response::builder()
             .status(http::StatusCode::INTERNAL_SERVER_ERROR)
+            .extension(ErrorReason::from(err.to_string()))
             .header(CONTENT_TYPE, "application/json")
             .body(ok.into())
             .unwrap(),
@@ -135,6 +140,7 @@ impl IntoResponse for ResponseBuildError {
         http::Response::builder()
             .status(http::StatusCode::INTERNAL_SERVER_ERROR)
             .header(CONTENT_TYPE, PLAIN_TEXT_MEDIA_TYPE)
+            .extension(ErrorReason::from(self.to_string()))
             .body(axum::body::Body::from(message))
             .unwrap()
     }

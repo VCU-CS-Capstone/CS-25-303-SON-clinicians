@@ -17,11 +17,10 @@ use crate::{
     app::{
         SiteState,
         authentication::{Authentication, MeWithSession, utils::verify_login},
-        error::InternalError,
-        request_logging::RequestId,
-        utils::{ip_addr::ConnectionIpAddr, response::builder::ResponseBuilder},
+        error::{APIErrorResponse, InternalError},
+        request_logging::{ErrorReason, RequestId},
     },
-    utils::json::JsonBody,
+    utils::{builder::ResponseBuilder, ip_addr::ConnectionIpAddr, json::JsonBody},
 };
 
 #[derive(OpenApi)]
@@ -39,6 +38,8 @@ pub fn auth_routes() -> axum::Router<SiteState> {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, ToSchema)]
 pub struct LoginPasswordBody {
     /// The email or username of the user
+    ///
+    /// This field can also be called with `username` or `email`
     #[serde(alias = "email", alias = "username")]
     pub email_or_username: String,
     /// The password of the user
@@ -55,6 +56,7 @@ pub struct LoginPasswordBody {
         (status = 401, description = "Unauthorized"),
         (status = 403, description = "Password Authentication is not enabled"),
     ),
+    summary = "Attempt User login with a password",
     security(
         (),
     )
@@ -68,17 +70,15 @@ pub async fn login(
     JsonBody(login): JsonBody<LoginPasswordBody>,
 ) -> Result<Response, InternalError> {
     if site.authentication.password.is_none() {
-        return Ok(Response::builder()
-            .status(StatusCode::FORBIDDEN)
-            .body("Password Authentication is not enabled".into())
-            .unwrap());
+        return Ok(ResponseBuilder::forbidden()
+            .extension(ErrorReason::from("Password Authentication is not enabled"))
+            .json(&APIErrorResponse::<(), ()> {
+                message: "Password Authentication is not enabled".into(),
+                details: None,
+                error: None,
+            }));
     }
-    let Some(addr) = ip_addr else {
-        return Ok(Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body("Unable to extract requesting IP address".into())
-            .unwrap());
-    };
+
     let LoginPasswordBody {
         email_or_username,
         password,
@@ -90,7 +90,7 @@ pub async fn login(
     let (user, login_id) = match verify_login(
         email_or_username,
         password,
-        addr.to_string(),
+        ip_addr.to_string(),
         Some(additional_footprint),
         &site.database,
     )

@@ -15,29 +15,27 @@
 //! the state of the website and return the [Authentication] type. By checking further that the authentication is valid.
 //! Might make database queries or a request to another service to ensure authentication is valid.
 
-use std::future::Future;
+pub mod permissions;
 
-use super::{SiteState, error::IntoErrorResponse, utils::response::MissingPermission};
+use crate::{app::error::APIErrorResponse, utils::ResponseBuilder};
+
+use super::{SiteState, error::IntoErrorResponse, request_logging::ErrorReason};
 use axum::{
-    body::Body,
     extract::{FromRef, FromRequestParts},
-    response::{IntoResponse, Response},
+    response::IntoResponse,
 };
 use axum_extra::extract::cookie::Cookie;
-use cs25_303_core::database::{
-    DBError,
-    user::{User, UserType},
-};
+use cs25_303_core::database::{DBError, user::User};
 use cs25_303_core::user::Permissions;
 use derive_more::derive::From;
 use header::AuthorizationHeader;
 use http::request::Parts;
+use permissions::{PermissionCheck, response::MissingPermission};
 use serde::Serialize;
 use session::{Session, SessionManager};
-use sqlx::PgPool;
 use strum::EnumIs;
 use thiserror::Error;
-use tracing::{debug, error, instrument};
+use tracing::error;
 use utoipa::ToSchema;
 pub mod api_middleware;
 pub mod header;
@@ -60,11 +58,25 @@ pub enum AuthenticationError {
     /// The user is not logged in
     #[error("You are not logged in.")]
     Unauthorized,
-    /// The user login is accepted but the action is forbidden with current credentials
-    #[error("Forbidden")]
-    Forbidden,
+    #[error("You are not logged in.")]
+    UnauthorizedWithHiddenReason(ErrorReason),
     #[error(transparent)]
     MissingPermission(#[from] MissingPermission),
+}
+impl AuthenticationError {
+    fn unauthorized_response(reason: Option<ErrorReason>) -> axum::response::Response {
+        let message = APIErrorResponse::<(), ()> {
+            message: "Authentication Error".into(),
+            details: None,
+            error: None,
+        };
+
+        let mut response = ResponseBuilder::unauthorized();
+        if let Some(reason) = reason {
+            response = response.extension(reason);
+        }
+        response.json(&message)
+    }
 }
 impl From<DBError> for AuthenticationError {
     fn from(err: DBError) -> Self {
@@ -77,86 +89,17 @@ impl IntoResponse for AuthenticationError {
         match self {
             AuthenticationError::RequestTypeError(err) => err.into_response_boxed(),
             AuthenticationError::MissingPermission(err) => err.into_response(),
-            AuthenticationError::Forbidden => Response::builder()
-                .status(http::StatusCode::FORBIDDEN)
-                .body(Body::from(
-                    "You do not have the required permissions to access this resource",
-                ))
-                .unwrap(),
-            other => Response::builder()
-                .status(http::StatusCode::UNAUTHORIZED)
-                .body(Body::from(format!("Authentication Error: {}", other)))
-                .unwrap(),
+            AuthenticationError::UnauthorizedWithHiddenReason(reason) => {
+                AuthenticationError::unauthorized_response(Some(reason))
+            }
+            AuthenticationError::Unauthorized => AuthenticationError::unauthorized_response(None),
         }
     }
-}
-pub trait PermissionCheck {
-    #[instrument(
-        name = "PermissionCheck::check_permissions",
-        skip(user, db),
-        fields(project_module = "Authentication")
-    )]
-    fn check_permissions(
-        user: &User,
-        db: &PgPool,
-    ) -> impl Future<Output = Result<(), AuthenticationError>> + Send {
-        async move {
-            let log_permission_checks = tracing::enabled!(tracing::Level::DEBUG);
-
-            for permission in Self::permissions_required() {
-                if log_permission_checks {
-                    debug!("Checking permission: {:?}", permission);
-                }
-                if !user.has_permission(*permission, db).await? {
-                    return Err(MissingPermission::from(*permission).into());
-                }
-            }
-            if log_permission_checks {
-                debug!("All permissions passed");
-            }
-            Ok(())
-        }
-    }
-
-    fn permissions_required() -> &'static [Permissions];
-}
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct NoRequiredPermissions;
-impl PermissionCheck for NoRequiredPermissions {
-    fn permissions_required() -> &'static [Permissions] {
-        &[]
-    }
-    async fn check_permissions(_: &User, _: &PgPool) -> Result<(), AuthenticationError> {
-        Ok(())
-    }
-}
-#[allow(unused_macros)]
-macro_rules! permission_check {
-    (
-        $(#[$docs:meta])*
-        $name:ident => $($perm:expr),+
-    ) => {
-        $(#[$docs])*
-        pub struct $name;
-        impl crate::app::authentication::auth_with_perm::PermissionCheck for $name {
-            fn permissions_required() -> &'static [Permissions] {
-                &[$($perm),+]
-            }
-        }
-        impl std::fmt::Debug for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                use crate::app::authentication::auth_with_perm::PermissionCheck;
-                f.debug_struct(stringify!($name))
-                .field("permissions", &Self::permissions_required())
-                .finish()
-            }
-        }
-    };
 }
 
 #[derive(Clone, Debug, PartialEq, EnumIs)]
 #[allow(clippy::large_enum_variant)]
-pub enum Authentication<PC: PermissionCheck = NoRequiredPermissions> {
+pub enum Authentication<PC: PermissionCheck = ()> {
     UserViaSession { user: User, session: Session },
 
     Phantom(std::marker::PhantomData<PC>),
@@ -262,6 +205,8 @@ pub mod utils {
     use sqlx::{PgPool, types::Uuid};
     use tracing::{debug, instrument};
 
+    use crate::app::request_logging::ErrorReason;
+
     use super::AuthenticationError;
 
     #[inline(always)]
@@ -284,7 +229,9 @@ pub mod utils {
         let Some(user_found) = user_found else {
             debug!("User not found");
             add_login_attempt(None, &ip_address, false, additional_footprint, database).await?;
-            return Err(AuthenticationError::Unauthorized);
+            return Err(AuthenticationError::UnauthorizedWithHiddenReason(
+                ErrorReason::from("User not found"),
+            ));
         };
 
         let UserAndPasswordAuth {
@@ -302,7 +249,9 @@ pub mod utils {
                 database,
             )
             .await?;
-            return Err(AuthenticationError::Unauthorized);
+            return Err(AuthenticationError::UnauthorizedWithHiddenReason(
+                ErrorReason::from("User does not have a password"),
+            ));
         };
 
         if let Err(err) =
@@ -340,7 +289,7 @@ pub mod utils {
         use rand::{TryRngCore, rngs::OsRng};
         use tracing::{debug, error, instrument};
 
-        use crate::app::authentication::AuthenticationError;
+        use crate::app::{authentication::AuthenticationError, request_logging::ErrorReason};
         #[instrument(skip(password), fields(project_module = "Authentication"))]
         pub fn encrypt_password(password: &str) -> Option<String> {
             let mut bytes = [0u8; Salt::RECOMMENDED_LENGTH];
@@ -370,7 +319,9 @@ pub mod utils {
             })?
             else {
                 debug!("No password hash set");
-                return Err(AuthenticationError::Unauthorized);
+                return Err(AuthenticationError::UnauthorizedWithHiddenReason(
+                    ErrorReason::from("No password hash set"),
+                ));
             };
 
             if argon2

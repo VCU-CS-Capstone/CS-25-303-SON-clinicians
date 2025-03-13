@@ -15,8 +15,11 @@ use tracing::{debug, instrument};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
-    app::{SiteState, authentication::Authentication, error::InternalError},
-    utils::{ConflictResponse, not_found_response, ok_json_response},
+    app::{
+        SiteState, authentication::Authentication, error::InternalError,
+        request_logging::ErrorReason,
+    },
+    utils::{ConflictResponse, builder::ResponseBuilder},
 };
 
 #[derive(OpenApi)]
@@ -60,7 +63,7 @@ pub async fn all_users(
     } = page;
     let users = User::get_all_paginated(&site.database, page_size, page_number).await?;
 
-    ok_json_response(users)
+    Ok(ResponseBuilder::ok().json(&users))
 }
 /// Creates a new user
 #[utoipa::path(
@@ -93,8 +96,7 @@ pub async fn new_user(
     }
 
     let user = new_user.insert_return_user(&site.database).await?;
-
-    ok_json_response(user)
+    Ok(ResponseBuilder::ok().json(&user))
 }
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
 #[serde(default)]
@@ -138,7 +140,9 @@ pub async fn update_user(
     Json(update): Json<UpdateUser>,
 ) -> Result<Response, InternalError> {
     let Some(user_to_update) = User::get_by_id(user_id, &site.database).await? else {
-        return not_found_response();
+        return Ok(ResponseBuilder::not_found()
+            .extension(ErrorReason::from("User not found"))
+            .empty());
     };
     let UpdateUser {
         username,
@@ -178,5 +182,5 @@ pub async fn update_user(
 
     update.query().execute(&site.database).await?;
     let user = User::get_by_id(user_id, &site.database).await?;
-    ok_json_response(user)
+    Ok(ResponseBuilder::ok().json(&user))
 }

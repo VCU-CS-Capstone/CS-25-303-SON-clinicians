@@ -24,7 +24,7 @@ use cs25_303_core::{
 };
 use utoipa::{
     Modify, OpenApi,
-    openapi::security::{ApiKey, ApiKeyValue, Http, SecurityScheme},
+    openapi::security::{ApiKey, ApiKeyValue, Http, HttpAuthScheme, SecurityScheme},
 };
 #[derive(OpenApi)]
 #[openapi(
@@ -79,6 +79,7 @@ impl Modify for SecurityAddon {
                 "token",
                 SecurityScheme::Http(
                     Http::builder()
+                        .scheme(HttpAuthScheme::Bearer)
                         .description(Some("Bearer Token Or session_key"))
                         .build(),
                 ),

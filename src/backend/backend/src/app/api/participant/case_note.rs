@@ -10,11 +10,10 @@ use cs25_303_core::database::red_cap::{
 use tracing::instrument;
 use utoipa::OpenApi;
 
-use crate::{
-    app::{SiteState, authentication::Authentication, error::InternalError},
-    utils::{not_found_response, ok_json_response},
+use crate::app::{
+    SiteState, authentication::Authentication, error::InternalError, request_logging::ErrorReason,
 };
-
+use crate::utils::response::ResponseBuilder;
 #[derive(OpenApi)]
 #[openapi(
     paths(get_all_case_notes_for_participant),
@@ -53,7 +52,9 @@ pub async fn get_all_case_notes_for_participant(
     // If the participant does not exist, return a 404
     if case_notes.is_empty() && !Participants::does_participant_id_exist(id, &site.database).await?
     {
-        return not_found_response();
+        return Ok(ResponseBuilder::not_found()
+            .extension(ErrorReason::from("Participant Not Found"))
+            .empty());
     }
-    ok_json_response(case_notes)
+    Ok(ResponseBuilder::ok().json(&case_notes))
 }

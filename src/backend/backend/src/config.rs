@@ -5,7 +5,7 @@ use cs25_303_core::user::auth::AuthenticationProvidersConfig;
 use serde::{Deserialize, Serialize};
 use strum::EnumIs;
 use utoipa::ToSchema;
-
+pub mod robots;
 use crate::logging::config::LoggingConfig;
 pub const CONFIG_PREFIX: &str = "CS-25-303";
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq, EnumIs)]
@@ -58,6 +58,7 @@ pub struct ReadConfigType {
     pub log: Option<LoggingConfig>,
     pub tls: Option<TlsConfig>,
     pub auth: Option<AuthenticationProvidersConfig>,
+    pub robots: Option<robots::RobotsConfig>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -70,6 +71,7 @@ pub struct FullConfig {
     pub log: LoggingConfig,
     pub tls: Option<TlsConfig>,
     pub auth: AuthenticationProvidersConfig,
+    pub robots: robots::RobotsConfig,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -121,7 +123,7 @@ pub fn load_config(path: Option<PathBuf>) -> anyhow::Result<FullConfig> {
         };
     // Merge the environment variables with the configuration file. If neither exists the default values are used.
     // Environment variables take precedence.
-    let (web_server, auth, log, database, mode, enabled_features) = env_or_file_or_default!(
+    let (web_server, auth, log, database, mode, enabled_features, robots) = env_or_file_or_default!(
         config_from_file,
         environment,
         web_server,
@@ -129,7 +131,8 @@ pub fn load_config(path: Option<PathBuf>) -> anyhow::Result<FullConfig> {
         log,
         database,
         mode,
-        enabled_features
+        enabled_features,
+        robots
     );
 
     let tls = environment.tls.or(config_from_file.tls.take());
@@ -142,5 +145,6 @@ pub fn load_config(path: Option<PathBuf>) -> anyhow::Result<FullConfig> {
         log,
         auth,
         enabled_features,
+        robots,
     })
 }

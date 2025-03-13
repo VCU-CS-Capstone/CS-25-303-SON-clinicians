@@ -2,6 +2,7 @@ use std::{fmt::Debug, ops::Deref, sync::Arc};
 
 use axum::extract::State;
 use cs25_303_core::user::auth::AuthenticationProvidersConfig;
+use http::HeaderName;
 use opentelemetry::{
     global,
     metrics::{Histogram, Meter, UpDownCounter},
@@ -10,7 +11,11 @@ use sqlx::PgPool;
 use tokio::{sync::Mutex, task::JoinHandle};
 use tracing::info;
 
-use crate::config::EnabledFeatures;
+use crate::{
+    config::{EnabledFeatures, robots::RobotsConfig},
+    utils::ip_addr::HasForwardedHeader,
+};
+pub static X_FORWARDED_FOR_HEADER: HeaderName = HeaderName::from_static("x-forwarded-for");
 
 use super::authentication::session::SessionManager;
 /// The Inner State of the Website.
@@ -22,6 +27,7 @@ pub struct SiteStateInner {
     session_cleaner: Mutex<Option<JoinHandle<()>>>,
     pub features: EnabledFeatures,
     pub metrics: AppMetrics,
+    pub robots: RobotsConfig,
 }
 impl SiteStateInner {
     async fn set_session_cleaner(&self, handle: JoinHandle<()>) {
@@ -46,6 +52,7 @@ impl SiteStateInner {
         authentication: AuthenticationProvidersConfig,
         session: SessionManager,
         features: EnabledFeatures,
+        robots: RobotsConfig,
     ) -> Self {
         Self {
             authentication,
@@ -53,6 +60,7 @@ impl SiteStateInner {
             features,
             session_cleaner: Mutex::new(None),
             metrics: AppMetrics::default(),
+            robots,
         }
     }
 }
@@ -147,7 +155,11 @@ as_ref!(
     database => PgPool
 );
 pub type WrappedSiteState = State<SiteState>;
-
+impl HasForwardedHeader for SiteState {
+    fn forwarded_header(&self) -> Option<&HeaderName> {
+        Some(&X_FORWARDED_FOR_HEADER)
+    }
+}
 impl SiteState {
     /// Starts Internal SServices.
     ///

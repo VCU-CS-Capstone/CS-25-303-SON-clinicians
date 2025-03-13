@@ -2,10 +2,9 @@ use std::sync::Arc;
 pub mod error;
 use anyhow::Context;
 use authentication::{api_middleware::AuthenticationLayer, session::SessionManager};
-use axum::routing::Router;
+use axum::{extract::State, routing::Router};
 pub mod request_logging;
 mod state;
-pub mod utils;
 use request_logging::AppTracingLayer;
 use sqlx::postgres::PgConnectOptions;
 pub use state::*;
@@ -26,6 +25,7 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
         log,
         auth,
         enabled_features,
+        robots,
     } = config;
     // Start the logger
     crate::logging::init(log)?;
@@ -37,7 +37,7 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
     info!("Connected to database");
     let session = SessionManager::new(None, mode)?;
     // Create the website state
-    let inner = SiteStateInner::new(auth, session, enabled_features.clone());
+    let inner = SiteStateInner::new(auth, session, enabled_features.clone(), robots);
     let website = SiteState {
         inner: Arc::new(inner),
         database,
@@ -45,6 +45,7 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
     website.start().await;
     info!("Website Configured");
     let router = Router::new()
+        .route("/robots.txt", axum::routing::get(robots_txt))
         .nest("/api", api::api_routes())
         .merge(open_api::open_api_router(
             enabled_features.open_api_routes,
@@ -69,4 +70,8 @@ pub(super) async fn start_web_server(config: FullConfig) -> anyhow::Result<()> {
         web::start(web_server.bind_address, web_server.port, router, website).await?;
     }
     Ok(())
+}
+
+async fn robots_txt(State(website): State<SiteState>) -> axum::response::Response {
+    website.robots.response()
 }

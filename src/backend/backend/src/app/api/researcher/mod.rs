@@ -18,11 +18,8 @@ use tracing::instrument;
 use utoipa::OpenApi;
 
 use crate::{
-    app::{
-        SiteState, authentication::Authentication, error::InternalError,
-        utils::response::builder::ResponseBuilder,
-    },
-    utils::json::JsonBody,
+    app::{SiteState, authentication::Authentication, error::InternalError},
+    utils::{builder::ResponseBuilder, json::JsonBody},
 };
 
 #[derive(OpenApi)]

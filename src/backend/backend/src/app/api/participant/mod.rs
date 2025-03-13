@@ -1,13 +1,13 @@
 use crate::{
-    app::{authentication::Authentication, utils::response::builder::ResponseBuilder},
-    utils::{json::JsonBody, not_found_response, ok_json_response},
+    app::{authentication::Authentication, request_logging::ErrorReason},
+    utils::json::JsonBody,
 };
 pub mod case_note;
 pub mod goals;
 pub mod medications;
 pub mod stats;
+use crate::utils::response::ResponseBuilder;
 use axum::{
-    Json,
     extract::{Path, Query, State},
     response::Response,
     routing::{get, post},
@@ -107,8 +107,10 @@ pub async fn get_participants(
     let participant = Participants::find_by_id(id, &site.database).await?;
 
     match participant {
-        Some(participant) => ok_json_response(participant),
-        None => not_found_response(),
+        Some(participant) => Ok(ResponseBuilder::ok().json(&participant)),
+        None => Ok(ResponseBuilder::not_found()
+            .extension(ErrorReason::from("Participant Not Found"))
+            .empty()),
     }
 }
 /// Used in querying other parts of a participants information
@@ -142,12 +144,18 @@ pub async fn get_health_overview(
     let health_overview = HealthOverview::find_by_participant_id(id, &site.database).await?;
 
     match health_overview {
-        Some(health_overview) => ok_json_response(health_overview),
+        Some(health_overview) => Ok(ResponseBuilder::ok().json(&health_overview)),
         None => {
             let participant_exists =
                 Participants::does_participant_id_exist(id, &site.database).await?;
-
-            Ok(ResponseBuilder::not_found().json(&ParticipantPartNotFound { participant_exists }))
+            let reason = if participant_exists {
+                "Participant Health Overview Not Found"
+            } else {
+                "Participant Not Found"
+            };
+            Ok(ResponseBuilder::not_found()
+                .extension(ErrorReason::from(reason))
+                .json(&ParticipantPartNotFound { participant_exists }))
         }
     }
 }
@@ -176,12 +184,18 @@ pub async fn get_demographics(
     let health_overview = ParticipantDemograhics::find_by_participant(id, &site.database).await?;
 
     match health_overview {
-        Some(health_overview) => ok_json_response(health_overview),
+        Some(health_overview) => Ok(ResponseBuilder::ok().json(&health_overview)),
         None => {
             let participant_exists =
                 Participants::does_participant_id_exist(id, &site.database).await?;
-
-            Ok(ResponseBuilder::not_found().json(&ParticipantPartNotFound { participant_exists }))
+            let reason: &str = if participant_exists {
+                "Participant Demographics Not Found"
+            } else {
+                "Participant Not Found"
+            };
+            Ok(ResponseBuilder::not_found()
+                .extension(reason)
+                .json(&ParticipantPartNotFound { participant_exists }))
         }
     }
 }

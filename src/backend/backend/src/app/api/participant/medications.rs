@@ -12,9 +12,9 @@ use tracing::instrument;
 use utoipa::{IntoParams, OpenApi};
 
 use crate::app::{
-    SiteState, authentication::Authentication, error::InternalError,
-    utils::response::builder::ResponseBuilder,
+    SiteState, authentication::Authentication, error::InternalError, request_logging::ErrorReason,
 };
+use crate::utils::response::ResponseBuilder;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -57,7 +57,9 @@ pub async fn get_participant_medications(
     if medications.is_empty()
         && !Participants::does_participant_id_exist(participant_id, &site.database).await?
     {
-        return Ok(ResponseBuilder::not_found().empty());
+        return Ok(ResponseBuilder::not_found()
+            .extension(ErrorReason::from("Participant Not Found"))
+            .empty());
     }
 
     Ok(ResponseBuilder::ok().json(&medications))
@@ -107,7 +109,9 @@ pub async fn search_medications(
     if medications.is_empty()
         && !Participants::does_participant_id_exist(participant_id, &site.database).await?
     {
-        return Ok(ResponseBuilder::not_found().empty());
+        return Ok(ResponseBuilder::not_found()
+            .extension(ErrorReason::from("Participant Not Found"))
+            .empty());
     }
     Ok(ResponseBuilder::ok().json(&medications))
 }

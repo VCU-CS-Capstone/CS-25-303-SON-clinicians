@@ -15,9 +15,9 @@ pub mod participant;
 pub mod questions;
 pub mod researcher;
 pub mod user;
-use crate::config::EnabledFeatures;
+use crate::{config::EnabledFeatures, utils::builder::ResponseBuilder};
 
-use super::{SiteState, error::APIErrorResponse, utils::response::builder::ResponseBuilder};
+use super::{SiteState, error::APIErrorResponse, request_logging::ErrorReason};
 #[derive(Debug, Clone, Serialize, ToSchema)]
 #[schema(examples(Instance::example))]
 pub struct Instance {
@@ -111,5 +111,7 @@ async fn route_not_found(request: Request) -> Response {
         }),
         ..Default::default()
     };
-    ResponseBuilder::not_found().json(&response)
+    ResponseBuilder::not_found()
+        .extension(ErrorReason::from("Route not found"))
+        .json(&response)
 }

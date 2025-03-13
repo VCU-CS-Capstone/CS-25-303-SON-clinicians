@@ -1,20 +1,20 @@
-use std::marker::PhantomData;
-pub mod builder;
 use axum::response::{IntoResponse, Response};
-use builder::ResponseBuilder;
 use cs25_303_core::user::Permissions;
-use http::HeaderValue;
 use serde::Serialize;
+use std::marker::PhantomData;
 use thiserror::Error;
 use utoipa::{
     ToSchema,
     openapi::{example::ExampleBuilder, response, schema::RefBuilder},
 };
 
-use crate::app::{authentication::PermissionCheck, error::APIErrorResponse};
-pub const JSON_MEDIA_TYPE: HeaderValue = HeaderValue::from_static("application/json");
-pub const PLAIN_TEXT_MEDIA_TYPE: HeaderValue = HeaderValue::from_static("text/plain");
+use crate::{
+    app::{authentication::PermissionCheck, error::APIErrorResponse, request_logging::ErrorReason},
+    utils::ResponseBuilder,
+};
+
 pub const MISSING_PERMISSION_MESSAGE: &str = "Missing Permission";
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Error)]
 #[error("Missing Permission: {0}")]
 pub struct MissingPermission(pub Permissions);
@@ -56,7 +56,9 @@ impl IntoResponse for MissingPermission {
             details: Some(self.0),
             error: None,
         };
-        ResponseBuilder::forbidden().json(&body)
+        ResponseBuilder::forbidden()
+            .extension(ErrorReason::from(format!("Missing Permission {}", self.0)))
+            .json(&body)
     }
 }
 

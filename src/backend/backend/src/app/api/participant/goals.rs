@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    response::Response,
+    response::{ErrorResponse, Response},
     routing::get,
 };
 use cs25_303_core::database::red_cap::participants::{
@@ -11,9 +11,9 @@ use tracing::instrument;
 use utoipa::OpenApi;
 
 use crate::app::{
-    SiteState, authentication::Authentication, error::InternalError,
-    utils::response::builder::ResponseBuilder,
+    SiteState, authentication::Authentication, error::InternalError, request_logging::ErrorReason,
 };
+use crate::utils::response::ResponseBuilder;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -56,7 +56,9 @@ pub async fn get_participants_goals(
     let goals = ParticipantGoals::get_all_participant_goals(id, &site.database).await?;
 
     if goals.is_empty() && !Participants::does_participant_id_exist(id, &site.database).await? {
-        return Ok(ResponseBuilder::not_found().empty());
+        return Ok(ResponseBuilder::not_found()
+            .extension(ErrorReason::from("Participant Not Found"))
+            .empty());
     }
 
     Ok(ResponseBuilder::ok().json(&goals))
@@ -75,7 +77,6 @@ pub async fn get_participants_goals(
     ),
     security(
         ("session" = []),
-
     )
 )]
 #[instrument]
@@ -87,7 +88,9 @@ pub async fn get_steps_for_goal(
     let goals = ParticipantGoalsSteps::get_all_steps_for_goal(id, &site.database).await?;
 
     if goals.is_empty() && !Participants::does_participant_id_exist(id, &site.database).await? {
-        return Ok(ResponseBuilder::not_found().empty());
+        return Ok(ResponseBuilder::not_found()
+            .extension(ErrorReason::from("Participant Not Found"))
+            .empty());
     }
 
     Ok(ResponseBuilder::ok().json(&goals))
@@ -119,7 +122,9 @@ pub async fn get_steps_without_goal(
         ParticipantGoalsSteps::get_goaless_steps_for_participant(id, &site.database).await?;
 
     if goals.is_empty() && !Participants::does_participant_id_exist(id, &site.database).await? {
-        return Ok(ResponseBuilder::not_found().empty());
+        return Ok(ResponseBuilder::not_found()
+            .extension(ErrorReason::from("Participant Not Found"))
+            .empty());
     }
 
     Ok(ResponseBuilder::ok().json(&goals))

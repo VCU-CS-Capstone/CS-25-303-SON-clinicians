@@ -11,7 +11,10 @@ use serde::de::DeserializeOwned;
 use thiserror::Error;
 use tracing::{Level, event};
 
-use crate::app::{error::APIErrorResponse, utils::response::builder::ResponseBuilder};
+use crate::{
+    app::{error::APIErrorResponse, request_logging::ErrorReason},
+    utils::builder::ResponseBuilder,
+};
 
 /// The same as [axum::Json] but with logging of errors and formatted error responses
 #[derive(Debug, Clone, Copy, Default, Deref, AsRef, From)]
@@ -129,7 +132,9 @@ impl IntoResponse for JsonBodyRejection {
                     ),
                     details: Some(path.to_string()),
                 };
-                ResponseBuilder::bad_request().json(&body)
+                ResponseBuilder::bad_request()
+                    .extension("Invalid JSON")
+                    .json(&body)
             }
             JsonBodyRejection::JsonSyntaxError(err) => {
                 let body = APIErrorResponse::<(), _> {
@@ -139,7 +144,9 @@ impl IntoResponse for JsonBodyRejection {
                     ),
                     details: None,
                 };
-                ResponseBuilder::bad_request().json(&body)
+                ResponseBuilder::bad_request()
+                    .extension("Invalid JSON")
+                    .json(&body)
             }
             JsonBodyRejection::MissingJsonContentType => {
                 let body = APIErrorResponse::<(), ()> {
@@ -149,9 +156,12 @@ impl IntoResponse for JsonBodyRejection {
                     ),
                     details: None,
                 };
-                ResponseBuilder::unsupported_media_type().json(&body)
+                ResponseBuilder::unsupported_media_type()
+                    .extension(ErrorReason::from("Expected application/json"))
+                    .json(&body)
             }
             other => {
+                let error_reason = ErrorReason::from(other.to_string());
                 let body = APIErrorResponse::<(), _> {
                     error: Some(other),
                     message: Cow::Borrowed(
@@ -159,7 +169,9 @@ impl IntoResponse for JsonBodyRejection {
                     ),
                     details: None,
                 };
-                ResponseBuilder::bad_request().json(&body)
+                ResponseBuilder::bad_request()
+                    .extension(error_reason)
+                    .json(&body)
             }
         }
     }

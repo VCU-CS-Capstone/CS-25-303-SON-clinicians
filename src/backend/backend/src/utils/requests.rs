@@ -1,3 +1,4 @@
+pub mod ip_addr;
 pub mod json;
 pub fn sanitize_string(s: String) -> Option<String> {
     if s.trim().is_empty() { None } else { Some(s) }

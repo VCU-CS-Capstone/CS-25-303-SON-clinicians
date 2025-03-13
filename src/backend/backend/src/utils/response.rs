@@ -1,21 +1,10 @@
 use serde::Serialize;
 use utoipa::ToSchema;
-
+pub mod builder;
 use crate::app::error::InternalError;
-use axum::{body::Body, response::Response};
-pub fn ok_json_response<T: Serialize>(data: T) -> Result<Response, InternalError> {
-    let body = serde_json::to_string(&data)?;
-    Ok(http::Response::builder()
-        .status(http::StatusCode::OK)
-        .header(http::header::CONTENT_TYPE, "application/json")
-        .body(body.into())?)
-}
+use axum::response::Response;
+pub use builder::ResponseBuilder;
 
-pub fn not_found_response() -> Result<Response, InternalError> {
-    Ok(http::Response::builder()
-        .status(http::StatusCode::NOT_FOUND)
-        .body(Body::empty())?)
-}
 #[derive(Serialize, ToSchema)]
 pub struct ConflictResponse {
     pub fields: Vec<String>,

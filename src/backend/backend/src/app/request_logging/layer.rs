@@ -22,7 +22,10 @@ use tower_http::{
 use tower_service::Service;
 use tracing::debug;
 
-use crate::app::{SiteState, request_logging::response_body::ResponseBody};
+use crate::{
+    app::{SiteState, request_logging::response_body::ResponseBody},
+    utils::HeaderMapExt,
+};
 
 use super::{RequestSpan, X_REQUEST_ID, request_id::RequestId};
 
@@ -61,8 +64,13 @@ where
             KeyValue::new("http.request.method", req.method().as_str().to_string()),
             KeyValue::new("request_id", request_id.to_string()),
         ];
-        if let Some(user_agent) = super::extract_header_as_str(req.headers(), USER_AGENT) {
+        if let Some(user_agent) = req.headers().get_string_ignore_empty(&USER_AGENT) {
             attributes.push(KeyValue::new("http.request.user_agent", user_agent));
+        } else {
+            attributes.push(KeyValue::new(
+                "http.request.user_agent",
+                "<unknown>".to_string(),
+            ));
         }
         let site: SiteState = self.site.clone();
         let body_size = req.body().size_hint().lower();
@@ -77,7 +85,7 @@ where
         req.extensions_mut().insert(request_id);
 
         let classifier = self.classifier.make_classifier(&req);
-        super::on_request(&req, &request_span);
+        super::on_request(&req, &request_span, &site);
 
         let result = request_span.in_scope(|| inner.call(req));
         ResponseFuture {

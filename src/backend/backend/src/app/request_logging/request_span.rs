@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::{borrow::Cow, net::SocketAddr};
 
 use axum::extract::{ConnectInfo, FromRef, FromRequestParts, MatchedPath};
 use derive_more::derive::From;
@@ -11,10 +11,30 @@ use opentelemetry::{global, propagation::Extractor, trace::TraceContextExt};
 use tracing::{Level, event, field::Empty, info_span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
-use crate::app::{SiteState, error::MissingInternelExtension};
+use crate::{
+    app::{SiteState, error::MissingInternelExtension},
+    utils::{HeaderMapExt, ip_addr},
+};
 
-use super::{RequestId, X_FORWARDED_FOR_HEADER};
-
+use super::RequestId;
+#[derive(Debug, Clone, From)]
+pub struct ErrorReason {
+    pub reason: Cow<'static, str>,
+}
+impl From<String> for ErrorReason {
+    fn from(reason: String) -> Self {
+        Self {
+            reason: Cow::Owned(reason),
+        }
+    }
+}
+impl From<&'static str> for ErrorReason {
+    fn from(reason: &'static str) -> Self {
+        Self {
+            reason: Cow::Borrowed(reason),
+        }
+    }
+}
 #[derive(Debug, Clone, From)]
 pub struct RequestSpan(pub tracing::Span);
 impl<S> FromRequestParts<S> for RequestSpan
@@ -58,8 +78,7 @@ impl Extractor for HeaderMapCarrier<'_> {
 }
 
 pub fn make_span<B>(request: &Request<B>, request_id: RequestId) -> tracing::Span {
-    let user_agent = extract_header_as_str(request.headers(), USER_AGENT)
-        .unwrap_or_else(|| "<unknown>".to_string());
+    let user_agent = request.headers().get_string_ignore_empty(&USER_AGENT);
 
     let span = info_span!(target: "cs25_303_backend::requests","HTTP request",
         http.path = Empty,
@@ -93,28 +112,17 @@ pub fn make_span<B>(request: &Request<B>, request_id: RequestId) -> tracing::Spa
     span
 }
 
-pub fn on_request<B>(request: &Request<B>, span: &tracing::Span) {
+pub fn on_request<B>(request: &Request<B>, span: &tracing::Span, state: &SiteState) {
     let path = request
         .extensions()
         .get::<MatchedPath>()
         .map_or(request.uri().path(), |p| p.as_str());
     let method = request.method().as_str();
-    let client_ip = extract_header_as_str(request.headers(), X_FORWARDED_FOR_HEADER)
-        .or_else(|| {
-            request
-                .extensions()
-                .get::<ConnectInfo<SocketAddr>>()
-                .map(|ConnectInfo(c)| c.to_string())
-        })
-        .unwrap_or_else(|| {
-            let _guard = span.enter();
-            event!(Level::WARN, "Failed to get client IP");
-            "<unknown>".to_string()
-        });
+    let client_ip = ip_addr::extract_ip_as_string(request, state);
 
     span.record("http.path", path);
     span.record("otel.name", format!("{method} {path}"));
-    span.record("http.client_ip", &client_ip);
+    span.record("http.client_ip", client_ip);
 
     let referer = extract_header_as_str(request.headers(), REFERER);
     if let Some(referer) = referer {
@@ -127,7 +135,12 @@ pub fn on_response<B>(
     span: &tracing::Span,
 ) {
     if response.status().is_client_error() || response.status().is_server_error() {
-        span.record("exception.message", "Unknown error");
+        let reason = response.extensions().get::<ErrorReason>();
+        if let Some(reason) = reason {
+            span.record("exception.message", reason.reason.as_ref());
+        } else {
+            span.record("exception.message", "Unknown error");
+        }
     }
 
     span.record("http.status_code", response.status().as_u16());

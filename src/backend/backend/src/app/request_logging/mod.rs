@@ -14,8 +14,6 @@ use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
 use super::SiteState;
 
 #[allow(clippy::declare_interior_mutable_const)]
-const X_FORWARDED_FOR_HEADER: HeaderName = HeaderName::from_static("x-forwarded-for");
-#[allow(clippy::declare_interior_mutable_const)]
 const X_REQUEST_ID: HeaderName = HeaderName::from_static("x-request-id");
 
 #[derive(Debug, Clone, From)]
