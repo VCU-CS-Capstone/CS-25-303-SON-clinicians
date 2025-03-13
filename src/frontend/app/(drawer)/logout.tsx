@@ -1,12 +1,9 @@
-import { Redirect } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
+import { View, Text } from 'react-native';
 import { useSession } from '~/contexts/SessionContext';
 
 export default function Logout() {
-  const { logout } = useSession();
-  logout();
-  return (
-    <>
-      <Redirect href={'/login'} />;
-    </>
-  );
+  const session = useSession();
+  session.logout();
+  return <Redirect href={'/'} />;
 }

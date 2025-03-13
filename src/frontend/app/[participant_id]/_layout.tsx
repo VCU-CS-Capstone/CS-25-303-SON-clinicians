@@ -4,13 +4,14 @@ import { Drawer } from 'expo-router/drawer';
 
 import { Button } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import ProtectedRoute from '~/components/ProtectedRoute';
 
 const DrawerLayout = () => {
   // TODO: Add a back button to go up the stack by one
   const { participant_id } = useLocalSearchParams<{ participant_id: string }>();
 
   return (
-    <>
+    <ProtectedRoute>
       <Drawer>
         <Drawer.Screen
           name="go-back"
@@ -80,7 +81,7 @@ const DrawerLayout = () => {
           }}
         />
       </Drawer>
-    </>
+    </ProtectedRoute>
   );
 };
 
