@@ -73,7 +73,8 @@ tuxs-config-types = { git = "https://github.com/wyatt-herkamp/tuxs-config-types.
 ] }
 base64 = "0.22"
 ahash.workspace = true
-
+serde_path_to_error = "0.1"
+mime = "0.3"
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = { version = "0.6", optional = true }
 [features]

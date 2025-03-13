@@ -13,12 +13,15 @@ use http::{StatusCode, header::SET_COOKIE};
 use tracing::{debug, instrument};
 use utoipa::{OpenApi, ToSchema};
 
-use crate::app::{
-    SiteState,
-    authentication::{Authentication, MeWithSession, utils::verify_login},
-    error::InternalError,
-    request_logging::RequestId,
-    utils::{ip_addr::ConnectionIpAddr, response::builder::ResponseBuilder},
+use crate::{
+    app::{
+        SiteState,
+        authentication::{Authentication, MeWithSession, utils::verify_login},
+        error::InternalError,
+        request_logging::RequestId,
+        utils::{ip_addr::ConnectionIpAddr, response::builder::ResponseBuilder},
+    },
+    utils::json::JsonBody,
 };
 
 #[derive(OpenApi)]
@@ -62,7 +65,7 @@ pub async fn login(
     TypedHeader(user_agent): TypedHeader<UserAgent>,
     request_id: RequestId,
     ConnectionIpAddr(ip_addr): ConnectionIpAddr,
-    Json(login): axum::Json<LoginPasswordBody>,
+    JsonBody(login): JsonBody<LoginPasswordBody>,
 ) -> Result<Response, InternalError> {
     if site.authentication.password.is_none() {
         return Ok(Response::builder()
@@ -108,12 +111,9 @@ pub async fn login(
         .expires(Expiration::Session)
         .build();
     let user_with_session = MeWithSession::from((session.clone(), user));
-    return Ok(Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", "application/json")
+    return Ok(ResponseBuilder::ok()
         .header(SET_COOKIE, cookie.encoded().to_string())
-        .body(serde_json::to_string(&user_with_session)?.into())
-        .unwrap());
+        .json(&user_with_session));
 }
 #[utoipa::path(
     get,
@@ -147,9 +147,7 @@ pub async fn logout(
         .expires(Expiration::Session)
         .build();
 
-    Ok(Response::builder()
-        .status(StatusCode::NO_CONTENT)
+    Ok(ResponseBuilder::no_content()
         .header(SET_COOKIE, cookie.encoded().to_string())
-        .body("".into())
-        .unwrap())
+        .empty())
 }

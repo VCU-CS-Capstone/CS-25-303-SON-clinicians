@@ -40,7 +40,8 @@ impl ResponseBuilder {
         conflict => CONFLICT,
         unauthorized => UNAUTHORIZED,
         forbidden => FORBIDDEN,
-        internal_server_error => INTERNAL_SERVER_ERROR
+        internal_server_error => INTERNAL_SERVER_ERROR,
+        unsupported_media_type => UNSUPPORTED_MEDIA_TYPE
     );
     /// Sets the body if it returns an error it will return a [ResponseBuildError]
     pub fn body_or_err(

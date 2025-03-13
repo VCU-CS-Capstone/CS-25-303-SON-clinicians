@@ -8,7 +8,7 @@ use cs25_303_core::database::user::{
     roles::{Roles, UserRoles},
 };
 use rand::{TryRngCore, rngs::OsRng};
-use tracing::info;
+
 
 use crate::config::DataToolConfig;
 #[derive(Debug, Clone, Args)]

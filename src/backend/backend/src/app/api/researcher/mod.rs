@@ -17,9 +17,12 @@ use cs25_303_core::{
 use tracing::instrument;
 use utoipa::OpenApi;
 
-use crate::app::{
-    SiteState, authentication::Authentication, error::InternalError,
-    utils::response::builder::ResponseBuilder,
+use crate::{
+    app::{
+        SiteState, authentication::Authentication, error::InternalError,
+        utils::response::builder::ResponseBuilder,
+    },
+    utils::json::JsonBody,
 };
 
 #[derive(OpenApi)]
@@ -64,7 +67,7 @@ pub async fn query(
     State(site): State<SiteState>,
     Query(page): Query<CSPageParams>,
     auth: Authentication,
-    Json(participant): Json<ResearcherQuery>,
+    JsonBody(participant): JsonBody<ResearcherQuery>,
 ) -> Result<Response, InternalError> {
     let participants = participant.query(page.into(), &site.database).await?;
 

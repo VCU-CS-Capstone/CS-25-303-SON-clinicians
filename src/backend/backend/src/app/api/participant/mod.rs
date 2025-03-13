@@ -1,6 +1,6 @@
 use crate::{
     app::{authentication::Authentication, utils::response::builder::ResponseBuilder},
-    utils::{not_found_response, ok_json_response},
+    utils::{json::JsonBody, not_found_response, ok_json_response},
 };
 pub mod case_note;
 pub mod goals;
@@ -77,7 +77,7 @@ pub async fn look_up_participant(
     State(site): State<SiteState>,
     Query(page): Query<CSPageParams>,
     auth: Authentication,
-    Json(participant): Json<ParticipantLookupQuery>,
+    JsonBody(participant): JsonBody<ParticipantLookupQuery>,
 ) -> Result<Response, InternalError> {
     let participants = participant.find(page, &site.database).await?;
     Ok(ResponseBuilder::ok().json(&participants))
