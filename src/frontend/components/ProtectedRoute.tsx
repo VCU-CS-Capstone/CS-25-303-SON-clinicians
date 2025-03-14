@@ -10,7 +10,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (!session) {
-      router.replace('/login');
+      router.replace('/(login)/LoginScreen');
     }
   }, [session]);
 

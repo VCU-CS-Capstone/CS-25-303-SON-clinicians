@@ -10,7 +10,8 @@ import { StyleSheet } from 'react-native';
 const LoginScreen = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { setSession } = useSession();
+  const { setSession, logout } = useSession();
+
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -21,7 +22,7 @@ const LoginScreen = () => {
 
       setSession(sessionId);
       await SecureStore.setItemAsync('session', sessionId);
-      router.replace('/');
+      router.push('/(drawer)');
     } catch (error) {
       Alert.alert(`Failed to login ${error}`);
     }

@@ -28,7 +28,6 @@ const DrawerLayout = () => (
         drawerIcon: ({ size, color }) => <Ionicons name="map-outline" size={size} color={color} />,
       }}
     />
-
     <Drawer.Screen
       name="logout"
       options={{

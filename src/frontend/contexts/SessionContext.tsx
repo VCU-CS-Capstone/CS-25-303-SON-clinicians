@@ -9,6 +9,8 @@ interface SessionContextType {
   setSession: (session: string) => void;
   setSessionExpiration: (expiration: Date) => void;
   logout: () => void;
+
+  isValid(): boolean;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -32,13 +34,13 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
             await SecureStore.deleteItemAsync('session-expiration');
             setSessionExpiration(null);
             setSession(null);
-            router.replace('/login');
+            router.replace('/(login)/LoginScreen');
             return;
           }
         }
         setSession(storedSession);
       } else {
-        router.replace('/login');
+        router.replace('/(login)/LoginScreen');
       }
     };
 
@@ -54,12 +56,21 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
     }
     await SecureStore.deleteItemAsync('session');
     setSession(null);
-    router.replace('/login');
+    setSessionExpiration(null);
   };
+  const isValid = () =>
+    session !== null && sessionExpiration !== null && sessionExpiration > new Date();
 
   return (
     <SessionContext.Provider
-      value={{ session, setSession, logout, sessionExpiration, setSessionExpiration }}
+      value={{
+        session,
+        setSession,
+        logout,
+        sessionExpiration,
+        setSessionExpiration,
+        isValid,
+      }}
     >
       {children}
     </SessionContext.Provider>
