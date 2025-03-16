@@ -6,7 +6,7 @@ use thiserror::Error;
 mod api;
 use crate::utils::{
     ErrorReason, IntoErrorResponse, api_error_response::APIErrorResponse,
-    other::PLAIN_TEXT_MEDIA_TYPE, response::builder::ResponseBuilder,
+    response::builder::ResponseBuilder,
 };
 
 pub mod bad_request;

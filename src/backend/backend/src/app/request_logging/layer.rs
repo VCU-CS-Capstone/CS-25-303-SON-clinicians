@@ -1,5 +1,6 @@
 use std::{
     future::Future,
+    mem,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -8,36 +9,25 @@ use axum::{
     body::{Body, HttpBody},
     extract::MatchedPath,
 };
-use http::{
-    HeaderValue, Request, Response,
-    header::{InvalidHeaderValue, USER_AGENT},
-};
+use http::{HeaderValue, Request, Response, header::InvalidHeaderValue};
 use opentelemetry::KeyValue;
 use pin_project::pin_project;
-use tower_http::{
-    classify::{ClassifiedResponse, ClassifyResponse, MakeClassifier, ServerErrorsAsFailures},
-    trace::HttpMakeClassifier,
-};
 
 use tower_service::Service;
-use tracing::debug;
+use tracing::error;
 
 use crate::{
-    app::{SiteState, request_logging::response_body::ResponseBody},
-    utils::{
-        HeaderMapExt,
-        request_logging::{request_id::RequestId, request_span::RequestSpan},
-    },
+    app::SiteState,
+    utils::request_logging::{request_id::RequestId, request_span::RequestSpan},
 };
 
-use super::X_REQUEST_ID;
+use super::{X_REQUEST_ID, response_body::TraceResponseBody};
 
 /// Middleware that handles the authentication of the user
 #[derive(Debug, Clone)]
 pub struct AppTraceMiddleware<S> {
     pub(super) inner: S,
     pub(super) site: SiteState,
-    pub(super) classifier: HttpMakeClassifier,
 }
 
 impl<S> Service<Request<Body>> for AppTraceMiddleware<S>
@@ -46,11 +36,10 @@ where
     S::Future: Send + 'static,
     S::Error: std::fmt::Display + 'static,
 {
-    type Response =
-        Response<ResponseBody<Body, <ServerErrorsAsFailures as ClassifyResponse>::ClassifyEos>>;
+    type Response = Response<TraceResponseBody>;
     type Error = S::Error;
     //type Future = BoxFuture<'static, Result<Self::Response, S::Error>>;
-    type Future = ResponseFuture<S::Future>;
+    type Future = TraceResponseFuture<S::Future>;
     // Async Stuff we can ignore
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
@@ -62,19 +51,11 @@ where
             .get::<MatchedPath>()
             .map_or(req.uri().path(), |p| p.as_str());
         let request_id = RequestId::new_random();
-        let mut attributes = vec![
+        let attributes = vec![
             KeyValue::new("http.route", path.to_owned()),
             KeyValue::new("http.request.method", req.method().as_str().to_string()),
             KeyValue::new("request_id", request_id.to_string()),
         ];
-        if let Some(user_agent) = req.headers().get_string_ignore_empty(&USER_AGENT) {
-            attributes.push(KeyValue::new("http.request.user_agent", user_agent));
-        } else {
-            attributes.push(KeyValue::new(
-                "http.request.user_agent",
-                "<unknown>".to_string(),
-            ));
-        }
         let site: SiteState = self.site.clone();
         let body_size = req.body().size_hint().lower();
 
@@ -87,16 +68,14 @@ where
             .insert(RequestSpan(request_span.clone()));
         req.extensions_mut().insert(request_id);
 
-        let classifier = self.classifier.make_classifier(&req);
         super::on_request(&req, &request_span, Some(body_size));
 
         let result = request_span.in_scope(|| inner.call(req));
-        ResponseFuture {
+        TraceResponseFuture {
             inner: result,
             instant: start,
             state: site,
-            classifier: Some(classifier),
-            span: Some(request_span),
+            span: request_span,
             request_body_size: body_size,
             attributes,
             request_id,
@@ -105,49 +84,38 @@ where
 }
 
 #[pin_project]
-pub struct ResponseFuture<F> {
+pub struct TraceResponseFuture<F> {
     #[pin]
     inner: F,
-
     instant: std::time::Instant,
-
     state: SiteState,
-
-    classifier: Option<ServerErrorsAsFailures>,
-    span: Option<tracing::Span>,
-    request_body_size: u64,
     attributes: Vec<KeyValue>,
+    span: tracing::Span,
+    request_body_size: u64,
+
     request_id: RequestId,
 }
 
-impl<F, E> Future for ResponseFuture<F>
+impl<F, E> Future for TraceResponseFuture<F>
 where
     E: std::fmt::Display + 'static,
     F: Future<Output = Result<Response<Body>, E>>,
 {
-    type Output = Result<
-        Response<ResponseBody<Body, <ServerErrorsAsFailures as ClassifyResponse>::ClassifyEos>>,
-        E,
-    >;
+    type Output = Result<Response<TraceResponseBody>, E>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
-        if this.span.is_none() || this.classifier.is_none() {
-            panic!("ResponseFuture polled after completion");
-        }
+        let span = this.span.clone();
+
         // Attempt to poll the inner future
         let result = {
-            let span_ref = this.span.as_ref().unwrap();
-            match span_ref.in_scope(|| this.inner.poll(cx)) {
+            match span.in_scope(|| this.inner.poll(cx)) {
                 Poll::Pending => return Poll::Pending,
                 Poll::Ready(result) => result,
             }
         };
         // One it has completed we can take the span and the classifier
-        let span = this.span.take().unwrap();
         let _guard = span.enter();
-
-        let classifier = this.classifier.take().unwrap();
 
         let duration = this.instant.elapsed();
         let state = this.state.clone();
@@ -161,7 +129,7 @@ where
                         response.headers_mut().insert(X_REQUEST_ID, header);
                     }
                     Err(e) => {
-                        debug!("Failed to set request id header: {}", e);
+                        error!("Failed to set request id header: {}", e);
                     }
                 }
                 this.attributes.push(KeyValue::new(
@@ -169,53 +137,28 @@ where
                     response.status().as_u16().to_string(),
                 ));
 
-                let classification = classifier.classify_response(&response);
-                let response_size = response.body().size_hint().lower();
-                super::on_response(&response, duration, &span, Some(response_size));
-                state
-                    .metrics
-                    .response_size_bytes
-                    .record(response_size, this.attributes);
+                super::on_response(&response, duration, &span, Some(request_body_size));
+                if response.status().is_server_error() {
+                    super::on_failure(&response.status(), duration, &span);
+                }
 
                 final_metrics(&state, duration, request_body_size, this.attributes);
 
                 let span = span.clone();
-                match classification {
-                    ClassifiedResponse::Ready(classification) => {
-                        if let Err(failure_class) = classification {
-                            super::on_failure(failure_class, duration, &span);
-                        }
-                        let res: Response<
-                            ResponseBody<
-                                Body,
-                                <ServerErrorsAsFailures as ClassifyResponse>::ClassifyEos,
-                            >,
-                        > = response.map(|body: Body| ResponseBody {
-                            inner: body,
-                            classify_eos: None,
-                            start: *this.instant,
-                            span,
-                        });
+                let attributes = mem::take(this.attributes);
+                let res: Response<TraceResponseBody> = response.map(|body| TraceResponseBody {
+                    inner: body,
+                    start: *this.instant,
+                    span,
+                    state: state.clone(),
+                    attributes,
+                    total_bytes: 0,
+                });
 
-                        Poll::Ready(Ok(res))
-                    }
-                    ClassifiedResponse::RequiresEos(classify_eos) => {
-                        let res = response.map(|body| ResponseBody {
-                            inner: body,
-                            classify_eos: Some(classify_eos),
-                            start: *this.instant,
-                            span,
-                        });
-
-                        Poll::Ready(Ok(res))
-                    }
-                }
+                Poll::Ready(Ok(res))
             }
             Err(err) => {
-                let failure_class = classifier.classify_error(&err);
-
-                super::on_failure(failure_class, duration, &span);
-
+                super::on_failure(&err, duration, &span);
                 final_metrics(&state, duration, request_body_size, this.attributes);
 
                 Poll::Ready(Err(err))

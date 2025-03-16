@@ -20,7 +20,6 @@ use std::{
 };
 use tower::Layer;
 use tower_service::Service;
-use tracing::field::Empty;
 use tracing::{Span, info, info_span, trace};
 use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 #[derive(Debug, Clone, From)]

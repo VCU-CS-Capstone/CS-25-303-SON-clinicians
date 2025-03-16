@@ -1,6 +1,6 @@
 //! Attempts to follow the http server semantic conventions of opentelemetry.
 //! https://opentelemetry.io/docs/specs/semconv/http/http-spans/#http-server-semantic-conventions
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Display};
 
 use axum::extract::MatchedPath;
 use http::{
@@ -8,7 +8,6 @@ use http::{
     header::{REFERER, USER_AGENT},
 };
 use opentelemetry::{global, propagation::Extractor, trace::TraceContextExt};
-use tower_http::classify::ServerErrorsFailureClass;
 use tracing::{field::Empty, info_span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
@@ -127,23 +126,12 @@ pub fn on_response<B>(
         span.record("http.response.body.size", size);
     }
 }
-pub fn on_failure(
-    failure_classification: ServerErrorsFailureClass,
-    _latency: std::time::Duration,
-    span: &tracing::Span,
-) {
-    match failure_classification {
-        ServerErrorsFailureClass::StatusCode(_) => {
-            span.record("error.type", "Unknown error");
-            span.set_status(opentelemetry::trace::Status::Error {
-                description: "Unknown error".into(),
-            });
-        }
-        ServerErrorsFailureClass::Error(err) => {
-            span.record("error.type", err.to_string());
-            span.set_status(opentelemetry::trace::Status::Error {
-                description: err.into(),
-            });
-        }
-    }
+pub fn on_failure(err: &impl Display, _latency: std::time::Duration, span: &tracing::Span) {
+    span.record("error.type", err.to_string());
+    span.set_status(opentelemetry::trace::Status::Error {
+        description: Cow::Owned(err.to_string()),
+    });
+}
+pub fn on_end_of_stream(body_size: u64, span: &tracing::Span) {
+    span.record("http.response.body.size", body_size);
 }

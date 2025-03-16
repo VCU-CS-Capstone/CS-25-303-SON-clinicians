@@ -7,7 +7,6 @@ pub use request_span::*;
 pub mod response_body;
 
 use tower::Layer;
-use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
 
 use super::SiteState;
 
@@ -24,7 +23,6 @@ impl<S> Layer<S> for AppTracingLayer {
         AppTraceMiddleware {
             inner,
             site: self.0.clone(),
-            classifier: SharedClassifier::new(ServerErrorsAsFailures::new()),
         }
     }
 }

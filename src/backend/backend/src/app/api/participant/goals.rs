@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    response::{ErrorResponse, Response},
+    response::Response,
     routing::get,
 };
 use cs25_303_core::database::red_cap::participants::{
