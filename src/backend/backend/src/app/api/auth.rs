@@ -1,5 +1,4 @@
 use axum::{
-    Json,
     extract::State,
     response::{IntoResponse, Response},
 };
@@ -9,7 +8,7 @@ use axum_extra::{
     headers::UserAgent,
 };
 use cs25_303_core::database::user::login::AdditionalFootprint;
-use http::{StatusCode, header::SET_COOKIE};
+use http::header::SET_COOKIE;
 use tracing::{debug, instrument};
 use utoipa::{OpenApi, ToSchema};
 
@@ -17,10 +16,12 @@ use crate::{
     app::{
         SiteState,
         authentication::{Authentication, MeWithSession, utils::verify_login},
-        error::{APIErrorResponse, InternalError},
-        request_logging::{ErrorReason, RequestId},
+        error::InternalError,
     },
-    utils::{builder::ResponseBuilder, ip_addr::ConnectionIpAddr, json::JsonBody},
+    utils::{
+        ErrorReason, api_error_response::APIErrorResponse, builder::ResponseBuilder,
+        ip_addr::ConnectionIpAddr, json::JsonBody, request_logging::request_id::RequestId,
+    },
 };
 
 #[derive(OpenApi)]

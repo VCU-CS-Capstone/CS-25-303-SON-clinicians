@@ -15,9 +15,12 @@ pub mod participant;
 pub mod questions;
 pub mod researcher;
 pub mod user;
-use crate::{config::EnabledFeatures, utils::builder::ResponseBuilder};
+use crate::{
+    config::EnabledFeatures,
+    utils::{ErrorReason, api_error_response::APIErrorResponse, builder::ResponseBuilder},
+};
 
-use super::{SiteState, error::APIErrorResponse, request_logging::ErrorReason};
+use super::SiteState;
 #[derive(Debug, Clone, Serialize, ToSchema)]
 #[schema(examples(Instance::example))]
 pub struct Instance {

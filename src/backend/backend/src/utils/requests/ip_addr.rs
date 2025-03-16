@@ -12,10 +12,7 @@ use http::{HeaderName, request::Parts};
 use thiserror::Error;
 use tracing::{Level, error, event, instrument};
 
-use crate::{
-    app::request_logging::ErrorReason,
-    utils::{HeaderMapExt, ResponseBuilder},
-};
+use crate::utils::{ErrorReason, HeaderMapExt, ResponseBuilder};
 #[derive(Debug, Error)]
 pub enum ConnectionIpAddrError {
     #[error("Invalid IP address format {0}")]

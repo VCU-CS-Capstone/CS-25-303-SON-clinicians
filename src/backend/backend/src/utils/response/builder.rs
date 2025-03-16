@@ -1,9 +1,12 @@
 use std::any::Any;
 
 use axum::response::{IntoResponse, Response};
+use error::ResponseBuildError;
 use http::{HeaderName, HeaderValue, StatusCode, header::CONTENT_TYPE};
 
-use crate::{app::error::ResponseBuildError, utils::other::JSON_MEDIA_TYPE};
+use crate::utils::other::JSON_MEDIA_TYPE;
+pub mod error;
+use super::ErrorReason;
 
 macro_rules! new_response_builder {
     (
@@ -44,6 +47,9 @@ impl ResponseBuilder {
         internal_server_error => INTERNAL_SERVER_ERROR,
         unsupported_media_type => UNSUPPORTED_MEDIA_TYPE
     );
+    pub fn error_reason(self, reason: impl Into<ErrorReason>) -> Self {
+        Self(self.0.extension(reason.into()))
+    }
     pub fn extension<T>(self, extension: T) -> Self
     where
         T: Clone + Any + Send + Sync + 'static,

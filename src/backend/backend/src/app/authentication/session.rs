@@ -24,10 +24,7 @@ use tracing::{
 };
 use tuxs_config_types::chrono_types::duration::ConfigDuration;
 mod data;
-use crate::{
-    app::{SiteStateInner, error::IntoErrorResponse},
-    config::Mode,
-};
+use crate::{app::SiteStateInner, config::Mode, utils::IntoErrorResponse};
 pub use data::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LoginMethod {

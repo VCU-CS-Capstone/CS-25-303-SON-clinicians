@@ -1,10 +1,8 @@
 mod layer;
-mod request_id;
 mod request_span;
 use derive_more::derive::From;
 use http::HeaderName;
 use layer::AppTraceMiddleware;
-pub use request_id::*;
 pub use request_span::*;
 pub mod response_body;
 

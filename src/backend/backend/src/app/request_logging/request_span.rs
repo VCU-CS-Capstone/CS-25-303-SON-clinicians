@@ -1,69 +1,24 @@
-use std::{borrow::Cow, net::SocketAddr};
+//! Attempts to follow the http server semantic conventions of opentelemetry.
+//! https://opentelemetry.io/docs/specs/semconv/http/http-spans/#http-server-semantic-conventions
+use std::borrow::Cow;
 
-use axum::extract::{ConnectInfo, FromRef, FromRequestParts, MatchedPath};
-use derive_more::derive::From;
+use axum::extract::MatchedPath;
 use http::{
     HeaderMap, HeaderName, Request,
     header::{REFERER, USER_AGENT},
-    request::Parts,
 };
 use opentelemetry::{global, propagation::Extractor, trace::TraceContextExt};
-use tracing::{Level, event, field::Empty, info_span};
+use tower_http::classify::ServerErrorsFailureClass;
+use tracing::{field::Empty, info_span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
-    app::{SiteState, error::MissingInternelExtension},
-    utils::{HeaderMapExt, ip_addr},
+    app::SiteState,
+    utils::{
+        ErrorReason, HeaderMapExt, ip_addr,
+        request_logging::{HttpTraceValue, request_id::RequestId},
+    },
 };
-
-use super::RequestId;
-#[derive(Debug, Clone, From)]
-pub struct ErrorReason {
-    pub reason: Cow<'static, str>,
-}
-impl From<String> for ErrorReason {
-    fn from(reason: String) -> Self {
-        Self {
-            reason: Cow::Owned(reason),
-        }
-    }
-}
-impl From<&'static str> for ErrorReason {
-    fn from(reason: &'static str) -> Self {
-        Self {
-            reason: Cow::Borrowed(reason),
-        }
-    }
-}
-#[derive(Debug, Clone, From)]
-pub struct RequestSpan(pub tracing::Span);
-impl<S> FromRequestParts<S> for RequestSpan
-where
-    SiteState: FromRef<S>,
-    S: Send + Sync,
-{
-    type Rejection = MissingInternelExtension;
-
-    async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
-        let extension = parts.extensions.get::<RequestSpan>();
-        extension
-            .cloned()
-            .ok_or(MissingInternelExtension("Request Span"))
-    }
-}
-pub fn extract_header_as_str(headers: &HeaderMap, header: HeaderName) -> Option<String> {
-    headers
-        .get(&header)
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| {
-            if v.is_empty() {
-                event!(Level::WARN, ?header, "Empty header Value",);
-                None
-            } else {
-                Some(v.to_owned())
-            }
-        })
-}
 
 pub struct HeaderMapCarrier<'a>(pub &'a HeaderMap);
 
@@ -77,24 +32,36 @@ impl Extractor for HeaderMapCarrier<'_> {
     }
 }
 
-pub fn make_span<B>(request: &Request<B>, request_id: RequestId) -> tracing::Span {
+pub fn make_span<B>(
+    request: &Request<B>,
+    request_id: RequestId,
+    state: &SiteState,
+) -> tracing::Span {
     let user_agent = request.headers().get_string_ignore_empty(&USER_AGENT);
+    let client_ip = ip_addr::extract_ip_as_string(request, state);
 
-    let span = info_span!(target: "cs25_303_backend::requests","HTTP request",
-        http.path = Empty,
-        http.method = ?request.method(),
-        http.version = ?request.version(),
-        http.user_agent = user_agent,
-        http.client_ip = Empty,
-        otel.kind = ?opentelemetry::trace::SpanKind::Server,
-        http.status_code = Empty,
-        http.referer = Empty,
-        http.raw_path = ?request.uri().path(),
-        otel.status_code = Empty,
-        otel.name = "HTTP request",
-        trace_id = Empty,
-        exception.message = Empty,
+    let span: tracing::Span = info_span!(target: "cs25_303_backend::requests","HTTP request",
+        http.route = Empty,
+        url.path = request.uri().path(),
+        url.query = request.uri().query(),
+        url.schema = request.uri().scheme_str().unwrap_or("http"),
+        http.request.method = %request.method(),
+        http.request.body.size = Empty,
+
+        http.response.status_code = Empty,
+        http.response.body.size = Empty,
+
+        user_agent.original = user_agent,
+
+        network.protocol.version = request.version().value(),
+
+        client.address = client_ip,
+        // The port is not included because I run this behind a reverse proxy
+
         request_id = display(request_id),
+        otel.name = "HTTP request",
+        otel.kind = ?opentelemetry::trace::SpanKind::Server,
+        error.type = Empty,
     );
 
     let context = global::get_text_map_propagator(|propagator| {
@@ -102,54 +69,81 @@ pub fn make_span<B>(request: &Request<B>, request_id: RequestId) -> tracing::Spa
     });
 
     if context.has_active_span() {
-        span.record(
-            "trace_id",
-            context.span().span_context().trace_id().to_string(),
-        );
         span.set_parent(context);
     }
 
     span
 }
 
-pub fn on_request<B>(request: &Request<B>, span: &tracing::Span, state: &SiteState) {
+pub fn on_request<B>(request: &Request<B>, span: &tracing::Span, request_body_size: Option<u64>) {
     let path = request
         .extensions()
         .get::<MatchedPath>()
-        .map_or(request.uri().path(), |p| p.as_str());
+        .map(|p| p.as_str());
     let method = request.method().as_str();
-    let client_ip = ip_addr::extract_ip_as_string(request, state);
 
-    span.record("http.path", path);
-    span.record("otel.name", format!("{method} {path}"));
-    span.record("http.client_ip", client_ip);
+    let otel_name = if let Some(path) = &path {
+        format!("{method} {path}")
+    } else {
+        format!(
+            "{method} {path}",
+            method = request.method(),
+            path = request.uri().path()
+        )
+    };
 
-    let referer = extract_header_as_str(request.headers(), REFERER);
+    span.record("http.route", path);
+    span.record("otel.name", otel_name);
+    if let Some(size) = request_body_size {
+        span.record("http.request.body.size", size);
+    }
+
+    let referer = request.headers().get_string_ignore_empty(&REFERER);
     if let Some(referer) = referer {
-        span.record("http.referer", &referer);
+        span.set_attribute("http.request.header.referer", referer);
     }
 }
 pub fn on_response<B>(
     response: &axum::http::Response<B>,
     _latency: std::time::Duration,
     span: &tracing::Span,
+    body_size: Option<u64>,
 ) {
     if response.status().is_client_error() || response.status().is_server_error() {
         let reason = response.extensions().get::<ErrorReason>();
-        if let Some(reason) = reason {
-            span.record("exception.message", reason.reason.as_ref());
-        } else {
-            span.record("exception.message", "Unknown error");
-        }
+        let reason_value = reason
+            .cloned()
+            .map_or(Cow::Borrowed("Unknown error"), |r| r.reason);
+        span.record("error.type", reason_value.as_ref());
+        span.set_status(opentelemetry::trace::Status::Error {
+            description: reason_value,
+        });
+    } else {
+        span.set_status(opentelemetry::trace::Status::Ok);
     }
 
-    span.record("http.status_code", response.status().as_u16());
-    span.record("otel.status_code", "OK");
+    span.record("http.response.status_code", response.status().value());
+    if let Some(size) = body_size {
+        span.record("http.response.body.size", size);
+    }
 }
-pub fn on_failure<C>(
-    _failure_classification: C,
+pub fn on_failure(
+    failure_classification: ServerErrorsFailureClass,
     _latency: std::time::Duration,
     span: &tracing::Span,
 ) {
-    span.record("otel.status_code", "ERROR");
+    match failure_classification {
+        ServerErrorsFailureClass::StatusCode(_) => {
+            span.record("error.type", "Unknown error");
+            span.set_status(opentelemetry::trace::Status::Error {
+                description: "Unknown error".into(),
+            });
+        }
+        ServerErrorsFailureClass::Error(err) => {
+            span.record("error.type", err.to_string());
+            span.set_status(opentelemetry::trace::Status::Error {
+                description: err.into(),
+            });
+        }
+    }
 }

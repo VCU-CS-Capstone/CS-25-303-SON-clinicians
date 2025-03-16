@@ -17,9 +17,11 @@
 
 pub mod permissions;
 
-use crate::{app::error::APIErrorResponse, utils::ResponseBuilder};
+use crate::utils::{
+    ErrorReason, IntoErrorResponse, ResponseBuilder, api_error_response::APIErrorResponse,
+};
 
-use super::{SiteState, error::IntoErrorResponse, request_logging::ErrorReason};
+use super::SiteState;
 use axum::{
     extract::{FromRef, FromRequestParts},
     response::IntoResponse,
@@ -205,7 +207,7 @@ pub mod utils {
     use sqlx::{PgPool, types::Uuid};
     use tracing::{debug, instrument};
 
-    use crate::app::request_logging::ErrorReason;
+    use crate::utils::ErrorReason;
 
     use super::AuthenticationError;
 
@@ -289,7 +291,7 @@ pub mod utils {
         use rand::{TryRngCore, rngs::OsRng};
         use tracing::{debug, error, instrument};
 
-        use crate::app::{authentication::AuthenticationError, request_logging::ErrorReason};
+        use crate::{app::authentication::AuthenticationError, utils::ErrorReason};
         #[instrument(skip(password), fields(project_module = "Authentication"))]
         pub fn encrypt_password(password: &str) -> Option<String> {
             let mut bytes = [0u8; Salt::RECOMMENDED_LENGTH];

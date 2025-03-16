@@ -1,7 +1,5 @@
-use crate::{
-    app::{authentication::Authentication, request_logging::ErrorReason},
-    utils::json::JsonBody,
-};
+use crate::utils::ErrorReason;
+use crate::{app::authentication::Authentication, utils::json::JsonBody};
 pub mod case_note;
 pub mod goals;
 pub mod medications;

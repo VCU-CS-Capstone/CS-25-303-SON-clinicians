@@ -1,9 +1,6 @@
 use crate::{
-    app::{
-        SiteState, authentication::Authentication, error::InternalError,
-        request_logging::ErrorReason,
-    },
-    utils::builder::ResponseBuilder,
+    app::{SiteState, authentication::Authentication, error::InternalError},
+    utils::{ErrorReason, builder::ResponseBuilder},
 };
 use axum::{
     extract::{Path, State},

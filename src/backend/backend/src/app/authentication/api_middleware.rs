@@ -2,8 +2,8 @@ use super::header::{AuthorizationHeader, InvalidAuthorizationHeader};
 use crate::app::SiteState;
 use crate::app::authentication::AuthenticationRaw;
 use crate::app::error::InternalError;
-use crate::app::request_logging::{RequestId, RequestSpan};
 use crate::utils::HeaderValueExt;
+use crate::utils::request_logging::request_span::RequestSpan;
 use axum::body::Body;
 use axum_extra::extract::CookieJar;
 use derive_more::derive::From;
@@ -11,6 +11,7 @@ use http::header::AUTHORIZATION;
 use http::request::Parts;
 use http::{Request, Response};
 use pin_project::pin_project;
+use std::borrow::Cow;
 use std::task::ready;
 use std::{
     future::Future,
@@ -21,6 +22,7 @@ use tower::Layer;
 use tower_service::Service;
 use tracing::field::Empty;
 use tracing::{Span, info, info_span, trace};
+use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 #[derive(Debug, Clone, From)]
 pub struct AuthenticationLayer(pub SiteState);
 
@@ -85,10 +87,7 @@ where
         let parent_span = req
             .extensions()
             .get::<RequestSpan>()
-            .map(|span| {
-                println!("Request Span(From Extension) {:?}", span.0);
-                span.0.clone()
-            })
+            .map(|span| span.0.clone())
             .unwrap_or_else(Span::current);
 
         if req.method() == http::Method::OPTIONS {
@@ -99,11 +98,6 @@ where
                 inner: Kind::Ok { future: inner },
             };
         }
-        let request_id = req
-            .extensions()
-            .get::<RequestId>()
-            .map(|id| id.to_string())
-            .unwrap_or_else(|| "<unknown>".to_string());
         info!("Executing Authentication Middleware");
         let (mut parts, body) = req.into_parts();
 
@@ -112,23 +106,19 @@ where
                 parent: &parent_span,
                 "Authentication Middleware",
                 project_module = "Authentication",
-                otel.status_code = Empty,
-                exception.message = Empty,
-                auth.method = Empty,
-                trace_id = Empty,
-                request_id = request_id,
             );
             let _auth_guard = span.enter();
             if let Err(error) = self.process_from_parts(&mut parts, &span) {
-                span.record("exception.message", error.to_string());
-                span.record("otel.status_code", "ERROR");
+                span.set_status(opentelemetry::trace::Status::Error {
+                    description: Cow::Owned(error.to_string()),
+                });
                 return ResponseFuture {
                     inner: Kind::InvalidAuthentication {
                         error: error.to_string(),
                     },
                 };
             } else {
-                span.record("otel.status_code", "OK");
+                span.set_status(opentelemetry::trace::Status::Ok);
             }
         }
 

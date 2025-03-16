@@ -5,7 +5,7 @@ use derive_more::derive::{From, Into};
 use http::{HeaderValue, header::InvalidHeaderValue, request::Parts};
 use sqlx::types::Uuid;
 
-use crate::app::{SiteState, error::MissingInternelExtension};
+use crate::app::error::MissingInternelExtension;
 
 #[derive(Debug, Clone, Copy, From, Into)]
 pub struct RequestId(pub Uuid);
@@ -27,7 +27,7 @@ impl RequestId {
 }
 impl<S> FromRequestParts<S> for RequestId
 where
-    SiteState: FromRef<S>,
+    S: FromRef<S>,
     S: Send + Sync,
 {
     type Rejection = MissingInternelExtension;

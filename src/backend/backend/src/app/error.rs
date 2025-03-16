@@ -4,25 +4,13 @@ use axum::{body::Body, response::IntoResponse};
 use http::header::CONTENT_TYPE;
 use thiserror::Error;
 mod api;
-use crate::utils::{other::PLAIN_TEXT_MEDIA_TYPE, response::builder::ResponseBuilder};
-pub use api::APIErrorResponse;
+use crate::utils::{
+    ErrorReason, IntoErrorResponse, api_error_response::APIErrorResponse,
+    other::PLAIN_TEXT_MEDIA_TYPE, response::builder::ResponseBuilder,
+};
 
-use super::request_logging::ErrorReason;
 pub mod bad_request;
-pub trait IntoErrorResponse: Error + Send + Sync {
-    /// Converts the error into a response
-    ///
-    /// It must be of type of Box<Self> to allow for dynamic dispatch
-    fn into_response_boxed(self: Box<Self>) -> axum::response::Response;
-    #[inline(always)]
-    fn json_error_response(self: Box<Self>) -> Option<axum::response::Response> {
-        None
-    }
-    #[inline(always)]
-    fn supports_json_error_response(&self) -> bool {
-        false
-    }
-}
+
 // TODO: Improve the error message to be easier to read.
 fn internal_error_message(err: impl Error, source: &'static str) -> Body {
     format!(
@@ -123,26 +111,6 @@ impl IntoResponse for InternalError {
 impl<T: IntoErrorResponse + 'static> From<T> for InternalError {
     fn from(err: T) -> Self {
         InternalError(Box::new(err))
-    }
-}
-#[derive(Debug, Error)]
-pub enum ResponseBuildError {
-    #[error("Failed to serialize data for response: {0}")]
-    SerdeError(#[from] serde_json::Error),
-    #[error("Failed to build response: {0}")]
-    HttpError(#[from] http::Error),
-    #[error("Invalid Header Response Value: {0}")]
-    HeaderValueError(#[from] http::header::InvalidHeaderValue),
-}
-impl IntoResponse for ResponseBuildError {
-    fn into_response(self) -> axum::response::Response {
-        let message = self.to_string();
-        http::Response::builder()
-            .status(http::StatusCode::INTERNAL_SERVER_ERROR)
-            .header(CONTENT_TYPE, PLAIN_TEXT_MEDIA_TYPE)
-            .extension(ErrorReason::from(self.to_string()))
-            .body(axum::body::Body::from(message))
-            .unwrap()
     }
 }
 

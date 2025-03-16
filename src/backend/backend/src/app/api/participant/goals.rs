@@ -10,10 +10,11 @@ use cs25_303_core::database::red_cap::participants::{
 use tracing::instrument;
 use utoipa::OpenApi;
 
-use crate::app::{
-    SiteState, authentication::Authentication, error::InternalError, request_logging::ErrorReason,
-};
 use crate::utils::response::ResponseBuilder;
+use crate::{
+    app::{SiteState, authentication::Authentication, error::InternalError},
+    utils::ErrorReason,
+};
 
 #[derive(OpenApi)]
 #[openapi(

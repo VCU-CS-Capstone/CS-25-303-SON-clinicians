@@ -4,7 +4,8 @@ use http::StatusCode;
 use http::header::ToStrError;
 use thiserror::Error;
 
-use super::IntoErrorResponse;
+use crate::utils::IntoErrorResponse;
+
 #[derive(Debug, Error)]
 pub enum BadRequestErrors {
     #[error("Could not Decode Base64: {0}")]

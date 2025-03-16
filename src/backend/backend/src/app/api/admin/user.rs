@@ -1,7 +1,7 @@
 use axum::{
     Json,
     extract::{Path, Query, State},
-    response::Response,
+    response::{IntoResponse, Response},
     routing::{get, post},
 };
 use chrono::Local;
@@ -15,11 +15,8 @@ use tracing::{debug, instrument};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
-    app::{
-        SiteState, authentication::Authentication, error::InternalError,
-        request_logging::ErrorReason,
-    },
-    utils::{ConflictResponse, builder::ResponseBuilder},
+    app::{SiteState, authentication::Authentication, error::InternalError},
+    utils::{ErrorReason, builder::ResponseBuilder, conflict::ConflictResponse},
 };
 
 #[derive(OpenApi)]
@@ -87,12 +84,12 @@ pub async fn new_user(
 ) -> Result<Response, InternalError> {
     if new_user.check_if_username_is_in_use(&site.database).await? {
         debug!(?new_user.username, "Username already in use");
-        return ConflictResponse::from("username").response();
+        return Ok(ConflictResponse::from("username").into_response());
     }
 
     if new_user.check_if_email_is_in_use(&site.database).await? {
         debug!(?new_user.email, "Email already in use");
-        return ConflictResponse::from("email").response();
+        return Ok(ConflictResponse::from("email").into_response());
     }
 
     let user = new_user.insert_return_user(&site.database).await?;
@@ -159,7 +156,7 @@ pub async fn update_user(
         if !user_to_update.username.eq_ignore_ascii_case(&username) {
             if does_username_exist(&username, &site.database).await? {
                 debug!(?username, "Username already in use");
-                return ConflictResponse::from("username").response();
+                return Ok(ConflictResponse::from("username").into_response());
             }
             update.set(UserColumn::Username, username.value());
         }
@@ -168,7 +165,7 @@ pub async fn update_user(
         if !user_to_update.email.eq_ignore_ascii_case(&email) {
             if does_email_exist(&email, &site.database).await? {
                 debug!(?email, "Email already in use");
-                return ConflictResponse::from("email").response();
+                return Ok(ConflictResponse::from("email").into_response());
             }
             update.set(UserColumn::Email, email.value());
         }

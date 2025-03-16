@@ -4,7 +4,8 @@ use strum::EnumIs;
 use thiserror::Error;
 use tracing::{error, instrument, warn};
 
-use crate::app::error::IntoErrorResponse;
+use crate::utils::IntoErrorResponse;
+
 #[derive(Debug, Error)]
 pub enum InvalidAuthorizationHeader {
     #[error("Invalid Authorization Scheme")]

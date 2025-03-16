@@ -24,10 +24,13 @@ use tracing::debug;
 
 use crate::{
     app::{SiteState, request_logging::response_body::ResponseBody},
-    utils::HeaderMapExt,
+    utils::{
+        HeaderMapExt,
+        request_logging::{request_id::RequestId, request_span::RequestSpan},
+    },
 };
 
-use super::{RequestSpan, X_REQUEST_ID, request_id::RequestId};
+use super::X_REQUEST_ID;
 
 /// Middleware that handles the authentication of the user
 #[derive(Debug, Clone)]
@@ -79,13 +82,13 @@ where
         let mut inner = self.inner.clone();
         let start = std::time::Instant::now();
 
-        let request_span = super::make_span(&req, request_id);
+        let request_span = super::make_span(&req, request_id, &site);
         req.extensions_mut()
             .insert(RequestSpan(request_span.clone()));
         req.extensions_mut().insert(request_id);
 
         let classifier = self.classifier.make_classifier(&req);
-        super::on_request(&req, &request_span, &site);
+        super::on_request(&req, &request_span, Some(body_size));
 
         let result = request_span.in_scope(|| inner.call(req));
         ResponseFuture {
@@ -167,11 +170,12 @@ where
                 ));
 
                 let classification = classifier.classify_response(&response);
-                super::on_response(&response, duration, &span);
+                let response_size = response.body().size_hint().lower();
+                super::on_response(&response, duration, &span, Some(response_size));
                 state
                     .metrics
                     .response_size_bytes
-                    .record(response.body().size_hint().lower(), this.attributes);
+                    .record(response_size, this.attributes);
 
                 final_metrics(&state, duration, request_body_size, this.attributes);
 
@@ -186,7 +190,7 @@ where
                                 Body,
                                 <ServerErrorsAsFailures as ClassifyResponse>::ClassifyEos,
                             >,
-                        > = response.map(|body| ResponseBody {
+                        > = response.map(|body: Body| ResponseBody {
                             inner: body,
                             classify_eos: None,
                             start: *this.instant,

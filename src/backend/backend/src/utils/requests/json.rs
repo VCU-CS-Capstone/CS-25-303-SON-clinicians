@@ -11,10 +11,7 @@ use serde::de::DeserializeOwned;
 use thiserror::Error;
 use tracing::{Level, event};
 
-use crate::{
-    app::{error::APIErrorResponse, request_logging::ErrorReason},
-    utils::builder::ResponseBuilder,
-};
+use crate::utils::{ErrorReason, api_error_response::APIErrorResponse, builder::ResponseBuilder};
 
 /// The same as [axum::Json] but with logging of errors and formatted error responses
 #[derive(Debug, Clone, Copy, Default, Deref, AsRef, From)]
@@ -125,6 +122,8 @@ impl IntoResponse for JsonBodyRejection {
     fn into_response(self) -> Response {
         match self {
             JsonBodyRejection::JsonDataError(err, path) => {
+                let reason: ErrorReason =
+                    ErrorReason::from(format!("Error Deserializing JSON: {}", err));
                 let body = APIErrorResponse {
                     error: Some(err),
                     message: Cow::Borrowed(
@@ -132,11 +131,12 @@ impl IntoResponse for JsonBodyRejection {
                     ),
                     details: Some(path.to_string()),
                 };
-                ResponseBuilder::bad_request()
-                    .extension("Invalid JSON")
-                    .json(&body)
+                ResponseBuilder::bad_request().extension(reason).json(&body)
             }
             JsonBodyRejection::JsonSyntaxError(err) => {
+                let reason: ErrorReason =
+                    ErrorReason::from(format!("Error Deserializing JSON: {}", err));
+
                 let body = APIErrorResponse::<(), _> {
                     error: Some(err),
                     message: Cow::Borrowed(
@@ -144,9 +144,7 @@ impl IntoResponse for JsonBodyRejection {
                     ),
                     details: None,
                 };
-                ResponseBuilder::bad_request()
-                    .extension("Invalid JSON")
-                    .json(&body)
+                ResponseBuilder::bad_request().extension(reason).json(&body)
             }
             JsonBodyRejection::MissingJsonContentType => {
                 let body = APIErrorResponse::<(), ()> {

@@ -1,40 +1,45 @@
-use serde::Serialize;
-use utoipa::ToSchema;
 pub mod builder;
-use crate::app::error::InternalError;
-use axum::response::Response;
+
+use std::{borrow::Cow, error::Error};
+
 pub use builder::ResponseBuilder;
+use derive_more::From;
+pub mod api_error_response;
+pub mod conflict;
+pub trait IntoErrorResponse: Error + Send + Sync {
+    /// Converts the error into a response
+    ///
+    /// It must be of type of Box<Self> to allow for dynamic dispatch
+    fn into_response_boxed(self: Box<Self>) -> axum::response::Response;
+    #[inline(always)]
+    fn json_error_response(self: Box<Self>) -> Option<axum::response::Response> {
+        None
+    }
+    #[inline(always)]
+    fn supports_json_error_response(&self) -> bool {
+        false
+    }
 
-#[derive(Serialize, ToSchema)]
-pub struct ConflictResponse {
-    pub fields: Vec<String>,
-}
-impl From<&str> for ConflictResponse {
-    fn from(field: &str) -> Self {
-        ConflictResponse {
-            fields: vec![field.to_string()],
-        }
-    }
-}
-impl From<Vec<String>> for ConflictResponse {
-    fn from(fields: Vec<String>) -> Self {
-        ConflictResponse { fields }
-    }
-}
-impl From<String> for ConflictResponse {
-    fn from(field: String) -> Self {
-        ConflictResponse {
-            fields: vec![field],
-        }
+    fn error_reason(&self) -> ErrorReason {
+        ErrorReason::from(self.to_string())
     }
 }
 
-impl ConflictResponse {
-    pub fn response(self) -> Result<Response, InternalError> {
-        let body = serde_json::to_string(&self)?;
-        Ok(http::Response::builder()
-            .status(http::StatusCode::CONFLICT)
-            .header(http::header::CONTENT_TYPE, "application/json")
-            .body(body.into())?)
+#[derive(Debug, Clone, From)]
+pub struct ErrorReason {
+    pub reason: Cow<'static, str>,
+}
+impl From<String> for ErrorReason {
+    fn from(reason: String) -> Self {
+        Self {
+            reason: Cow::Owned(reason),
+        }
+    }
+}
+impl From<&'static str> for ErrorReason {
+    fn from(reason: &'static str) -> Self {
+        Self {
+            reason: Cow::Borrowed(reason),
+        }
     }
 }

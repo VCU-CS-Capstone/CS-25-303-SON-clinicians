@@ -9,8 +9,8 @@ use utoipa::{
 };
 
 use crate::{
-    app::{authentication::PermissionCheck, error::APIErrorResponse, request_logging::ErrorReason},
-    utils::ResponseBuilder,
+    app::authentication::PermissionCheck,
+    utils::{ErrorReason, ResponseBuilder, api_error_response::APIErrorResponse},
 };
 
 pub const MISSING_PERMISSION_MESSAGE: &str = "Missing Permission";

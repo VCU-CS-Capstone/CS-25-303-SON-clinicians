@@ -1,3 +1,4 @@
+use crate::utils::{ErrorReason, response::ResponseBuilder};
 use axum::{
     extract::{Path, Query, State},
     response::Response,
@@ -15,11 +16,8 @@ use cs25_303_core::database::{
 use serde::Deserialize;
 use tracing::instrument;
 use utoipa::{IntoParams, OpenApi};
-use crate::utils::response::ResponseBuilder;
 
-use crate::app::{
-    SiteState, authentication::Authentication, error::InternalError, request_logging::ErrorReason,
-};
+use crate::app::{SiteState, authentication::Authentication, error::InternalError};
 
 #[derive(OpenApi)]
 #[openapi(

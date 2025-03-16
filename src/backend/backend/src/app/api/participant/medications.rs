@@ -11,10 +11,11 @@ use serde::Deserialize;
 use tracing::instrument;
 use utoipa::{IntoParams, OpenApi};
 
-use crate::app::{
-    SiteState, authentication::Authentication, error::InternalError, request_logging::ErrorReason,
-};
 use crate::utils::response::ResponseBuilder;
+use crate::{
+    app::{SiteState, authentication::Authentication, error::InternalError},
+    utils::ErrorReason,
+};
 
 #[derive(OpenApi)]
 #[openapi(
