@@ -34,11 +34,11 @@ Status Report Fall Week XX.md is a template for to copy-paste into new Status re
 |---|---|---|---|
 | Week 1 Status Report | | | |
 | Week 2 Status Report | | | |
-| Week 3 Status Report | | | |
-| Week 4 Status Report | | | |
-| Week 5 Status Report | | | |
-| Week 6 Status Report | | | |
-| Week 7 Status Report | | | |
+| Week 3 Status Report | | Helped everyone setup the frontend | |
+| Week 4 Status Report | | Showed 302 and 304 the backend | |
+| Week 5 Status Report | Have meeting with John Leonard | | |
+| Week 6 Status Report | | Had Meeting with John Leonard | |
+| Week 7 Status Report | Schedule meeting with sponsor | | |
 | Week 8 Status Report | | | |
 | Week 9 Status Report | | | |
 | Week 10 Status Report | | | |
