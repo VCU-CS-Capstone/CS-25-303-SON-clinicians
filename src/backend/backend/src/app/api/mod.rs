@@ -1,10 +1,5 @@
-use axum::{
-    Json,
-    extract::{Request, State},
-    response::Response,
-};
-use http::Uri;
-use serde::{Serialize, ser::SerializeStruct};
+use axum::{Json, extract::State};
+use serde::Serialize;
 use tower_http::cors::CorsLayer;
 use tracing::instrument;
 use utoipa::ToSchema;
@@ -15,10 +10,7 @@ pub mod participant;
 pub mod questions;
 pub mod researcher;
 pub mod user;
-use crate::{
-    config::EnabledFeatures,
-    utils::{ErrorReason, api_error_response::APIErrorResponse, builder::ResponseBuilder},
-};
+use crate::config::EnabledFeatures;
 
 use super::SiteState;
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -70,7 +62,6 @@ pub fn api_routes() -> axum::Router<SiteState> {
         .nest("/location", location::location_routes())
         .nest("/admin", admin::admin_routes())
         .nest("/researcher", researcher::researcher_routes())
-        .fallback(route_not_found)
         .layer(CorsLayer::very_permissive())
 }
 #[utoipa::path(
@@ -88,33 +79,4 @@ pub fn api_routes() -> axum::Router<SiteState> {
 #[instrument]
 pub async fn info(State(site): State<SiteState>) -> Json<Instance> {
     Json(Instance::new(site))
-}
-#[derive(Debug)]
-pub struct RouteNotFound {
-    pub uri: Uri,
-    pub method: http::Method,
-}
-impl Serialize for RouteNotFound {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut struct_ser = serializer.serialize_struct("RouteNotFound", 2)?;
-        struct_ser.serialize_field("uri", &self.uri.to_string())?;
-        struct_ser.serialize_field("method", &self.method.to_string())?;
-        struct_ser.end()
-    }
-}
-async fn route_not_found(request: Request) -> Response {
-    let response: APIErrorResponse<RouteNotFound, ()> = APIErrorResponse {
-        message: "Not Found".into(),
-        details: Some(RouteNotFound {
-            uri: request.uri().clone(),
-            method: request.method().clone(),
-        }),
-        ..Default::default()
-    };
-    ResponseBuilder::not_found()
-        .extension(ErrorReason::from("Route not found"))
-        .json(&response)
 }
