@@ -1,4 +1,4 @@
-use axum::{extract::State, response::Response, routing::get};
+use axum::{response::Response, routing::get};
 use cs25_303_core::database::user::User;
 use utoipa::OpenApi;
 

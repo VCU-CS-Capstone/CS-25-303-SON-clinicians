@@ -1,4 +1,6 @@
-use crate::app::api::{auth::AuthApi, researcher::ResearcherAPI, user::UserApi};
+use crate::app::api::{
+    auth::AuthApi, debug_reports::DebugReportsApi, researcher::ResearcherAPI, user::UserApi,
+};
 
 use super::api::{self, admin::AdminAPI, location::LocationsAPI, participant::ParticipantAPI};
 use axum::{
@@ -31,11 +33,12 @@ use utoipa::{
     modifiers(&SecurityAddon),
     nest(
         (path = "/api/auth", api = AuthApi, tags=["Authentication", "user"]),
-        (path = "/api/participant", api = ParticipantAPI, tags=["participant"]),
+        (path = "/api/participant", api = ParticipantAPI, tags=["Participant"]),
         (path = "/api/location", api = LocationsAPI, tags=["location"]),
-        (path = "/api/admin", api = AdminAPI, tags=["admin"]),
+        (path = "/api/admin", api = AdminAPI, tags=["Admin"]),
         (path = "/api/researcher", api = ResearcherAPI, tags=["Researcher"]),
-        (path = "/api/user", api = UserApi, tags=["user"])
+        (path = "/api/user", api = UserApi, tags=["User"]),
+        (path = "/api/debug_reports", api = DebugReportsApi, tags=["Debug Reports"])
     ),
     paths(api::info),
     components(schemas(
@@ -56,10 +59,12 @@ use utoipa::{
     )),
     tags(
         (name = "Authentication", description = "Authentication API. Used for logging in and out"),
-        (name = "participant", description = "Participant Information"),
-        (name = "location", description = "Location Information"),
-        (name = "admin", description = "Admin Information"),
-        (name = "Researcher", description = "Researcher Advanced Queries")
+        (name = "Participant", description = "Participant Information"),
+        (name = "Location", description = "Location Information"),
+        (name = "Admin", description = "Admin System Control"),
+        (name = "Researcher", description = "Researcher Advanced Queries"),
+        (name = "Debug Reports", description = "Queries for debugging and testing purposes. "),
+        (name = "User", description = "User Information and Session Information")
     )
 )]
 pub struct ApiDoc;

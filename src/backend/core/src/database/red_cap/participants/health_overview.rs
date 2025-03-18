@@ -61,3 +61,48 @@ impl HealthOverviewType for HealthOverview {
         self.id
     }
 }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema, FromRow)]
+pub struct HealthOverviewResult {
+    pub participant_id: i32,
+    ///
+    /// Measured in inches
+    pub height: Option<i32>,
+    pub reported_health_conditions: Option<String>,
+    pub allergies: Option<String>,
+    pub has_blood_pressure_cuff: Option<bool>,
+    pub takes_more_than_5_medications: Option<bool>,
+    pub mobility_devices: Option<Vec<MobilityDevice>>,
+}
+
+impl TableQuery for HealthOverviewResult {
+    type Table = HealthOverview;
+
+    fn columns() -> Vec<<Self::Table as TableType>::Columns>
+    where
+        Self: Sized,
+    {
+        vec![
+            HealthOverviewColumn::ParticipantId,
+            HealthOverviewColumn::Height,
+            HealthOverviewColumn::ReportedHealthConditions,
+            HealthOverviewColumn::Allergies,
+            HealthOverviewColumn::HasBloodPressureCuff,
+            HealthOverviewColumn::TakesMoreThan5Medications,
+            HealthOverviewColumn::MobilityDevices,
+        ]
+    }
+}
+
+impl HealthOverviewResult {
+    pub async fn find_by_participant_id(
+        participant_id: i32,
+        database: &sqlx::PgPool,
+    ) -> DBResult<Option<Self>> {
+        SelectQueryBuilder::with_columns(HealthOverview::table_name(), Self::columns())
+            .filter(HealthOverviewColumn::ParticipantId.equals(participant_id))
+            .query_as()
+            .fetch_optional(database)
+            .await
+            .map_err(Into::into)
+    }
+}

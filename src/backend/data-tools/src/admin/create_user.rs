@@ -9,7 +9,6 @@ use cs25_303_core::database::user::{
 };
 use rand::{TryRngCore, rngs::OsRng};
 
-
 use crate::config::DataToolConfig;
 #[derive(Debug, Clone, Args)]
 pub struct CreateUserCommand {

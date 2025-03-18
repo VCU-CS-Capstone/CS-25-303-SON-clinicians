@@ -5,6 +5,7 @@ use tracing::instrument;
 use utoipa::ToSchema;
 pub mod admin;
 pub mod auth;
+pub mod debug_reports;
 pub mod location;
 pub mod participant;
 pub mod questions;
@@ -63,6 +64,7 @@ pub fn api_routes() -> axum::Router<SiteState> {
         .nest("/admin", admin::admin_routes())
         .nest("/researcher", researcher::researcher_routes())
         .nest("/user", user::user_api())
+        .nest("/debug_reports", debug_reports::debug_reports())
         .layer(CorsLayer::very_permissive())
 }
 #[utoipa::path(

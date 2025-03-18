@@ -19,57 +19,21 @@ use crate::{
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(get_participant_medications, search_medications),
+    paths(search_medications),
     components(schemas(ParticipantMedications,PaginatedResponse<ParticipantMedications>))
 )]
 pub struct ParticipantMedicationsAPI;
 
 pub fn participant_medications() -> axum::Router<SiteState> {
-    axum::Router::new()
-        .route("/{participant_id}/all", get(get_participant_medications))
-        .route("/{participant_id}/search", get(search_medications))
-}
-#[utoipa::path(
-    get,
-    path = "/{participant_id}/all",
-    summary = "Get all medications for a participant",
-    description = "Returns all medications for a participant. Please use the search endpoint to get a paginated list of medications",
-    params(
-        ("participant_id" = i32, Path,  description = "Participant ID"),
-    ),
-    responses(
-        (status = 200, description = "medications for participant", body = Vec<ParticipantMedications>),
-        (status = 404, description = "Participant Not Found")
-    ),
-    security(
-        ("session" = []),
-    )
-)]
-#[instrument]
-pub async fn get_participant_medications(
-    State(site): State<SiteState>,
-    Path(participant_id): Path<i32>,
-    auth: Authentication,
-) -> Result<Response, InternalError> {
-    let medications =
-        ParticipantMedications::get_all_participant_medications(participant_id, &site.database)
-            .await?;
-
-    if medications.is_empty()
-        && !Participants::does_participant_id_exist(participant_id, &site.database).await?
-    {
-        return Ok(ResponseBuilder::not_found()
-            .extension(ErrorReason::from("Participant Not Found"))
-            .empty());
-    }
-
-    Ok(ResponseBuilder::ok().json(&medications))
+    axum::Router::new().route("/{participant_id}/search", get(search_medications))
 }
 #[derive(Debug, Clone, Default, Deserialize, IntoParams)]
 #[serde(default)]
 #[into_params(parameter_in = Query)]
 pub struct MedicationSearch {
     /// Medication name to optionally search for
+    ///
+    /// If not provided, all medications will be returned
     #[serde(with = "crate::utils::serde_sanitize_string")]
     #[param(nullable)]
     pub name: Option<String>,
@@ -84,7 +48,7 @@ pub struct MedicationSearch {
         MedicationSearch
     ),
     responses(
-        (status = 200, description = "medications for participant", body = PaginatedResponse<ParticipantMedications>),
+        (status = 200, description = "Medications for participant", body = PaginatedResponse<ParticipantMedications>),
         (status = 404, description = "Participant Not Found")
     ),
     security(

@@ -1,13 +1,14 @@
 use crate::{
     database::prelude::*,
     red_cap::{
-        EducationLevel, Ethnicity, Gender, HealthInsurance, PreferredLanguage, Programs, Race,
-        SeenAtVCUHS, Status,
+        Programs, SeenAtVCUHS, Status,
         converter::participants::{
             RedCapHealthOverview, RedCapParticipant, RedCapParticipantDemographics,
         },
     },
 };
+pub use demographics::*;
+pub mod demographics;
 pub mod stats;
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
@@ -134,56 +135,6 @@ impl Participants {
 }
 
 impl ParticipantType for Participants {
-    fn get_id(&self) -> i32 {
-        self.id
-    }
-}
-
-pub trait ParticipantDemograhicsType:
-    for<'r> FromRow<'r, PgRow> + Unpin + Send + Sync + TableType
-{
-    fn get_id(&self) -> i32;
-    fn columns() -> Vec<ParticipantDemograhicsColumn> {
-        ParticipantDemograhicsColumn::all()
-    }
-
-    async fn find_by_participant(id: i32, database: &sqlx::PgPool) -> DBResult<Option<Self>> {
-        let result = SelectQueryBuilder::with_columns(Self::table_name(), Self::columns())
-            .filter(ParticipantDemograhicsColumn::ParticipantId.equals(id.value()))
-            .query_as()
-            .fetch_optional(database)
-            .await?;
-        Ok(result)
-    }
-}
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, TableType, ToSchema)]
-#[table(name = "participant_demographics")]
-pub struct ParticipantDemograhics {
-    pub id: i32,
-    /// 1:1 with [Participants]
-    pub participant_id: i32,
-    /// Redcap: age
-    pub age: Option<i16>,
-    /// Redcap Gender
-    pub gender: Option<Gender>,
-    /// Redcap: Race
-    pub race: Option<Vec<Race>>,
-    /// Not Sure???
-    pub race_other: Option<String>,
-    pub race_multiracial_other: Option<String>,
-    /// Red Cap: ethnicity
-    pub ethnicity: Option<Ethnicity>,
-    pub language: Option<PreferredLanguage>,
-    /// Red Cap: veteran
-    /// Yes Or No
-    pub is_veteran: Option<bool>,
-    /// Red Cap: insurance
-    pub health_insurance: Vec<HealthInsurance>,
-    /// Red Cap: education
-    pub highest_education_level: Option<EducationLevel>,
-}
-
-impl ParticipantDemograhicsType for ParticipantDemograhics {
     fn get_id(&self) -> i32 {
         self.id
     }

@@ -10,12 +10,12 @@ use axum::{
     response::Response,
     routing::{get, post},
 };
+use cs25_303_core::database::red_cap::participants::ParticipantDemograhicsResponse;
+use cs25_303_core::database::red_cap::participants::health_overview::HealthOverviewResult;
 use cs25_303_core::database::{
     CSPageParams, PaginatedResponse,
     red_cap::participants::{
-        ParticipantDemograhics, ParticipantDemograhicsType, ParticipantLookup,
-        ParticipantLookupQuery, ParticipantType, Participants,
-        health_overview::{HealthOverview, HealthOverviewType},
+        ParticipantLookup, ParticipantLookupQuery, ParticipantType, Participants,
     },
 };
 
@@ -28,7 +28,7 @@ use crate::app::{SiteState, error::InternalError};
 #[derive(OpenApi)]
 #[openapi(
     paths(look_up_participant, get_participants,get_health_overview, get_demographics),
-    components(schemas(CSPageParams, ParticipantLookup, ParticipantLookupQuery, PaginatedResponse<ParticipantLookup>, Participants, HealthOverview, ParticipantDemograhics, ParticipantPartNotFound)),
+    components(schemas(CSPageParams, ParticipantLookup, ParticipantLookupQuery, PaginatedResponse<ParticipantLookup>, Participants, HealthOverviewResult, ParticipantDemograhicsResponse, ParticipantPartNotFound)),
     nest(
         (path = "/case_notes", api = case_note::CaseNoteAPI, tags=["Participant Case Notes"]),
         (path = "/stats", api = stats::ParticipantStatAPI, tags=["Participant Statistics"]),
@@ -64,7 +64,7 @@ pub fn participant_routes() -> axum::Router<SiteState> {
     ),
     request_body(content = ParticipantLookupQuery, content_type = "application/json"),
     responses(
-        (status = 200, description = "Participants Found", body = PaginatedResponse<ParticipantLookup>)
+        (status = 200, description = "Participants Found", body = PaginatedResponse<ParticipantLookup>, content_type = "application/json")
     ),
     security(
         ("session" = []),
@@ -88,7 +88,7 @@ pub async fn look_up_participant(
         ("id", Path,  description = "Participant ID"),
     ),
     responses(
-        (status = 200, description = "Participants Found", body = Participants),
+        (status = 200, description = "Participants Found", body = Participants, content_type = "application/json"),
         (status = 404, description = "Participant Not Found")
     ),
     security(
@@ -125,8 +125,8 @@ pub struct ParticipantPartNotFound {
         ("id", Path,  description = "Participant ID"),
     ),
     responses(
-        (status = 200, description = "Participants Found", body = HealthOverview),
-        (status = 404, description = "Participant  Health Overview Not Found", body = ParticipantPartNotFound)
+        (status = 200, description = "Participants Found", body = HealthOverviewResult, content_type = "application/json"),
+        (status = 404, description = "Participant  Health Overview Not Found", body = ParticipantPartNotFound, content_type = "application/json")
     ),
     security(
         ("session" = []),
@@ -139,7 +139,7 @@ pub async fn get_health_overview(
     Path(id): Path<i32>,
     auth: Authentication,
 ) -> Result<Response, InternalError> {
-    let health_overview = HealthOverview::find_by_participant_id(id, &site.database).await?;
+    let health_overview = HealthOverviewResult::find_by_participant_id(id, &site.database).await?;
 
     match health_overview {
         Some(health_overview) => Ok(ResponseBuilder::ok().json(&health_overview)),
@@ -165,8 +165,8 @@ pub async fn get_health_overview(
         ("id", Path,  description = "Participant ID"),
     ),
     responses(
-        (status = 200, description = "Participants Found", body = ParticipantDemograhics),
-        (status = 404, description = "Participant Demographics Not Found", body = ParticipantPartNotFound)
+        (status = 200, description = "Participants Found", body = ParticipantDemograhicsResponse, content_type = "application/json"),
+        (status = 404, description = "Participant Demographics Not Found", body = ParticipantPartNotFound, content_type = "application/json")
     ),
     security(
         ("session" = []),
@@ -179,9 +179,10 @@ pub async fn get_demographics(
     Path(id): Path<i32>,
     auth: Authentication,
 ) -> Result<Response, InternalError> {
-    let health_overview = ParticipantDemograhics::find_by_participant(id, &site.database).await?;
+    let demographics =
+        ParticipantDemograhicsResponse::find_by_participant_id(id, &site.database).await?;
 
-    match health_overview {
+    match demographics {
         Some(health_overview) => Ok(ResponseBuilder::ok().json(&health_overview)),
         None => {
             let participant_exists =
