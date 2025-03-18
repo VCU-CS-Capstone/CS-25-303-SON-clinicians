@@ -5,11 +5,15 @@ import { SafeAreaView } from 'react-native';
 import api, { API_URL } from '~/lib/api';
 import { useEffect, useState } from 'react';
 import { SiteInfo } from '~/lib/RequestTypes';
+import { useSession } from '~/contexts/SessionContext';
+import { UserSession } from '~/lib/types/user';
 
 export default function Home() {
   const [siteInfo, setSiteInfo] = useState<SiteInfo | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+
+  const { session } = useSession();
 
   const fetchSiteInfo = async () => {
     try {
@@ -36,6 +40,7 @@ export default function Home() {
             Connected to <Text style={styles.Link}>{API_URL}</Text>
           </Text>
           <SiteInfoComponent siteInfo={siteInfo} error={error} />
+          <DebugSession session={session} />
         </View>
       </SafeAreaView>
     </>
@@ -64,6 +69,22 @@ function SiteInfoComponent({
     </View>
   );
 }
+function DebugSession({ session }: { session: UserSession | null }) {
+  if (!session) {
+    return (
+      <View>
+        <Text>No session found</Text>
+      </View>
+    );
+  }
+  return (
+    <View>
+      <Text>Session</Text>
+      <Text style={styles.SessionDate}>Expires At {session.expires.toLocaleString()}</Text>
+      <Text style={styles.SessionDate}>Created At {session.created.toLocaleString()}</Text>
+    </View>
+  );
+}
 const styles = {
   TextItem: {
     fontSize: 36,
@@ -82,4 +103,5 @@ const styles = {
 
     MarginTop: 20,
   },
+  SessionDate: {},
 };

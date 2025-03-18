@@ -2,43 +2,32 @@ import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '~/lib/api';
+import { UserSession, UserSessionData } from '~/lib/types/user';
 
 interface SessionContextType {
-  session: string | null;
-  sessionExpiration: Date | null;
-  setSession: (session: string) => void;
-  setSessionExpiration: (expiration: Date) => void;
+  session: UserSession | null;
+  getSessionKey: () => string | null;
+  setSession: (session: UserSessionData) => Promise<void>;
   logout: () => void;
-
   isValid(): boolean;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export const SessionProvider = ({ children }: { children: React.ReactNode }) => {
-  const [session, setSession] = useState<string | null>(null);
-  const [sessionExpiration, setSessionExpiration] = useState<Date | null>(null);
+  const [session, setSessionValue] = useState<UserSession | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const loadSession = async () => {
       const storedSession = await SecureStore.getItemAsync('session');
-      const expiration = await SecureStore.getItemAsync('session-expiration');
-      const expirationDate = expiration ? new Date(expiration) : null;
 
       if (storedSession) {
-        if (expirationDate) {
-          setSessionExpiration(expirationDate);
-          if (expirationDate < new Date()) {
-            await SecureStore.deleteItemAsync('session');
-            await SecureStore.deleteItemAsync('session-expiration');
-            setSessionExpiration(null);
-            setSession(null);
-            router.replace('/(login)/LoginScreen');
-            return;
-          }
+        let sessionValue = JSON.parse(storedSession) as UserSessionData;
+        if (!session) {
+          console.trace('Restored Session', sessionValue);
         }
-        setSession(storedSession);
+        setSessionValue(new UserSession(sessionValue));
       } else {
         router.replace('/(login)/LoginScreen');
       }
@@ -55,20 +44,32 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
       console.error('Failed to logout', e);
     }
     await SecureStore.deleteItemAsync('session');
-    setSession(null);
-    setSessionExpiration(null);
+    setSessionValue(null);
   };
-  const isValid = () =>
-    session !== null && sessionExpiration !== null && sessionExpiration > new Date();
+  const isValid = () => {
+    if (!session) {
+      return false;
+    }
 
+    return !session.hasExpired();
+  };
+  const getSessionKey = () => {
+    if (!session) {
+      return null;
+    }
+    return session.session_key;
+  };
+  const setSession = async (session: UserSessionData) => {
+    setSessionValue(new UserSession(session));
+    await SecureStore.setItemAsync('session', JSON.stringify(session));
+  };
   return (
     <SessionContext.Provider
       value={{
         session,
+        getSessionKey,
         setSession,
         logout,
-        sessionExpiration,
-        setSessionExpiration,
         isValid,
       }}
     >

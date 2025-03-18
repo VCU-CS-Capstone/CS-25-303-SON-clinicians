@@ -62,6 +62,7 @@ pub fn api_routes() -> axum::Router<SiteState> {
         .nest("/location", location::location_routes())
         .nest("/admin", admin::admin_routes())
         .nest("/researcher", researcher::researcher_routes())
+        .nest("/user", user::user_api())
         .layer(CorsLayer::very_permissive())
 }
 #[utoipa::path(

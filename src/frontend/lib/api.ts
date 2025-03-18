@@ -15,6 +15,7 @@ import { Location } from './types/locations';
 import { MedicationEntry } from './types/medications';
 import { Platform } from 'react-native';
 import { Goal, GoalStep } from './types/goals';
+import { LoginResponse, UserSessionData } from './types/user';
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://cs-25-303.wyatt-herkamp.dev/api';
 
@@ -41,7 +42,8 @@ const api = {
   getSecure: async (endpoint: string) => {
     try {
       const session = await SecureStore.getItemAsync('session');
-      const authHeader = session ? `Session ${session}` : undefined;
+      const sessionValue = session ? (JSON.parse(session) as UserSessionData) : undefined;
+      const authHeader = sessionValue ? `Session ${sessionValue.session_key}` : undefined;
       const url = appendEndpoint(endpoint);
       const response = await fetch(url, {
         method: 'GET',
@@ -65,6 +67,7 @@ const api = {
       throw e;
     }
   },
+
   post: async (endpoint: string, data: any) => {
     const url = appendEndpoint(endpoint);
     const response = await fetch(url, {
@@ -73,16 +76,19 @@ const api = {
       body: JSON.stringify(data),
       credentials: 'include',
     });
-    console.debug('Post Response', response);
-    if (!response.ok) {
-      throw new Error(`Failed to post ${endpoint}, Error: ${response.status}`);
+    const requestId = response.headers.get('x-request-id');
+    if (requestId) {
+      console.debug('Request ID:', requestId);
+    } else {
+      console.warn('No Request ID');
     }
-    return await response.json();
+    return response;
   },
   postSecure: async (endpoint: string, data: any) => {
     try {
       const session = await SecureStore.getItemAsync('session');
-      const authHeader = session ? `Session ${session}` : undefined;
+      const sessionValue = session ? (JSON.parse(session) as UserSessionData) : undefined;
+      const authHeader = sessionValue ? `Session ${sessionValue.session_key}` : undefined;
 
       const url = appendEndpoint(endpoint);
 
@@ -258,10 +264,14 @@ const api = {
       return (await response.json()) as Location;
     },
   },
-  login: async (username: string, password: string) => {
+  login: async (username: string, password: string): Promise<LoginResponse | undefined> => {
     const response = await api.post('/auth/login/password', { username, password });
-    console.log({ response });
-    return response;
+    if (response.status != 200) {
+      console.error('Failed to login', response);
+      return undefined;
+    }
+    const responseData = (await response.json()) as LoginResponse;
+    return responseData;
   },
 };
 

@@ -6,22 +6,25 @@ import { View, Text, Alert, TextInput, Button } from 'react-native';
 import { useSession } from '~/contexts/SessionContext';
 import api from '~/lib/api';
 import { StyleSheet } from 'react-native';
+import { UserSession } from '~/lib/types/user';
 
 const LoginScreen = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const { setSession, logout } = useSession();
-
+  const [loginFailed, setLoginFailed] = useState(false);
   const router = useRouter();
 
   const handleLogin = async () => {
     try {
       const response = await api.login(username, password);
-      const sessionId = response.session.session_key;
-      if (!sessionId) throw new Error('Invalid login response');
+      if (!response) {
+        setLoginFailed(true);
+        return;
+      }
+      const session = response.session;
 
-      setSession(sessionId);
-      await SecureStore.setItemAsync('session', sessionId);
+      await setSession(session);
       router.push('/(drawer)');
     } catch (error) {
       Alert.alert(`Failed to login ${error}`);

@@ -1,4 +1,4 @@
-use crate::app::api::{auth::AuthApi, researcher::ResearcherAPI};
+use crate::app::api::{auth::AuthApi, researcher::ResearcherAPI, user::UserApi};
 
 use super::api::{self, admin::AdminAPI, location::LocationsAPI, participant::ParticipantAPI};
 use axum::{
@@ -34,7 +34,8 @@ use utoipa::{
         (path = "/api/participant", api = ParticipantAPI, tags=["participant"]),
         (path = "/api/location", api = LocationsAPI, tags=["location"]),
         (path = "/api/admin", api = AdminAPI, tags=["admin"]),
-        (path = "/api/researcher", api = ResearcherAPI, tags=["Researcher"])
+        (path = "/api/researcher", api = ResearcherAPI, tags=["Researcher"]),
+        (path = "/api/user", api = UserApi, tags=["user"])
     ),
     paths(api::info),
     components(schemas(
