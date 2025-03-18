@@ -3,6 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NoDataScreen } from '~/components/NoDataScreen';
 import ProtectedRoute from '~/components/ProtectedRoute';
 import api from '~/lib/api';
 import { MedicationEntry } from '~/lib/types/medications';
@@ -52,9 +53,7 @@ function ListMedications({ medications }: { medications: MedicationEntry[] | und
   }
   if (medications.length === 0) {
     return (
-      <View style={styles.LoadingContainer}>
-        <Text style={styles.LoadingMessage}>No medications found</Text>;
-      </View>
+      <NoDataScreen title="No Medications Found" subtitle="No Medications found for Participant" />
     );
   }
   return (

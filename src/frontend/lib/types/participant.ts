@@ -75,7 +75,13 @@ export interface ParticipantHealthOverview {
   has_blood_pressure_cuff?: boolean;
   height?: number;
 }
-
+export interface ParticipantRelatedDataNotFound {
+  participant_exists: boolean;
+}
+export interface ParticipantRelatedData<T> {
+  participant_exists: boolean;
+  data: T | undefined;
+}
 export enum HealthInsurance {
   Medicaid = 'Medicaid',
   Medicare = 'Medicare',

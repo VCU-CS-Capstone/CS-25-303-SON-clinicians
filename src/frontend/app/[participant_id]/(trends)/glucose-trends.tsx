@@ -4,14 +4,10 @@ import { Dimensions, ScrollView, StatusBar, StyleSheet, Text, View } from 'react
 import { FlatList } from 'react-native-gesture-handler';
 import { BarChart, LineChart, lineDataItem } from 'react-native-gifted-charts';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NoDataScreen } from '~/components/NoDataScreen';
 import ProtectedRoute from '~/components/ProtectedRoute';
 import api from '~/lib/api';
-import {
-  BloodPressureStats,
-  BloodPressureStatsOneReading,
-  GlucoseEntry,
-  WeightEntry,
-} from '~/lib/types/stats';
+import { GlucoseEntry } from '~/lib/types/stats';
 
 export default function PatientInfo() {
   const { participant_id } = useLocalSearchParams<{ participant_id: string }>();
@@ -56,6 +52,9 @@ const styles = StyleSheet.create({
   },
 });
 function ShowTrends({ trends }: { trends: GlucoseEntry[] | undefined }) {
+  if (!trends || trends.length === 0) {
+    return <NoDataScreen title="No Glucose Readings" subtitle="No Glucose Readings Present" />;
+  }
   return (
     <View>
       <GlucoseLineChart trends={trends} />
@@ -64,9 +63,6 @@ function ShowTrends({ trends }: { trends: GlucoseEntry[] | undefined }) {
   );
 }
 function ListTrends({ trends }: { trends: GlucoseEntry[] | undefined }) {
-  if (!trends) {
-    return null;
-  }
   return (
     <FlatList
       data={trends}

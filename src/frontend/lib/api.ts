@@ -6,6 +6,8 @@ import {
   ParticipantHealthOverview,
   ParticipantLookupRequest,
   ParticipantLookupResponse,
+  ParticipantRelatedData,
+  ParticipantRelatedDataNotFound,
   RecentVisit,
 } from './types/participant';
 import * as SecureStore from 'expo-secure-store';
@@ -124,22 +126,40 @@ const api = {
         throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
       }
     },
-    fetchDemographic: async (id: number) => {
+    fetchDemographic: async (
+      id: number
+    ): Promise<ParticipantRelatedData<ParticipantDemographics>> => {
       const response = await api.getSecure(`/participant/get/${id}/demographics`);
       if (response.ok) {
-        return (await response.json()) as ParticipantDemographics;
+        return {
+          participant_exists: true,
+          data: (await response.json()) as ParticipantDemographics,
+        } as ParticipantRelatedData<ParticipantDemographics>;
       } else if (response.status === 404) {
-        return undefined;
+        const result = (await response.json()) as ParticipantRelatedDataNotFound;
+        return {
+          participant_exists: result.participant_exists,
+          data: undefined,
+        } as ParticipantRelatedData<ParticipantDemographics>;
       } else {
         throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
       }
     },
-    fetchHealthOverview: async (id: number) => {
+    fetchHealthOverview: async (
+      id: number
+    ): Promise<ParticipantRelatedData<ParticipantHealthOverview>> => {
       const response = await api.getSecure(`/participant/get/${id}/health_overview`);
       if (response.ok) {
-        return (await response.json()) as ParticipantHealthOverview;
+        return {
+          participant_exists: true,
+          data: (await response.json()) as ParticipantHealthOverview,
+        } as ParticipantRelatedData<ParticipantHealthOverview>;
       } else if (response.status === 404) {
-        return undefined;
+        const result = (await response.json()) as ParticipantRelatedDataNotFound;
+        return {
+          participant_exists: result.participant_exists,
+          data: undefined,
+        } as ParticipantRelatedData<ParticipantHealthOverview>;
       } else {
         throw new Error(`Failed to fetch participant with id ${id}, Error: ${response.status}`);
       }
@@ -218,18 +238,14 @@ const api = {
       }
       return (await response.json()) as PaginatedResponse<ParticipantLookupResponse>;
     },
-    fetchGoalsForParticipant: async(
-      participant_id: number,
-    ) => {
+    fetchGoalsForParticipant: async (participant_id: number) => {
       const response = await api.getSecure(`/participant/goals/${participant_id}/all`);
       return (await response.json()) as Goal[];
     },
-    fetchStepsForGoal: async(
-      goal_id: number,
-    ) => {
+    fetchStepsForGoal: async (goal_id: number) => {
       const response = await api.getSecure(`/participant/goals/${goal_id}/steps`);
       return (await response.json()) as GoalStep[];
-    }
+    },
   },
 
   locations: {

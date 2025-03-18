@@ -4,6 +4,7 @@ import { Dimensions, ScrollView, StatusBar, StyleSheet, Text, View } from 'react
 import { FlatList } from 'react-native-gesture-handler';
 import { BarChart, LineChart, lineDataItem } from 'react-native-gifted-charts';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NoDataScreen } from '~/components/NoDataScreen';
 import ProtectedRoute from '~/components/ProtectedRoute';
 import api from '~/lib/api';
 import {
@@ -59,6 +60,14 @@ const styles = StyleSheet.create({
   },
 });
 function ShowTrends({ trends }: { trends: BloodPressureStats[] | undefined }) {
+  if (!trends || trends.length === 0) {
+    return (
+      <NoDataScreen
+        title="No Blood Pressure Readings"
+        subtitle="No Blood Pressure Readings Present"
+      />
+    );
+  }
   const [sitTrends, setSitTrends] = useState<BloodPressureStatsOneReading[] | undefined>(undefined);
   const [standTrends, setStandTrends] = useState<BloodPressureStatsOneReading[] | undefined>(
     undefined

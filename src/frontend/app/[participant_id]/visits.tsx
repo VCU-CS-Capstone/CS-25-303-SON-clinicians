@@ -7,6 +7,7 @@ import ProtectedRoute from '~/components/ProtectedRoute';
 import api from '~/lib/api';
 import { RecentVisit } from '~/lib/types/participant';
 import { StyleSheet } from 'react-native';
+import { NoDataScreen } from '~/components/NoDataScreen';
 
 export default function participant_visit_history() {
   const { participant_id } = useLocalSearchParams<{ participant_id: string }>();
@@ -32,12 +33,21 @@ export default function participant_visit_history() {
 
   return (
     <ProtectedRoute>
-      <FlatList
-        data={visits}
-        renderItem={({ item }) => <VisitSummary visit={item} />}
-        keyExtractor={(item) => item.id.toString()}
-      />
+      <VisitsList visits={visits} />
     </ProtectedRoute>
+  );
+}
+
+function VisitsList({ visits }: { visits: RecentVisit[] | undefined }) {
+  if (!visits || visits.length === 0) {
+    return <NoDataScreen title="No Visits Found" subtitle="No visits found for Participant" />;
+  }
+  return (
+    <FlatList
+      data={visits}
+      renderItem={({ item }) => <VisitSummary visit={item} />}
+      keyExtractor={(item) => item.id.toString()}
+    />
   );
 }
 function VisitSummary({ visit }: { visit: RecentVisit }) {

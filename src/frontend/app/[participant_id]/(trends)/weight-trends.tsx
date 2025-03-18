@@ -4,6 +4,7 @@ import { Dimensions, ScrollView, StatusBar, StyleSheet, Text, View } from 'react
 import { FlatList } from 'react-native-gesture-handler';
 import { BarChart, LineChart, lineDataItem } from 'react-native-gifted-charts';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NoDataScreen } from '~/components/NoDataScreen';
 import ProtectedRoute from '~/components/ProtectedRoute';
 import api from '~/lib/api';
 import { WeightEntry } from '~/lib/types/stats';
@@ -51,6 +52,9 @@ const styles = StyleSheet.create({
   },
 });
 function ShowTrends({ trends }: { trends: WeightEntry[] | undefined }) {
+  if (!trends || trends.length === 0) {
+    return <NoDataScreen title="No Weight Data" subtitle="No weight data found for participant" />;
+  }
   return (
     <View>
       <WeightLineChart trends={trends} />
