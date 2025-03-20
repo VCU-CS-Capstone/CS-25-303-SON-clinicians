@@ -48,7 +48,7 @@ pub struct MedicationSearch {
         MedicationSearch
     ),
     responses(
-        (status = 200, description = "Medications for participant", body = PaginatedResponse<ParticipantMedications>),
+        (status = 200, description = "Medications for participant", body = PaginatedResponse<ParticipantMedications>, content_type = "application/json"),
         (status = 404, description = "Participant Not Found")
     ),
     security(

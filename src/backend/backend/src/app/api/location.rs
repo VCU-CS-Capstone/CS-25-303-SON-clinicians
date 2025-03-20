@@ -32,7 +32,7 @@ pub fn location_routes() -> axum::Router<SiteState> {
     path = "/all",
     summary = "Get all locations",
     responses(
-        (status = 200, description = "All locations in the system", body = Vec<Locations>)
+        (status = 200, description = "All locations in the system", body = Vec<Locations>, content_type = "application/json")
     ),
     security(
         ("session" = []),
@@ -54,7 +54,7 @@ pub async fn all_locations(
         ("id" = i32, description = "The ID of the location to retrieve")
     ),
     responses(
-        (status = 200, description = "The location that was requested", body = Locations),
+        (status = 200, description = "The location that was requested", body = Locations, content_type = "application/json"),
         (status = 404, description = "The location was not found")
     ),
     security(
@@ -84,7 +84,7 @@ pub async fn get_location_by_id(
         ("program" = Programs, description = "The program you want to get locations for")
     ),
     responses(
-        (status = 200, description = "All locations in the requested program", body =Vec<Locations>)
+        (status = 200, description = "All locations in the requested program", body =Vec<Locations>, content_type = "application/json")
     ),
     security(
         ("session" = []),

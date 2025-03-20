@@ -40,7 +40,7 @@ pub fn participant_goals() -> axum::Router<SiteState> {
         ("participant_id" = i32, Path,  description = "Participant ID"),
     ),
     responses(
-        (status = 200, description = "goals for participant", body = Vec<ParticipantGoals>),
+        (status = 200, description = "goals for participant", body = Vec<ParticipantGoals>, content_type = "application/json"),
         (status = 404, description = "Participant Not Found")
     ),
     security(
@@ -73,7 +73,7 @@ pub async fn get_participants_goals(
         ("goal_id"= i32, Path,  description = "Goal ID"),
     ),
     responses(
-        (status = 200, description = "Steps for Goal", body = Vec<ParticipantGoalsSteps>),
+        (status = 200, description = "Steps for Goal", body = Vec<ParticipantGoalsSteps>, content_type = "application/json"),
         (status = 404, description = "Goal Not Found")
     ),
     security(
@@ -106,7 +106,7 @@ pub async fn get_steps_for_goal(
         ("participant_id" = i32, Path,  description = "Participant ID"),
     ),
     responses(
-        (status = 200, description = "Steps without goal", body = Vec<ParticipantGoalsSteps>),
+        (status = 200, description = "Steps without goal", body = Vec<ParticipantGoalsSteps>, content_type = "application/json"),
         (status = 404, description = "Participant Not Found")
     ),
     security(

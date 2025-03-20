@@ -52,7 +52,7 @@ pub struct LoginPasswordBody {
     path = "/login/password",
     request_body(content = LoginPasswordBody, content_type = "application/json"),
     responses(
-        (status = 200, description = "Login successful", body = MeWithSession),
+        (status = 200, description = "Login successful", body = MeWithSession, content_type = "application/json"),
         (status = 400, description = "Bad Request. Note: This request requires a User-Agent Header"),
         (status = 401, description = "Unauthorized"),
         (status = 403, description = "Password Authentication is not enabled"),

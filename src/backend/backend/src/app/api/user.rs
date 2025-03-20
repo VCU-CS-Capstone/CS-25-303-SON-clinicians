@@ -24,7 +24,7 @@ pub fn user_api() -> axum::Router<SiteState> {
     get,
     path = "/me",
     responses(
-        (status = 200, description = "Current User", body = User),
+        (status = 200, description = "Current User", body = User, content_type = "application/json"),
         (status = 401, description = "Unauthorized"),
     ),
     summary = "Gets the current user",
@@ -42,7 +42,7 @@ async fn me(auth: Authentication) -> Result<Response, InternalError> {
     get,
     path = "/session",
     responses(
-        (status = 200, description = "Returns the users current session", body = MeWithSession),
+        (status = 200, description = "Returns the users current session", body = MeWithSession, content_type = "application/json"),
         (status = 401, description = "Unauthorized"),
     ),
     summary = "Gets the current user session",

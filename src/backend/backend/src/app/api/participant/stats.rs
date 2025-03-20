@@ -98,7 +98,7 @@ pub async fn participant_weight_history(
     ),
     summary="Fetch the blood pressure history for a participant",
     responses(
-        (status = 200, description = "Blood Pressure History", body = PaginatedResponse<BloodPressureHistory>),
+        (status = 200, description = "Blood Pressure History", body = PaginatedResponse<BloodPressureHistory>, content_type = "application/json"),
         (status = 404, description = "Participant Not Found"),
     ),
     security(
@@ -135,7 +135,7 @@ pub async fn bp_history(
     ),
     summary="Fetch the blood glucose history for a participant",
     responses(
-        (status = 200, description = "Blood glucose History", body = PaginatedResponse<BloodGlucoseHistory>),
+        (status = 200, description = "Blood glucose History", body = PaginatedResponse<BloodGlucoseHistory>, content_type = "application/json"),
         (status = 404, description = "Participant Not Found"),
     ),
     security(

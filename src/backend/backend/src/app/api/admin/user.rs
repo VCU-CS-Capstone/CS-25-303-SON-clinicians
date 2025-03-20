@@ -40,7 +40,7 @@ pub fn admin_user_routes() -> axum::Router<SiteState> {
         CSPageParams
     ),
     responses(
-        (status = 200, description = "Participants Found", body = PaginatedResponse<User>),
+        (status = 200, description = "Participants Found", body = PaginatedResponse<User>, content_type = "application/json"),
         (status = 401, description = "Not Authorized to access all users"),
     ),
     security(
@@ -68,9 +68,9 @@ pub async fn all_users(
     path = "/new",
     request_body(content = NewUser, content_type = "application/json"),
     responses(
-        (status = 200, description = "Successfully Created a new user", body = User),
+        (status = 200, description = "Successfully Created a new user", body = User, content_type = "application/json"),
         (status = 401, description = "Not Authorized to create a new user"),
-        (status = 409, description = "Username or email already in use", body = ConflictResponse)
+        ConflictResponse
     ),
     security(
         ("session" = ["ManageUsers"]),
@@ -120,10 +120,10 @@ pub struct UpdateUser {
         ("id" = i32, Path, description = "User ID")
     ),
     responses(
-        (status = 200, description = "Successfully Created a new user", body = User),
+        (status = 200, description = "Successfully Created a new user", body = User, content_type = "application/json"),
         (status = 401, description = "Not Authorized to update user"),
         (status = 404, description = "User not found"),
-        (status = 409, description = "Username or email already in use", body = ConflictResponse)
+        ConflictResponse
     ),
     security(
         ("session" = ["ManageUsers"]),

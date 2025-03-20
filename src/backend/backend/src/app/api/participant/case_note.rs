@@ -36,7 +36,7 @@ pub fn case_note_routes() -> axum::Router<SiteState> {
         ("participant_id" = i32, Path, description = "Participant ID")
     ),
     responses(
-        (status = 200, description = "Participants Found", body = Vec<CaseNoteListItem>),
+        (status = 200, description = "Participants Found", body = Vec<CaseNoteListItem>, content_type = "application/json"),
         (status = 404, description = "Participant Not Found"),
     ),
     security(

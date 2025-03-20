@@ -71,12 +71,11 @@ pub fn api_routes() -> axum::Router<SiteState> {
     get,
     path = "/api/info",
     responses(
-        (status = 200, description = "information about the Site", body = Instance)
+        (status = 200, description = "information about the Site", body = Instance, content_type = "application/json")
     ),
     security(
         (),
         ("session" = []),
-
     )
 )]
 #[instrument]

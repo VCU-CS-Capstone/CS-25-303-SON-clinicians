@@ -52,7 +52,7 @@ pub fn researcher_routes() -> axum::Router<SiteState> {
     ),
     request_body(content = ResearcherQuery, content_type = "application/json"),
     responses(
-        (status = 200, description = "Participants Found", body = PaginatedResponse<ResearcherQueryResult>)
+        (status = 200, description = "Participants Found", body = PaginatedResponse<ResearcherQueryResult>, content_type = "application/json")
     ),
     security(
         ("session" = []),
