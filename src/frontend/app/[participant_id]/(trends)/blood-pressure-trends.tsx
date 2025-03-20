@@ -5,6 +5,12 @@ import { FlatList } from 'react-native-gesture-handler';
 import { BarChart, LineChart, lineDataItem } from 'react-native-gifted-charts';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NoDataScreen } from '~/components/NoDataScreen';
+import {
+  BloodPressureSelector,
+  BloodPressureType,
+  GraphOrDataSelector,
+  GraphOrDataValue,
+} from '~/components/participant/bloodPressureTrends/BloodPressureTrendSelector';
 import ProtectedRoute from '~/components/ProtectedRoute';
 import api from '~/lib/api';
 import {
@@ -60,16 +66,13 @@ const styles = StyleSheet.create({
   },
 });
 function ShowTrends({ trends }: { trends: BloodPressureStats[] | undefined }) {
-  if (!trends || trends.length === 0) {
-    return (
-      <NoDataScreen
-        title="No Blood Pressure Readings"
-        subtitle="No Blood Pressure Readings Present"
-      />
-    );
-  }
+  const [currentReading, setCurrentReading] = useState<BloodPressureType>(BloodPressureType.Sit);
+  const [graphOrData, setGraphOrData] = useState<GraphOrDataValue>(GraphOrDataValue.Graph);
   const [sitTrends, setSitTrends] = useState<BloodPressureStatsOneReading[] | undefined>(undefined);
   const [standTrends, setStandTrends] = useState<BloodPressureStatsOneReading[] | undefined>(
+    undefined
+  );
+  const [personalTrends, setPersonalTrends] = useState<BloodPressureStatsOneReading[] | undefined>(
     undefined
   );
   useEffect(() => {
@@ -79,6 +82,7 @@ function ShowTrends({ trends }: { trends: BloodPressureStats[] | undefined }) {
     }
     const sitTrends = [];
     const standTrends = [];
+    const personalTrends = [];
     for (const trend of trends) {
       if (trend.readings.sit) {
         sitTrends.push({
@@ -94,52 +98,82 @@ function ShowTrends({ trends }: { trends: BloodPressureStats[] | undefined }) {
           blood_pressure: trend.readings.stand,
         });
       }
+      if (trend.readings.personal) {
+        personalTrends.push({
+          case_note_id: trend.case_note_id,
+          date_of_visit: new Date(trend.date_of_visit),
+          blood_pressure: trend.readings.personal,
+        });
+      }
     }
     setSitTrends(sitTrends);
     setStandTrends(standTrends);
+    setPersonalTrends(personalTrends);
   }, [trends]);
-  if (!trends) {
-    return null;
+  if (!trends || trends.length === 0) {
+    return (
+      <NoDataScreen
+        title="No Blood Pressure Readings"
+        subtitle="No Blood Pressure Readings Present"
+      />
+    );
   }
-
   return (
     <View>
-      <BpLineChart trends={sitTrends} />
-      <BpLineChart trends={standTrends} />
+      <View style={{ flexDirection: 'row' }}>
+        <BloodPressureSelector onChange={setCurrentReading} />
+        <GraphOrDataSelector onChange={setGraphOrData} />
+      </View>
+      <TrendsView
+        trends={sitTrends}
+        activeType={currentReading}
+        type={BloodPressureType.Sit}
+        dataOrGraph={graphOrData}
+      />
+      <TrendsView
+        trends={standTrends}
+        activeType={currentReading}
+        type={BloodPressureType.Standing}
+        dataOrGraph={graphOrData}
+      />
+      <TrendsView
+        trends={personalTrends}
+        activeType={currentReading}
+        type={BloodPressureType.Personal}
+        dataOrGraph={graphOrData}
+      />
+    </View>
+  );
+}
+function TrendsView({
+  trends,
+  activeType,
+  type,
+  dataOrGraph,
+}: {
+  trends: BloodPressureStatsOneReading[] | undefined;
+  activeType: BloodPressureType;
+  type: BloodPressureType;
+  dataOrGraph: GraphOrDataValue;
+}) {
+  if (activeType !== type) {
+    return null;
+  }
+  if (!trends || trends.length === 0) {
+    return (
+      <NoDataScreen
+        title="No Blood Pressure Readings"
+        subtitle="No Blood Pressure Readings Present"
+      />
+    );
+  }
+  if (dataOrGraph === GraphOrDataValue.Graph) {
+    return <BpLineChart trends={trends} />;
+  }
+  return (
+    <View>
       <ListTrends trends={trends} />
     </View>
-  );
-}
-function ListTrends({ trends }: { trends: BloodPressureStats[] | undefined }) {
-  if (!trends) {
-    return null;
-  }
-  return (
-    <FlatList
-      data={trends}
-      renderItem={({ item }) => <ListTrendItem trend={item} />}
-      keyExtractor={(item) => item.case_note_id.toString()}
-    />
-  );
-}
-function ListTrendItem({ trend }: { trend: BloodPressureStats }) {
-  return (
-    <View className="mb-4 border-2 border-solid border-red-100">
-      <Text className="text-xl">Visit {new Date(trend.date_of_visit).toLocaleDateString()}</Text>
-      <Reading type="Sit" trend={trend.readings.sit} />
-      <Reading type="Standing" trend={trend.readings.stand} />
-      <Reading type="Personal" trend={trend.readings.personal} />
-    </View>
-  );
-}
-function Reading({ type, trend }: { type: string; trend: BloodPressureReading | undefined }) {
-  if (!trend) {
-    return null;
-  }
-  return (
-    <Text>
-      {type} -{trend.systolic}/{trend.diastolic}
-    </Text>
   );
 }
 
@@ -166,9 +200,7 @@ function BpLineChart({ trends }: { trends: BloodPressureStatsOneReading[] | unde
     setSys(dataSys);
     setDia(dataDia);
   }, [trends]);
-  if (!trends) {
-    return null;
-  }
+
   const windowWidth = Dimensions.get('window').width - 100;
   return (
     <View>
@@ -185,6 +217,43 @@ function BpLineChart({ trends }: { trends: BloodPressureStatsOneReading[] | unde
         spacing={100}
         showVerticalLines
       />
+    </View>
+  );
+}
+
+function ListTrends({ trends }: { trends: BloodPressureStatsOneReading[] | undefined }) {
+  if (!trends) {
+    return null;
+  }
+  return (
+    <FlatList
+      data={trends}
+      renderItem={({ item }) => <ListTrendItem trend={item} />}
+      keyExtractor={(item) => item.case_note_id.toString()}
+    />
+  );
+}
+
+function ListTrendItem({ trend }: { trend: BloodPressureStatsOneReading }) {
+  return (
+    <View style={{ flexDirection: 'row', marginVertical: 8, borderBottomWidth: 2 }}>
+      <Text
+        style={{
+          fontSize: 18,
+          fontWeight: 'bold',
+          paddingLeft: 8,
+        }}
+      >
+        {trend.date_of_visit.toLocaleDateString()}
+      </Text>
+      <Text
+        style={{
+          fontSize: 18,
+          marginLeft: 8,
+        }}
+      >
+        {trend.blood_pressure.systolic} / {trend.blood_pressure.diastolic}
+      </Text>
     </View>
   );
 }
