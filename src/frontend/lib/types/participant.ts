@@ -23,15 +23,26 @@ export namespace ParticipantStatus {
     }
   }
 }
+export enum VCUHSPatientStatus {
+  Yes = 'Yes',
+  No = 'No',
+  Unsure = 'Unsure',
+  DidNotAsk = 'DidNotAsk',
+}
 export interface Participant {
   id: number;
   first_name: string;
   last_name: string;
   email: string;
   phone_number_one: string;
+  phone_number_two: string;
+  other_contact: string;
   date_of_birth: string;
   status: ParticipantStatus;
+  vcuhs_patient_status?: VCUHSPatientStatus;
   program: Program;
+
+  signed_up_on: string;
 }
 
 export interface RecentVisit {

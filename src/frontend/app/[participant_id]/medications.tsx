@@ -82,7 +82,7 @@ function MedicationItem({ medication }: { medication: MedicationEntry }) {
 function DateOrUnknown({ date, name }: { date?: string; name: string }) {
   if (!date) {
     return (
-      <View style={styles.container}>
+      <View style={styles.DateOrUnknownContainer}>
         <Ionicons name="alert-circle" size={24} color="red" />
         <Text style={styles.DateOrUnknownTextUnknown}>{name}: Unknown</Text>
       </View>
@@ -113,6 +113,7 @@ const styles = StyleSheet.create({
     color: 'red',
   },
   MedicationItemContainer: {
+    width: '50%',
     marginBottom: 16,
     borderWidth: 2,
     borderStyle: 'solid',

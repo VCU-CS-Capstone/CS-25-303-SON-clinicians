@@ -8,6 +8,7 @@ import api from '~/lib/api';
 import { RecentVisit } from '~/lib/types/participant';
 import { StyleSheet } from 'react-native';
 import { NoDataScreen } from '~/components/NoDataScreen';
+import LabelAndItem from '~/components/LabelAndItem';
 
 export default function participant_visit_history() {
   const { participant_id } = useLocalSearchParams<{ participant_id: string }>();
@@ -53,18 +54,26 @@ function VisitsList({ visits }: { visits: RecentVisit[] | undefined }) {
 function VisitSummary({ visit }: { visit: RecentVisit }) {
   return (
     <View style={styles.visitContainer}>
-      <Text>{visit.date_of_visit}</Text>
-      <Text>{visit.visit_type}</Text>
-      <LocationName locationId={visit.location} />
+      <Text style={styles.dateOfVisit}>
+        {new Date(visit.date_of_visit).toLocaleDateString()} - {visit.visit_type}{' '}
+      </Text>
+      <LabelAndItem label="Location">
+        <LocationName locationId={visit.location} />
+      </LabelAndItem>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   visitContainer: {
+    marginLeft: 16,
     marginBottom: 16,
     borderWidth: 2,
-    borderStyle: 'solid',
-    borderColor: '#FFCCCC',
+    width: '25%',
+    padding: 16,
+  },
+  dateOfVisit: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
 });

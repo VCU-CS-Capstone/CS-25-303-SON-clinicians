@@ -4,8 +4,10 @@ import { StyleSheet } from 'react-native';
 const LabelAndItem = ({ label, children }: { label: string; children: React.ReactNode }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
-      {children}
+      <View style={styles.labelContainer}>
+        <Text style={styles.label}>{label}</Text>
+      </View>
+      <View style={styles.contentContainer}>{children}</View>
     </View>
   );
 };
@@ -13,14 +15,18 @@ const LabelAndItem = ({ label, children }: { label: string; children: React.Reac
 const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
-    borderWidth: 2,
-    borderStyle: 'solid',
-    borderColor: '#FFCDD2',
+    borderBottomWidth: 2,
+    borderBottomColor: '#FFCDD2',
   },
   label: {
     fontSize: 24,
     color: 'black',
     fontWeight: 'bold',
+    padding: 12,
+  },
+  labelContainer: {},
+  contentContainer: {
+    marginLeft: 20,
   },
 });
 export default LabelAndItem;

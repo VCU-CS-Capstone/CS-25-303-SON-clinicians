@@ -9,6 +9,7 @@ export const participantOverViewStyles = StyleSheet.create({
   participantName: {
     fontSize: 32,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   flexRowWrap: {
     flexDirection: 'row',
