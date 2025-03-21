@@ -6,12 +6,12 @@ use axum::{
 use cs25_303_core::{
     database::{
         CSPageParams, PaginatedResponse,
-        queries::{ItemOrArray, NumberQuery},
+        queries::{ItemOrArray, NumberQuery, array::ArrayQuery},
         red_cap::participants::{
             ResearcherQuery, ResearcherQueryBloodPressure, ResearcherQueryResult,
         },
     },
-    red_cap::{EducationLevel, PreferredLanguage, Programs},
+    red_cap::{EducationLevel, HealthInsurance, PreferredLanguage, Programs, Race},
 };
 use tracing::instrument;
 use utoipa::OpenApi;
@@ -34,7 +34,11 @@ use crate::{
          EducationLevel,
          Programs,
          ItemOrArray<i32>,
-         ResearcherQueryBloodPressure
+         ResearcherQueryBloodPressure,
+         ArrayQuery<Race>,
+         Race,
+         ArrayQuery<HealthInsurance>,
+         HealthInsurance,
         )
     ),
 )]

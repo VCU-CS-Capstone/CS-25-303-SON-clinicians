@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use strum::EnumIs;
 use utoipa::ToSchema;
 
+pub mod array;
 mod number;
 pub use number::*;
 

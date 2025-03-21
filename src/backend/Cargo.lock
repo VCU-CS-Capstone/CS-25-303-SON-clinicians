@@ -207,9 +207,9 @@ dependencies = [
 
 [[package]]
 name = "aws-lc-sys"
-version = "0.27.1"
+version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77926887776171ced7d662120a75998e444d3750c951abfe07f90da130514b1f"
+checksum = "02864f6f8061f14ca73c85d261838dcb87b6a9a4259781bd0e1031821b280167"
 dependencies = [
  "bindgen",
  "cc",
@@ -482,9 +482,9 @@ checksum = "2d2c12f985c78475a6b8d629afd0c360260ef34cfef52efccdcfd31972f81c2e"
 
 [[package]]
 name = "cc"
-version = "1.2.16"
+version = "1.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be714c154be609ec7f5dad223a33bf1482fff90472de28f7362806e6d4832b8c"
+checksum = "1fcb57c740ae1daf453ae85f16e37396f672b039e00d9d866e07ddb24e328e3a"
 dependencies = [
  "jobserver",
  "libc",
@@ -810,6 +810,7 @@ dependencies = [
  "derive_builder",
  "derive_more 2.0.1",
  "either",
+ "opentelemetry",
  "pg-extended-sqlx-queries",
  "rand 0.9.0",
  "reqwest",
@@ -828,6 +829,7 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-appender",
+ "tracing-opentelemetry",
  "tracing-subscriber",
  "utoipa",
  "uuid",
@@ -3351,7 +3353,7 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 [[package]]
 name = "pg-extended-sqlx-queries"
 version = "0.1.0"
-source = "git+https://github.com/wyatt-herkamp/pg-extended-sqlx-queries.git#b88a3c2905c0188c2b4eb1e02492129c79b03717"
+source = "git+https://github.com/wyatt-herkamp/pg-extended-sqlx-queries.git#4b072597431e8a6b31abf5e7471be316fc6ce5e1"
 dependencies = [
  "ahash",
  "chrono",
@@ -3365,7 +3367,7 @@ dependencies = [
 [[package]]
 name = "pg-extended-sqlx-queries-macros"
 version = "0.1.0"
-source = "git+https://github.com/wyatt-herkamp/pg-extended-sqlx-queries.git#b88a3c2905c0188c2b4eb1e02492129c79b03717"
+source = "git+https://github.com/wyatt-herkamp/pg-extended-sqlx-queries.git#4b072597431e8a6b31abf5e7471be316fc6ce5e1"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -3459,7 +3461,7 @@ version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
 dependencies = [
- "zerocopy 0.8.23",
+ "zerocopy 0.8.24",
 ]
 
 [[package]]
@@ -3581,7 +3583,7 @@ checksum = "3779b94aeb87e8bd4e834cee3650289ee9e0d5677f976ecdb6d219e5f4f6cd94"
 dependencies = [
  "rand_chacha 0.9.0",
  "rand_core 0.9.3",
- "zerocopy 0.8.23",
+ "zerocopy 0.8.24",
 ]
 
 [[package]]
@@ -5761,11 +5763,11 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.8.23"
+version = "0.8.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd97444d05a4328b90e75e503a34bad781f14e28a823ad3557f0750df1ebcbc6"
+checksum = "2586fea28e186957ef732a5f8b3be2da217d65c5969d4b1e17f973ebbe876879"
 dependencies = [
- "zerocopy-derive 0.8.23",
+ "zerocopy-derive 0.8.24",
 ]
 
 [[package]]
@@ -5781,9 +5783,9 @@ dependencies = [
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.23"
+version = "0.8.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6352c01d0edd5db859a63e2605f4ea3183ddbd15e2c4a9e7d32184df75e4f154"
+checksum = "a996a8f63c5c4448cd959ac1bab0aaa3306ccfd060472f85943ee0750f0169be"
 dependencies = [
  "proc-macro2",
  "quote",

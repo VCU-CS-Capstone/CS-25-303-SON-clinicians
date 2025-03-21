@@ -4,7 +4,7 @@ use crate::{
     database::{
         PaginatedResponse,
         prelude::*,
-        queries::{ItemOrArray, NumberQuery},
+        queries::{ItemOrArray, NumberQuery, array::ArrayQuery},
         red_cap::{
             case_notes::{
                 BloodPressureType, CaseNote, CaseNoteColumn, CaseNoteHealthMeasures,
@@ -25,7 +25,8 @@ use pg_extended_sqlx_queries::pagination::{
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, prelude::FromRow};
 use tabled::Tabled;
-use tracing::{Level, debug, error, event, instrument, trace, warn};
+use tracing::{Level, Span, error, event, instrument, trace, warn};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 use utoipa::ToSchema;
 
 use super::{
@@ -114,9 +115,9 @@ pub struct ResearcherQuery {
 
     pub gender: Option<Gender>,
     pub highest_level_of_education: Option<EducationLevel>,
-    pub race: Option<Race>,
+    pub race: Option<ArrayQuery<Race>>,
     pub language: Option<PreferredLanguage>,
-    pub health_insurance: Option<HealthInsurance>,
+    pub health_insurance: Option<ArrayQuery<HealthInsurance>>,
     /// Age to filter by
     pub age: Option<NumberQuery<i16>>,
     /// Get the participants visit history
@@ -185,6 +186,7 @@ impl ResearcherQuery {
         page_and_size: PageParams,
         database: &PgPool,
     ) -> Result<PaginatedResponse<ResearcherQueryResult>, DBError> {
+        let span = Span::current();
         let Self {
             location,
             program,
@@ -341,14 +343,14 @@ impl ResearcherQuery {
                     .equals(highest_level_of_education),
             );
         }
-        if let Some(race) = race {
-            query.filter(ParticipantDemograhicsColumn::Race.equals(race));
+        if let Some(race) = race.filter(|race| race.len() > 0) {
+            query.filter(race.filter(ParticipantDemograhicsColumn::Race));
         }
         if let Some(language) = language {
             query.filter(ParticipantDemograhicsColumn::Language.equals(language));
         }
-        if let Some(health_insurance) = health_insurance {
-            query.filter(ParticipantDemograhicsColumn::HealthInsurance.equals(health_insurance));
+        if let Some(health_insurance) = health_insurance.filter(|race| race.len() > 0) {
+            query.filter(health_insurance.filter(ParticipantDemograhicsColumn::HealthInsurance));
         }
         if get_visit_history {
             trace!("Getting Visit History");
@@ -377,37 +379,15 @@ impl ResearcherQuery {
                     .alias("last_visited"),
             );
         }
-
-        let mut total_count: Option<i64> = None;
-        let result = query.query().fetch_all(database).await?;
-        let mut resulting_items = Vec::with_capacity(result.len());
-        for item in result {
-            if total_count.is_none() {
-                let total_count_value = item.try_get("total");
-                match total_count_value {
-                    Err(err) => {
-                        error!(?err, "Failed to get total count");
-                    }
-                    Ok(ok) => {
-                        debug!(?ok, "Got total count");
-                        total_count = Some(ok);
-                    }
-                }
+        let query = match query.query().fetch_all(database).await {
+            Ok(ok) => ok,
+            Err(err) => {
+                event!(Level::ERROR, ?err, "Failed to execute query");
+                span.set_status(opentelemetry::trace::Status::error(err.to_string()));
+                return Err(err.into());
             }
-            let item = ResearcherQueryResult::from_row(&item)?;
-            resulting_items.push(item);
-        }
-        event!(
-            Level::TRACE,
-            ?resulting_items,
-            ?total_count,
-            "Returning result"
-        );
-        let result = PaginatedResponse::create_response(
-            resulting_items,
-            &page_and_size,
-            total_count.unwrap_or(0),
-        );
+        };
+        let result = PaginatedResponse::from_rows(query, &page_and_size, "total")?;
         Ok(result)
     }
 }
