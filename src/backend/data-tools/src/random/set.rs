@@ -211,7 +211,8 @@ impl RandomSets {
             _ => Some(Ethnicity::NotHispanicOrLatino),
         };
         let (race, race_other, race_multiple, ethnicity) = match self.rand.random_range(0..100) {
-            0..50 => (Some(vec![Race::White]), None, None, ethnicity_none_or_not),
+            0..40 => (Some(vec![Race::White]), None, None, ethnicity_none_or_not),
+            40..50 => (Some(vec![Race::Asian]), None, None, ethnicity_none_or_not),
             50..65 => (Some(vec![Race::Black]), None, None, ethnicity_none_or_not),
             65..70 => (
                 Some(vec![Race::Hispanic]),
@@ -225,10 +226,16 @@ impl RandomSets {
                 None,
                 ethnicity_none_or_not,
             ),
-            _ => (
-                Some(vec![Race::Multiracial]),
+            90..95 => (
+                Some(vec![Race::Multiracial, Race::White, Race::Black]),
                 None,
                 Some("White, Black".to_string()),
+                ethnicity_none_or_not,
+            ),
+            _ => (
+                Some(vec![Race::White, Race::Black]),
+                None,
+                None,
                 ethnicity_none_or_not,
             ),
         };
