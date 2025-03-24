@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-
+mod types;
 use crate::{
     database::{
         PaginatedResponse,
@@ -25,8 +25,9 @@ use pg_extended_sqlx_queries::pagination::{
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, prelude::FromRow};
 use tabled::Tabled;
-use tracing::{Level, Span, error, event, instrument, trace, warn};
+use tracing::{Level, Span, event, instrument, trace, warn};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
+pub use types::*;
 use utoipa::ToSchema;
 
 use super::{
@@ -82,12 +83,7 @@ pub struct ResearcherQueryBloodPressure {
     pub systolic: Option<NumberQuery<i16>>,
     pub diastolic: Option<NumberQuery<i16>>,
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema, Default)]
-pub struct ResearcherQueryGlucose {
-    pub glucose: NumberQuery<f32>,
-    /// Undefined will tell the query you do not want to filter by this
-    pub fasted_atleast_2_hours: Option<bool>,
-}
+
 /// The researcher query
 ///
 /// # TODO
@@ -387,8 +383,14 @@ impl ResearcherQuery {
                 return Err(err.into());
             }
         };
-        let result = PaginatedResponse::from_rows(query, &page_and_size, "total")?;
-        Ok(result)
+        match PaginatedResponse::from_rows(query, &page_and_size, "total") {
+            Ok(ok) => return Ok(ok),
+            Err(err) => {
+                event!(Level::ERROR, ?err, "Failed to create paginated response");
+                span.set_status(opentelemetry::trace::Status::error(err.to_string()));
+                return Err(err.into());
+            }
+        }
     }
 }
 #[cfg(test)]

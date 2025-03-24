@@ -14,12 +14,14 @@ use cs25_303_core::{
     red_cap::SeenAtVCUHS,
 };
 use data::load_random_sets;
+use random_user::{RandomUser, RandomUserName};
 pub mod data;
 pub mod utils;
 use rand::{Rng, seq::IndexedRandom};
 use set::RandomSets;
 use sqlx::{PgPool, types::chrono::NaiveDate};
 use tracing::info;
+mod random_user;
 
 use crate::config::DataToolConfig;
 #[derive(Debug, Clone, Args)]
@@ -39,16 +41,14 @@ impl RandomParticipantsCommand {
 pub async fn generate_participants(count: usize, database: PgPool) -> anyhow::Result<()> {
     let mut random_sets = load_random_sets(None)?;
     random_sets.load_locations(&database).await?;
-    for _ in 0..count {
-        let RandomParticipant {
-            first_name,
-            last_name,
+    let participants = random_sets.random_user_client.fetch_users(count).await?;
+    for participant in participants {
+        let RandomUser {
+            name,
+            phone,
             gender,
-        } = random_sets
-            .participants
-            .choose(&mut random_sets.rand)
-            .unwrap()
-            .clone();
+        } = participant;
+        let RandomUserName { first, last, .. } = name;
         let program_and_location = random_sets.pick_random_program();
         let location = random_sets.location_for_program(program_and_location);
         let (signed_up_on, number_of_case_notes) = random_sets.first_week_and_numer_of_case_notes();
@@ -60,10 +60,10 @@ pub async fn generate_participants(count: usize, database: PgPool) -> anyhow::Re
             _ => None,
         };
         let new_participant = NewParticipant {
-            first_name,
-            last_name,
+            first_name: first,
+            last_name: last,
             red_cap_id: None,
-            phone_number_one: Some(random_sets.random_phone_number()),
+            phone_number_one: Some(phone),
             phone_number_two: None,
             // This string is intentionally this message as it will be used to identify these random participants
             other_contact: Some("Randomly Generated Participant. By Wyatt Herkamp".to_string()),
@@ -79,7 +79,7 @@ pub async fn generate_participants(count: usize, database: PgPool) -> anyhow::Re
         };
         let part = new_participant.insert_returning(&database).await?;
         let extra_info =
-            random_sets.create_extended_profile_for_partiicpant(part.id, gender.clone());
+            random_sets.create_extended_profile_for_partiicpant(part.id, gender.into());
         info!("Created Participant {:?} and extra {:?}", part, extra_info);
         let health_overview = random_sets.random_health_overview();
         health_overview.insert(part.id, &database).await?;

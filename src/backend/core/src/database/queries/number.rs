@@ -3,12 +3,24 @@ use std::str::FromStr;
 
 use chumsky::label::LabelError;
 use chumsky::prelude::*;
+use derive_more::From;
 use parse::ParseNumber;
 use pg_extended_sqlx_queries::prelude::*;
 use utoipa::ToSchema;
 pub mod parse;
 
 pub type ErrType = chumsky::extra::Err<chumsky::error::Cheap>;
+#[derive(Debug, Clone, PartialEq, Eq, From)]
+pub struct NumberQueryError(pub Vec<Cheap>);
+impl Display for NumberQueryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for err in &self.0 {
+            write!(f, "{};", err)?;
+        }
+        Ok(())
+    }
+}
+impl std::error::Error for NumberQueryError {}
 pub enum NumberQueryType {
     GreaterThan,
     LessThan,
@@ -110,9 +122,9 @@ impl<I> FromStr for NumberQuery<I>
 where
     I: ParseNumber,
 {
-    type Err = Vec<Cheap>;
+    type Err = NumberQueryError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        number_query().parse(s).into_result()
+        number_query().parse(s).into_result().map_err(NumberQueryError)
     }
 }
 
@@ -240,13 +252,7 @@ mod _serde {
         {
             match value.parse() {
                 Ok(ok) => Ok(ok),
-                Err(err) => {
-                    if err.len() == 1 {
-                        Err(serde::de::Error::custom(format!("{:?}", err[0])))
-                    } else {
-                        Err(serde::de::Error::custom(format!("{:?}", err)))
-                    }
-                }
+                Err(err) => Err(E::custom(err)),
             }
         }
 
@@ -256,13 +262,7 @@ mod _serde {
         {
             match value.parse() {
                 Ok(ok) => Ok(ok),
-                Err(err) => {
-                    if err.len() == 1 {
-                        Err(serde::de::Error::custom(format!("{:?}", err[0])))
-                    } else {
-                        Err(serde::de::Error::custom(format!("{:?}", err)))
-                    }
-                }
+                Err(err) => Err(E::custom(err)),
             }
         }
         visit_num!(

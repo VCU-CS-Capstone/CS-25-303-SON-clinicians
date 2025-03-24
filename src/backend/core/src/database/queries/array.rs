@@ -1,6 +1,5 @@
 use pg_extended_sqlx_queries::prelude::*;
 
-use rhai::Array;
 use serde::{Deserialize, Serialize};
 use strum::EnumIs;
 use utoipa::ToSchema;

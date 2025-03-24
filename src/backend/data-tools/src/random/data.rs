@@ -18,7 +18,7 @@ impl RandomData {}
 pub fn load_random_set<T, P>(name: &str, sets_override: Option<P>) -> anyhow::Result<T>
 where
     T: DeserializeOwned,
-    P: AsRef<Path> + Debug, 
+    P: AsRef<Path> + Debug,
 {
     let file_name = format!("{}.json", name);
     if let Some(sets_override) = sets_override {
@@ -43,7 +43,6 @@ where
 
 pub fn load_random_sets(path_overide: Option<PathBuf>) -> anyhow::Result<RandomSets> {
     let result = RandomSets {
-        participants: load_random_set("participants", path_overide.as_ref())?,
         goals: load_random_set("goals", path_overide.as_ref())?,
         medications: load_random_set("medications", path_overide.as_ref())?,
         behbehavioral_risks_identified: load_random_set(
@@ -108,7 +107,6 @@ mod tests {
         Ok(())
     }
     fn validate_data_sets(random_sets: &super::RandomSets) {
-        assert!(!random_sets.participants.is_empty());
         assert!(!random_sets.goals.is_empty());
         assert!(!random_sets.medications.is_empty());
         assert!(!random_sets.behbehavioral_risks_identified.is_empty());

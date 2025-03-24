@@ -18,7 +18,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::{info, warn};
 
-use super::{RandomCompleteGoal, RandomMedication, RandomParticipant, utils::RandDate};
+use super::{
+    RandomCompleteGoal, RandomMedication, RandomParticipant, random_user::RandomUserAPIClient,
+    utils::RandDate,
+};
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, Default)]
 pub enum WeightCategory {
     Underweight,
@@ -81,7 +84,6 @@ impl ParticipantExtendedInfo {
 #[derive(Debug, Clone)]
 pub struct RandomSets {
     pub rand: rand::rngs::StdRng,
-    pub participants: Vec<RandomParticipant>,
     pub goals: Vec<RandomCompleteGoal>,
     pub medications: Vec<RandomMedication>,
     pub behbehavioral_risks_identified: Vec<String>,
@@ -91,12 +93,13 @@ pub struct RandomSets {
     pub info_provided_by_caregiver: Vec<String>,
     pub case_note_other_health_measures: Vec<String>,
     pub extended_patient_info: HashMap<i32, ParticipantExtendedInfo>,
+    pub random_user_client: RandomUserAPIClient,
 }
 impl Default for RandomSets {
     fn default() -> Self {
         Self {
             rand: rand::rngs::StdRng::from_os_rng(),
-            participants: Default::default(),
+            random_user_client: RandomUserAPIClient::default(),
             goals: Default::default(),
             medications: Default::default(),
             behbehavioral_risks_identified: Default::default(),
@@ -429,14 +432,7 @@ impl RandomSets {
             .insert(participant, extended.clone());
         extended
     }
-    pub fn random_phone_number(&mut self) -> String {
-        let phone_number: String = format!(
-            "(555) {:03}-{:04}",
-            self.rand.random_range(100..999),
-            self.rand.random_range(1000..9999)
-        );
-        phone_number
-    }
+
     pub fn random_status(&mut self) -> Status {
         match self.rand.random_range(0..100) {
             0..75 => Status::Active,
