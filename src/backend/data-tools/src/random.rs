@@ -17,7 +17,7 @@ use data::load_random_sets;
 use random_user::{RandomUser, RandomUserName};
 pub mod data;
 pub mod utils;
-use rand::{Rng, seq::IndexedRandom};
+use rand::{Rng};
 use set::RandomSets;
 use sqlx::{PgPool, types::chrono::NaiveDate};
 use tracing::info;

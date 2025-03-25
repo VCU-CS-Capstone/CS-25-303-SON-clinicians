@@ -19,8 +19,7 @@ use sqlx::PgPool;
 use tracing::{info, warn};
 
 use super::{
-    RandomCompleteGoal, RandomMedication, RandomParticipant, random_user::RandomUserAPIClient,
-    utils::RandDate,
+    RandomCompleteGoal, RandomMedication, random_user::RandomUserAPIClient, utils::RandDate,
 };
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, Default)]
 pub enum WeightCategory {

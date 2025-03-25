@@ -17,8 +17,8 @@ serde_json = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 tracing-appender = "0.2"
-opentelemetry = { version = "0.28", features = [] }
-tracing-opentelemetry = "0.29"
+opentelemetry = { version = "0.29", features = [] }
+tracing-opentelemetry = "0.30"
 
 # API Documentation
 utoipa = { version = "5", features = ["chrono", "uuid", "url", "debug"] }
