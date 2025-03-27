@@ -90,6 +90,13 @@ pub struct Participants {
     pub last_synced_with_red_cap: Option<DateTime<FixedOffset>>,
 }
 impl Participants {
+    pub async fn get_all_ids(db: &sqlx::PgPool) -> DBResult<Vec<i32>> {
+        SelectQueryBuilder::with_columns(Self::table_name(), vec![ParticipantsColumn::Id])
+            .query_scalar()
+            .fetch_all(db)
+            .await
+            .map_err(DBError::from)
+    }
     pub async fn does_participant_id_exist(id: i32, db: &sqlx::PgPool) -> DBResult<bool> {
         let result: bool =
             sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM participants WHERE id = $1)")
