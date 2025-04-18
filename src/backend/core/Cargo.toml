@@ -9,7 +9,7 @@ description = "Core Shared Code between the backend and database"
 path = "src/lib.rs"
 
 [dependencies]
-chumsky = { version = "1.0.0-alpha.8", features = ["std"] }
+chumsky = { version = "0.10", features = ["std"] }
 strum.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -28,7 +28,7 @@ ahash.workspace = true
 clap.workspace = true
 derive_builder = "0.20"
 # This depend is mostly for testing
-rust-embed = { version = "8.5.0", features = ["interpolate-folder-path"] }
+rust-embed = { version = "8.5", features = ["interpolate-folder-path"] }
 tabled = "0.18"
 reqwest = { version = "0.12", features = ["json"] }
 either = "1.6"

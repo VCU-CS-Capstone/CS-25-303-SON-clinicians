@@ -5,12 +5,11 @@ pub use other::*;
 #[cfg(test)]
 mod tests {
     use chrono::{Duration, Local};
-    use pg_extended_sqlx_queries::pagination::PageParams;
     use rand::Rng;
 
     use crate::{
         database::{
-            DBError,
+            CSPageParams, DBError,
             red_cap::{
                 case_notes::{
                     BloodPressureType,
@@ -86,7 +85,7 @@ mod tests {
 
         let bps = super::BloodPressureHistory::find_all_for_participant(
             participant_id,
-            PageParams {
+            CSPageParams {
                 page_number: 1,
                 page_size: 15,
             },
@@ -108,7 +107,7 @@ mod tests {
         let weights = super::WeightHistory::find_all_for_participant(
             participant_id,
             true,
-            PageParams {
+            CSPageParams {
                 page_number: 1,
                 page_size: 15,
             },
@@ -131,7 +130,7 @@ mod tests {
             create_participant_with_history(&database, "CS25-303 glucose test").await?;
         let weights = super::BloodGlucoseHistory::find_all_for_participant(
             participant_id,
-            PageParams {
+            CSPageParams {
                 page_number: 1,
                 page_size: 15,
             },

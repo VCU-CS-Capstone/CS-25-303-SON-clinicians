@@ -1,12 +1,14 @@
-use std::fmt::Display;
 use std::str::FromStr;
+use std::{borrow::Cow, fmt::Display};
 
 use chumsky::label::LabelError;
 use chumsky::prelude::*;
 use derive_more::From;
 use parse::ParseNumber;
 use pg_extended_sqlx_queries::prelude::*;
-use utoipa::ToSchema;
+use utoipa::openapi::schema::SchemaType;
+use utoipa::openapi::{ObjectBuilder, Type};
+use utoipa::{PartialSchema, ToSchema};
 pub mod parse;
 
 pub type ErrType = chumsky::extra::Err<chumsky::error::Cheap>;
@@ -47,8 +49,7 @@ pub enum NumberQueryType {
 /// let result: NumberQuery<i32> = query.parse().unwrap();
 /// assert_eq!(result, NumberQuery::EqualTo(10));
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ToSchema)]
-#[schema(as = String)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NumberQuery<I = i32> {
     GreaterThan(I),
     LessThan(I),
@@ -56,6 +57,79 @@ pub enum NumberQuery<I = i32> {
     GreaterThanOrEqualTo(I),
     LessThanOrEqualTo(I),
     Range { start: I, end: I },
+}
+
+impl<I> utoipa::__dev::ComposeSchema for NumberQuery<I>
+where
+    I: PartialSchema,
+{
+    fn compose(
+        _: Vec<utoipa::openapi::RefOr<utoipa::openapi::schema::Schema>>,
+    ) -> utoipa::openapi::RefOr<utoipa::openapi::schema::Schema> {
+        let schema = utoipa::openapi::schema::OneOfBuilder::new()
+            .title(Some("NumberQuery"))
+            .description(Some("A number query"))
+            .schema_type(SchemaType::Type(Type::String))
+            .item(
+                ObjectBuilder::new()
+                    .title(Some("GreaterThan"))
+                    .description(Some("Greater than query `>10`"))
+                    .examples(vec![">10", ">10.5"])
+                    .schema_type(SchemaType::Type(Type::String))
+                    .build(),
+            )
+            .item(
+                ObjectBuilder::new()
+                    .title(Some("LessThan"))
+                    .description(Some("Less than query `<10`"))
+                    .examples(vec!["<10", "<10.5"])
+                    .schema_type(SchemaType::Type(Type::String))
+                    .build(),
+            )
+            .item(
+                ObjectBuilder::new()
+                    .title(Some("EqualTo"))
+                    .description(Some("Equal to query `=10` or `10`"))
+                    .examples(vec!["=10", "=10.5", "10", "10.5"])
+                    .schema_type(SchemaType::Type(Type::String))
+                    .build(),
+            )
+            .item(
+                ObjectBuilder::new()
+                    .title(Some("GreaterThanOrEqualTo"))
+                    .description(Some("Greater than or equal to query `>=10`"))
+                    .examples(vec![">=10", "=>10"])
+                    .schema_type(SchemaType::Type(Type::String))
+                    .build(),
+            )
+            .item(
+                ObjectBuilder::new()
+                    .title(Some("LessThanOrEqualTo"))
+                    .description(Some("Less than or equal to query `<=10`"))
+                    .examples(vec!["<=10", "=<10"])
+                    .schema_type(SchemaType::Type(Type::String))
+                    .build(),
+            )
+            .item(
+                ObjectBuilder::new()
+                    .title(Some("Range"))
+                    .description(Some("Range query `10..20`"))
+                    .examples(vec!["10..20", "10.5..20.5"])
+                    .schema_type(SchemaType::Type(Type::String))
+                    .build(),
+            )
+            .item(I::schema())
+            .build();
+        utoipa::openapi::RefOr::T(schema.into())
+    }
+}
+impl<I> ToSchema for NumberQuery<I>
+where
+    I: ToSchema,
+{
+    fn name() -> std::borrow::Cow<'static, str> {
+        Cow::Borrowed("NumberQuery")
+    }
 }
 impl<I: Default> Default for NumberQuery<I> {
     fn default() -> Self {
@@ -124,7 +198,10 @@ where
 {
     type Err = NumberQueryError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        number_query().parse(s).into_result().map_err(NumberQueryError)
+        number_query()
+            .parse(s)
+            .into_result()
+            .map_err(NumberQueryError)
     }
 }
 

@@ -3,7 +3,7 @@ use sqlx::{Executor, Postgres};
 use utoipa::ToSchema;
 
 use crate::database::{
-    PaginatedResponse,
+    CSPageParams, PaginatedResponse,
     prelude::*,
     red_cap::{
         Locations, LocationsColumn,
@@ -25,11 +25,9 @@ pub struct ParticipantsWithNoGoals {
 impl ParticipantsWithNoGoals {
     pub async fn execute(
         &self,
-        page_and_size: impl Into<PageParams>,
+        page_and_size: CSPageParams,
         executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<PaginatedResponse<DebugParticipantSummary>, DBError> {
-        let page_and_size: PageParams = page_and_size.into();
-
         let mut query = SelectQueryBuilder::new(Participants::table_name());
         query
             .select(ParticipantsColumn::Id)
@@ -67,10 +65,9 @@ impl ParticipantsWithNoGoals {
 }
 #[cfg(test)]
 mod tests {
-    use pg_extended_sqlx_queries::prelude::PageParams;
 
     use crate::{
-        database::red_cap::debug_reports::goals::ParticipantsWithNoGoals,
+        database::{CSPageParams, red_cap::debug_reports::goals::ParticipantsWithNoGoals},
         utils::testing::config::testing::{get_testing_config, no_testing_config},
     };
 
@@ -88,7 +85,7 @@ mod tests {
             get_location_name: true,
         };
 
-        let result = query.execute(PageParams::default(), &database).await?;
+        let result = query.execute(CSPageParams::default(), &database).await?;
         for participant in result.data {
             println!("{:?}", participant);
         }

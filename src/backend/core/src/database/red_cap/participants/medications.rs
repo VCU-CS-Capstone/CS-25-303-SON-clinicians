@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::database::{PaginatedResponse, prelude::*};
+use crate::database::{CSPageParams, PaginatedResponse, prelude::*};
 use chrono::{Local, NaiveDate};
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
@@ -72,7 +72,7 @@ impl ParticipantMedications {
         participant_id: i32,
         database: &PgPool,
         name: Option<String>,
-        params: PageParams,
+        params: CSPageParams,
     ) -> DBResult<PaginatedResponse<ParticipantMedications>> {
         let name = name
             .as_ref()

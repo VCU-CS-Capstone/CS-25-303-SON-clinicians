@@ -2,14 +2,14 @@ pub mod new;
 pub mod queries;
 use std::fmt::Debug;
 
-use crate::database::{PaginatedResponse, prelude::*};
+use crate::database::{prelude::*, CSPageParams, PaginatedResponse};
 use crate::red_cap::VisitType;
 use crate::red_cap::converter::case_notes::{
     OtherCaseNoteData, RedCapCaseNoteBase, RedCapHealthMeasures,
 };
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use new::NewBloodPressure;
-use pg_extended_sqlx_queries::pagination::{PageParams, PaginationSupportingTool};
+use pg_extended_sqlx_queries::pagination::PaginationSupportingTool;
 use pg_extended_sqlx_queries::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
@@ -49,7 +49,7 @@ pub trait CaseNoteType:
     #[instrument]
     async fn fetch_paginated_by_participant_id(
         participant_id: i32,
-        page_params: PageParams,
+        page_params: CSPageParams,
         database: &sqlx::PgPool,
     ) -> DBResult<PaginatedResponse<Self>> {
         let count = {

@@ -1,5 +1,5 @@
 use crate::database::{
-    PaginatedResponse,
+    CSPageParams, PaginatedResponse,
     prelude::*,
     red_cap::case_notes::{
         BloodPressureType, CaseNote, CaseNoteColumn, CaseNoteHealthMeasures,
@@ -112,11 +112,11 @@ impl BloodPressureHistory {
     /// If page_size is 0 or less all records are returned
     pub async fn find_all_for_participant(
         participant_id: i32,
-        page_and_size: impl Into<PageParams>,
+        page_and_size: CSPageParams,
         database: &sqlx::PgPool,
     ) -> DBResult<PaginatedResponse<Self>> {
-        let page_and_size: PageParams = page_and_size.into();
-        let mut query = SelectQueryBuilder::new(CaseNoteHealthMeasures::table_name());
+        let mut query: SelectQueryBuilder<'_> =
+            SelectQueryBuilder::new(CaseNoteHealthMeasures::table_name());
         query
             .select(CaseNoteColumn::Id.alias("case_note_id"))
             .select(CaseNoteColumn::DateOfVisit.alias("date_of_visit"))

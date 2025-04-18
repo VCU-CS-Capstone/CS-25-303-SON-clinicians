@@ -6,7 +6,7 @@ use sqlx::Row;
 use std::ops::Deref;
 pub mod table_utils;
 use derive_more::{From, Into};
-use pg_extended_sqlx_queries::pagination::PageParams;
+use pg_extended_sqlx_queries::pagination::PageParamsType;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool, migrate::Migrator, postgres::PgConnectOptions};
 use sqlx_postgres::PgRow;
@@ -72,20 +72,12 @@ impl Default for CSPageParams {
         }
     }
 }
-impl From<PageParams> for CSPageParams {
-    fn from(params: PageParams) -> Self {
-        Self {
-            page_size: params.page_size,
-            page_number: params.page_number,
-        }
+impl PageParamsType for CSPageParams {
+    fn page_size(&self) -> i32 {
+        self.page_size
     }
-}
-impl From<CSPageParams> for PageParams {
-    fn from(params: CSPageParams) -> Self {
-        Self {
-            page_size: params.page_size,
-            page_number: params.page_number,
-        }
+    fn page_number(&self) -> i32 {
+        self.page_number
     }
 }
 /// A paginated response
@@ -103,7 +95,7 @@ pub struct PaginatedResponse<T> {
 impl<T> PaginatedResponse<T> {
     pub fn create_response(
         data: Vec<T>,
-        page_params: &PageParams,
+        page_params: &CSPageParams,
         total: i64,
     ) -> PaginatedResponse<T> {
         let total_pages = (total as f64 / page_params.page_size as f64).ceil() as i32;
@@ -119,7 +111,7 @@ impl<T> PaginatedResponse<T> {
     )]
     pub fn from_rows(
         result: Vec<PgRow>,
-        page_params: &PageParams,
+        page_params: &CSPageParams,
         total_entries_column: &str,
     ) -> Result<PaginatedResponse<T>, sqlx::Error>
     where

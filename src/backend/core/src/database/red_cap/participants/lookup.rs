@@ -1,12 +1,12 @@
 use std::fmt::Debug;
 
 use crate::database::{
-    PaginatedResponse,
+    CSPageParams, PaginatedResponse,
     prelude::*,
     red_cap::case_notes::{CaseNote, CaseNoteColumn},
 };
 use pg_extended_sqlx_queries::pagination::{
-    PageParams, PaginationOwnedSupportingTool, PaginationSupportingTool,
+    PaginationOwnedSupportingTool, PaginationSupportingTool,
 };
 use serde::{Deserialize, Serialize};
 use tabled::Tabled;
@@ -103,10 +103,9 @@ impl ParticipantLookupQuery {
     #[instrument(name = "ParticipantLookupQuery::find", skip(database))]
     pub async fn find(
         self,
-        page_and_size: impl Into<PageParams> + Debug,
+        page_and_size: CSPageParams,
         database: &PgPool,
     ) -> DBResult<PaginatedResponse<ParticipantLookup>> {
-        let page_params: PageParams = page_and_size.into();
         let mut query = SelectQueryBuilder::with_columns(
             Participants::table_name(),
             ParticipantLookup::columns(),
@@ -125,14 +124,14 @@ impl ParticipantLookupQuery {
                     .alias("last_visited"),
             );
         }
-        query.page_params(page_params);
+        query.page_params(page_and_size);
         let total: i64 = {
             let mut count = SelectCount::new(Participants::table_name());
             self.apply_arguments(&mut count);
             count.query_scalar().fetch_one(database).await?
         };
         let result: Vec<ParticipantLookup> = query.query_as().fetch_all(database).await?;
-        let result = PaginatedResponse::create_response(result, &page_params, total);
+        let result = PaginatedResponse::create_response(result, &page_and_size, total);
         Ok(result)
     }
 }
@@ -140,7 +139,6 @@ impl ParticipantLookupQuery {
 #[cfg(test)]
 mod tests {
 
-    use pg_extended_sqlx_queries::pagination::PageParams;
     use tabled::Table;
 
     use crate::{
@@ -189,7 +187,7 @@ mod tests {
             let result = query
                 .clone()
                 .find(
-                    PageParams {
+                    CSPageParams {
                         page_number: 1,
                         page_size: 10,
                     },

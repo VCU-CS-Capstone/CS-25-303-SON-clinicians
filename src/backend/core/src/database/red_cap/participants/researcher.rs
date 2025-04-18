@@ -2,7 +2,7 @@ use std::fmt::Debug;
 mod types;
 use crate::{
     database::{
-        PaginatedResponse,
+        CSPageParams, PaginatedResponse,
         prelude::*,
         queries::{ItemOrArray, NumberQuery, array::ArrayQuery},
         red_cap::{
@@ -20,7 +20,7 @@ use crate::{
     },
 };
 use pg_extended_sqlx_queries::pagination::{
-    PageParams, PaginationOwnedSupportingTool, PaginationSupportingTool,
+    PaginationOwnedSupportingTool, PaginationSupportingTool,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, prelude::FromRow};
@@ -179,7 +179,7 @@ impl ResearcherQuery {
     #[instrument(skip(database))]
     pub async fn query(
         self,
-        page_and_size: PageParams,
+        page_and_size: CSPageParams,
         database: &PgPool,
     ) -> Result<PaginatedResponse<ResearcherQueryResult>, DBError> {
         let span = Span::current();
@@ -422,7 +422,7 @@ mod tests {
             let result = query
                 .clone()
                 .query(
-                    PageParams {
+                    CSPageParams {
                         page_number: 1,
                         page_size: 10,
                     },
@@ -574,7 +574,7 @@ mod tests {
         let result = query
             .clone()
             .query(
-                PageParams {
+                CSPageParams {
                     page_number: 1,
                     page_size: 10,
                 },

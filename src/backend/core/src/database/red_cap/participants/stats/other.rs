@@ -1,7 +1,7 @@
-use crate::database::PaginatedResponse;
 use crate::database::red_cap::participants::health_overview::{
     HealthOverview, HealthOverviewColumn,
 };
+use crate::database::{CSPageParams, PaginatedResponse};
 use chrono::NaiveDate;
 use pg_extended_sqlx_queries::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -28,10 +28,9 @@ pub struct BloodGlucoseHistory {
 impl BloodGlucoseHistory {
     pub async fn find_all_for_participant(
         participant_id: i32,
-        page_and_size: impl Into<PageParams>,
+        page_and_size: CSPageParams,
         database: &sqlx::PgPool,
     ) -> DBResult<PaginatedResponse<BloodGlucoseHistory>> {
-        let page_and_size: PageParams = page_and_size.into();
         let mut query = SelectQueryBuilder::new(CaseNoteHealthMeasures::table_name());
         query
             .select(CaseNoteColumn::Id.alias("case_note_id"))
@@ -79,10 +78,9 @@ impl WeightHistory {
     pub async fn find_all_for_participant(
         participant_id: i32,
         calculate_bmi: bool,
-        page_and_size: impl Into<PageParams>,
+        page_and_size: CSPageParams,
         database: &sqlx::PgPool,
     ) -> DBResult<PaginatedResponse<WeightHistory>> {
-        let page_and_size: PageParams = page_and_size.into();
         let mut query = SelectQueryBuilder::new(CaseNoteHealthMeasures::table_name());
         query
             .select(CaseNoteColumn::Id.alias("case_note_id"))
