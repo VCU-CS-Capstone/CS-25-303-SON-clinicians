@@ -1,0 +1,4 @@
+expo-depend-check:
+    npx expo install --check
+eas-build-local-android:
+    npx eas build -p android --profile preview --local

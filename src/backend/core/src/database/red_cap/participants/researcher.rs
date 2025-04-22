@@ -396,7 +396,6 @@ impl ResearcherQuery {
 #[cfg(test)]
 mod tests {
 
-    use pg_extended_sqlx_queries::pagination::PageParams;
     use tabled::Table;
 
     use crate::utils::testing::config::testing::{get_testing_config, no_testing_config};
