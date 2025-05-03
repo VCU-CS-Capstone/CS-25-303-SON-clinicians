@@ -1,16 +1,21 @@
-# Documentation Folder
-| Document | Description |
-|---|---|
-| Statement of Work| Short description of the project, description of Current state, value, business requirements |
-| Architecture | High-level design.  Components and where they would exist (e.g. web server, database server, application server, z/OS |
-| Detailed Design | Identify modules making up each component.  data flows between modules.  Also ERDs and other documentation depending upon technologies used |
-| Installation Guide| How to install and configure the project |
-| User Guide | Any user interface instructions |
+# Documentation
 
+This folder contains high-level documentation for the CS 25 303 Backend/API project.
 
+While code-level comments and file-specific notes can be found throughout the repository, this directory serves as a centralized reference for understanding the system as a whole. It is designed to help:
 
-## Docs Folder
+- New developers onboard quickly
+- Reviewers or stakeholders understand the project structure
+- Support the continuation of work beyond the academic timeline
 
-The docs folder is where you will find non user documentation. Such as information on using the backends api and other techincal design info for developers.
+---
 
-Kind of to be treated as a developer wiki.
+## Contents
+
+| File                         | Description                                                                                    |
+| ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| `architecture.md`            | Overview of system design, core components, and data flow                                      |
+| `redcap-integration.md`      | Summary of how the system integrates with RedCap survey data                                   |
+| `security-considerations.md` | Practices implemented to meet data security and HIPAA-relevant standards                       |
+| API Overview                 | Refer to the [OpenAPI docs](https://cs-25-303.wyatt-herkamp.dev/scalar) for endpoint reference |
+
