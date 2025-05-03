@@ -1,25 +1,62 @@
-# Tablet-based Application For Clinicians
-## VCU School of Nursing
-## Description
-Design, implement, and document a prototype for a tablet-based application that can be used by clinicians prior to their meeting with patients that can summarize past survey responses and better prepare the clinician for their meeting with the patient.
+# Tablet-Based Clinical Support Application
 
-| Folder | Description |
-|---|---|
-| Documentation |  all documentation the project team has created to describe the architecture, design, installation, and configuration of the project |
-| Notes and Research | Relevant helpful information to understand the tools and techniques used in the project |
-| Project Deliverables | Folder that contains final pdf versions of all Fall and Spring Major Deliverables |
-| Status Reports | Project management documentation - weekly reports, milestones, etc. |
-| scr | Source code - create as many subdirectories as needed |
+## Virginia Commonwealth University – School of Nursing
 
-**Note:** Commits behind this fork could be automatically synced, meaning that changes made in the template are pushed into your repo. Please do not discard commits ahead (these are the updates you make to this repository).
+### Overview
 
-## Project Team
-- Dr. Lana Sargent - VCU School of Nursing - Primary point of contact
-- Jered Wendte - VCU School of Nursing - Sponsor
-- *Mentor's Name*  - *Company Affliation* - Mentor
-- *Technical Advisor Name* - *Company Affliation* - Technical Advisor
-- John Leonard - Computer Science - Faculty Advisor
-- Tyree Carpenter - Computer Science - Student Team Member
-- Shikriti Ghosh - Computer Science - Student Team Member
-- Ebenezer Hailu - Computer Science - Student Team Member
-- Wyatt Herkamp - Computer Science - Student Team Member
+This project is a **tablet-based application prototype** developed in collaboration with the VCU School of Nursing's Mobile Health & Welfare Program. It is designed to assist clinicians in **preparing for patient consultations** by providing a streamlined summary of prior patient survey responses. The application aims to enhance patient care by promoting **data-informed clinical decision-making** in a fast-paced healthcare environment.
+
+> This repository serves as the central hub for all documentation, code, and resources related to the development, implementation, and delivery of the project.
+
+---
+
+### 🩺 Project Purpose
+
+Clinicians often operate under time constraints and need to rapidly contextualize patient history. This application enables healthcare providers to:
+
+- **Quickly review a patient’s survey data** prior to consultation.
+- Identify trends or patterns in patient responses.
+- Access relevant information in a format optimized for tablet-based workflows.
+
+The goal is to improve clinician readiness, encourage continuity of care, and ultimately contribute to better patient outcomes.
+
+---
+
+### ✅ Project Achievements
+
+- Successfully delivered a functional **React Native prototype** for iPad devices.
+- Demonstrated proof of concept to the VCU School of Nursing; the project exceeded expectations and led to internal interest in expanding it to a **production-grade solution**.
+- Secured additional funding consideration based on the impact and usability of the initial prototype.
+- Built with a modular architecture to support future clinical features and potential integration with electronic health record (EHR) systems.
+
+---
+
+### 📁 Repository Structure
+
+| Folder                  | Description                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `Documentation/`        | Project documentation: architecture, design decisions, installation guides   |
+| `Notes and Research/`   | Background research and references to tools, libraries, and HIPAA guidelines |
+| `Project Deliverables/` | Finalized PDFs of all major deliverables from both Fall and Spring semesters |
+| `Status Reports/`       | Weekly status updates, milestone tracking, and planning artifacts            |
+| `src/`                  | Full source code of the application, organized into logical subdirectories   |
+
+> **Note:** This repository is based on a templated fork. Periodic upstream syncs may apply—avoid discarding local commits, which contain your latest project progress.
+
+---
+
+### 👥 Project Team
+
+| Name             | Role                                             |
+| ---------------- | ------------------------------------------------ |
+| Dr. Lana Sargent | VCU School of Nursing – Primary Contact          |
+| Jered Wendte     | VCU School of Nursing – Project Sponsor          |
+| John Leonard     | Department of Computer Science – Faculty Advisor |
+| Tyree Carpenter  | Computer Science – Student Developer             |
+| Shikriti Ghosh   | Computer Science – Student Developer             |
+| Ebenezer Hailu   | Computer Science – Student Developer             |
+| Wyatt Herkamp    | Computer Science – Student Developer             |
+
+---
+
+For further questions or to request a demo of the application, please contact [Tyree Carpenter](https://github.com/tyreesamurai), [Wyatt Herkamp](https://github.com/wyatt-herkamp) or the VCU School of Nursing's Mobile Health & Welfare Program.
