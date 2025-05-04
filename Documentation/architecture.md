@@ -35,7 +35,7 @@ This document outlines the architectural structure of the CS 25 303 Backend/API 
 ### Macros (`macros/`)
 
 - Rust procedural macros to streamline or simplify internal logic
-- Example use cases: automatic logging, schema handling, etc.
+- Example use cases: RedCap data map generation and other Internal macros for data types.
 
 ---
 
